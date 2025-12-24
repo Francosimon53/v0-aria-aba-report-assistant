@@ -98,11 +98,11 @@ Optimize for speed:
 ## Deployment Steps
 
 1. **Push to GitHub**
-   ```bash
+   \`\`\`bash
    git add .
    git commit -m "Complete ARIA integration"
    git push origin main
-   ```
+   \`\`\`
 
 2. **Deploy to Vercel**
    - Connect GitHub repository to Vercel
