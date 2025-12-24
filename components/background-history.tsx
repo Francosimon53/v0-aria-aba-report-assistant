@@ -1,0 +1,666 @@
+"use client"
+
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { DailyScheduleTable } from "@/components/daily-schedule-table"
+import { SaveIcon, CheckCircle2Icon, FileTextIcon, DownloadIcon } from "@/components/icons"
+import { useToast } from "@/hooks/use-toast"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
+
+interface BackgroundHistoryData {
+  reasonForReferral: string
+  developmentalMilestones: {
+    motorSkills: string
+    communication: string
+    social: string
+    regressions: boolean
+    regressionDetails: string
+  }
+  educationStatus: {
+    currentSchool: string
+    gradeLevel: string
+    hasIEP: boolean
+    has504: boolean
+    academicConcerns: string
+    teacherReports: string
+  }
+  medicalHistory: {
+    medications: { name: string; dosage: string }[]
+    allergies: string
+    conditions: string
+    hospitalizations: string
+    specialists: string
+  }
+  familyHistory: {
+    familyStructure: string
+    relevantHistory: string
+    languagesSpoken: string
+  }
+  majorConcerns: string
+  previousTreatments: {
+    abaHistory: string
+    speechTherapy: string
+    otPt: string
+    medicationsTried: string
+    results: string
+  }
+  strengths: string
+  weaknesses: string
+}
+
+export function BackgroundHistory() {
+  const { toast } = useToast()
+  const [data, setData] = useState<BackgroundHistoryData>({
+    reasonForReferral: "",
+    developmentalMilestones: {
+      motorSkills: "",
+      communication: "",
+      social: "",
+      regressions: false,
+      regressionDetails: "",
+    },
+    educationStatus: {
+      currentSchool: "",
+      gradeLevel: "",
+      hasIEP: false,
+      has504: false,
+      academicConcerns: "",
+      teacherReports: "",
+    },
+    medicalHistory: {
+      medications: [],
+      allergies: "",
+      conditions: "",
+      hospitalizations: "",
+      specialists: "",
+    },
+    familyHistory: {
+      familyStructure: "",
+      relevantHistory: "",
+      languagesSpoken: "",
+    },
+    majorConcerns: "",
+    previousTreatments: {
+      abaHistory: "",
+      speechTherapy: "",
+      otPt: "",
+      medicationsTried: "",
+      results: "",
+    },
+    strengths: "",
+    weaknesses: "",
+  })
+
+  const [completedSections, setCompletedSections] = useState<string[]>([])
+
+  const updateField = (section: keyof BackgroundHistoryData, field: string, value: any) => {
+    setData((prev) => ({
+      ...prev,
+      [section]: {
+        ...(prev[section] as any),
+        [field]: value,
+      },
+    }))
+  }
+
+  const addMedication = () => {
+    setData((prev) => ({
+      ...prev,
+      medicalHistory: {
+        ...prev.medicalHistory,
+        medications: [...prev.medicalHistory.medications, { name: "", dosage: "" }],
+      },
+    }))
+  }
+
+  const removeMedication = (index: number) => {
+    setData((prev) => ({
+      ...prev,
+      medicalHistory: {
+        ...prev.medicalHistory,
+        medications: prev.medicalHistory.medications.filter((_, i) => i !== index),
+      },
+    }))
+  }
+
+  const markSectionComplete = (section: string) => {
+    if (!completedSections.includes(section)) {
+      setCompletedSections([...completedSections, section])
+    }
+  }
+
+  const handleSave = () => {
+    localStorage.setItem("aria_background_history", JSON.stringify(data))
+    toast({
+      title: "Draft Saved",
+      description: "Background & history has been saved successfully",
+    })
+  }
+
+  const handleImport = () => {
+    // Mock import from previous assessment
+    toast({
+      title: "Import Available",
+      description: "Click to import data from previous assessment",
+    })
+  }
+
+  const totalSections = 9
+  const completedCount = completedSections?.length ?? 0
+
+  return (
+    <div className="max-w-5xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Background & History</h1>
+          <p className="text-muted-foreground mt-1">Comprehensive developmental and clinical history</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={handleImport} className="gap-2 bg-transparent">
+            <DownloadIcon className="h-4 w-4" />
+            Import Previous
+          </Button>
+          <Button onClick={handleSave} className="gap-2 bg-[#0D9488] hover:bg-[#0a6b62]">
+            <SaveIcon className="h-4 w-4" />
+            Save Draft
+          </Button>
+        </div>
+      </div>
+
+      {/* Progress Indicator */}
+      <Card className="bg-gradient-to-r from-[#0D9488]/10 to-cyan-50 border-[#0D9488]/20">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Progress</span>
+            <Badge variant="secondary" className="bg-[#0D9488] text-white">
+              {completedCount} of {totalSections} sections
+            </Badge>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-[#0D9488] h-2 rounded-full transition-all duration-500"
+              style={{ width: `${(completedCount / totalSections) * 100}%` }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <ScrollArea className="h-[calc(100vh-250px)]">
+        <div className="space-y-6 pr-4">
+          {/* 1. Reason for Referral */}
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileTextIcon className="h-5 w-5 text-[#0D9488]" />
+                  <CardTitle>Reason for Referral</CardTitle>
+                </div>
+                {completedSections.includes("referral") && <CheckCircle2Icon className="h-5 w-5 text-green-500" />}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={data.reasonForReferral}
+                onChange={(e) => {
+                  setData({ ...data, reasonForReferral: e.target.value })
+                  if (e.target.value.length > 50) markSectionComplete("referral")
+                }}
+                placeholder="Include presenting concerns, who referred the client, chief complaints, and goals for treatment..."
+                className="min-h-[120px] focus:ring-2 focus:ring-[#0D9488]"
+              />
+            </CardContent>
+          </Card>
+
+          {/* 2. Background Information - Accordion Sections */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2">
+                <FileTextIcon className="h-5 w-5 text-[#0D9488]" />
+                Background Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="multiple" className="w-full space-y-2">
+                {/* Developmental Milestones */}
+                <AccordionItem value="milestones" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Developmental Milestones</span>
+                      {completedSections.includes("milestones") && (
+                        <CheckCircle2Icon className="h-4 w-4 text-green-500" />
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div>
+                      <Label>Motor Skills (walking, fine motor development)</Label>
+                      <Textarea
+                        value={data.developmentalMilestones.motorSkills}
+                        onChange={(e) => {
+                          updateField("developmentalMilestones", "motorSkills", e.target.value)
+                          if (e.target.value.length > 20) markSectionComplete("milestones")
+                        }}
+                        placeholder="Describe motor skill development..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Communication (first words, current language level)</Label>
+                      <Textarea
+                        value={data.developmentalMilestones.communication}
+                        onChange={(e) => updateField("developmentalMilestones", "communication", e.target.value)}
+                        placeholder="Describe communication milestones..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Social (eye contact, joint attention, peer interaction)</Label>
+                      <Textarea
+                        value={data.developmentalMilestones.social}
+                        onChange={(e) => updateField("developmentalMilestones", "social", e.target.value)}
+                        placeholder="Describe social development..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="regressions"
+                        checked={data.developmentalMilestones.regressions}
+                        onCheckedChange={(checked) => updateField("developmentalMilestones", "regressions", checked)}
+                      />
+                      <Label htmlFor="regressions" className="font-normal cursor-pointer">
+                        Any regressions noted?
+                      </Label>
+                    </div>
+                    {data.developmentalMilestones.regressions && (
+                      <Textarea
+                        value={data.developmentalMilestones.regressionDetails}
+                        onChange={(e) => updateField("developmentalMilestones", "regressionDetails", e.target.value)}
+                        placeholder="Describe regression details (when, what skills lost, circumstances)..."
+                        className="mt-2"
+                      />
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Education Status */}
+                <AccordionItem value="education" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Education Status</span>
+                      {completedSections.includes("education") && (
+                        <CheckCircle2Icon className="h-4 w-4 text-green-500" />
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Current School/Program</Label>
+                        <Input
+                          value={data.educationStatus.currentSchool}
+                          onChange={(e) => {
+                            updateField("educationStatus", "currentSchool", e.target.value)
+                            if (e.target.value) markSectionComplete("education")
+                          }}
+                          placeholder="School name"
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label>Grade Level</Label>
+                        <Input
+                          value={data.educationStatus.gradeLevel}
+                          onChange={(e) => updateField("educationStatus", "gradeLevel", e.target.value)}
+                          placeholder="e.g., 3rd grade"
+                          className="mt-1.5"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-6">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="hasIEP"
+                          checked={data.educationStatus.hasIEP}
+                          onCheckedChange={(checked) => updateField("educationStatus", "hasIEP", checked)}
+                        />
+                        <Label htmlFor="hasIEP" className="font-normal cursor-pointer">
+                          Has IEP
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="has504"
+                          checked={data.educationStatus.has504}
+                          onCheckedChange={(checked) => updateField("educationStatus", "has504", checked)}
+                        />
+                        <Label htmlFor="has504" className="font-normal cursor-pointer">
+                          Has 504 Plan
+                        </Label>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Academic Concerns</Label>
+                      <Textarea
+                        value={data.educationStatus.academicConcerns}
+                        onChange={(e) => updateField("educationStatus", "academicConcerns", e.target.value)}
+                        placeholder="Reading, math, behavior in classroom, etc."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Teacher Reports</Label>
+                      <Textarea
+                        value={data.educationStatus.teacherReports}
+                        onChange={(e) => updateField("educationStatus", "teacherReports", e.target.value)}
+                        placeholder="Summary of teacher feedback and observations..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Medical History */}
+                <AccordionItem value="medical" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Medical History</span>
+                      {completedSections.includes("medical") && <CheckCircle2Icon className="h-4 w-4 text-green-500" />}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div>
+                      <Label>Current Medications</Label>
+                      <div className="space-y-2 mt-2">
+                        {data.medicalHistory.medications.map((med, index) => (
+                          <div key={index} className="flex gap-2">
+                            <Input
+                              placeholder="Medication name"
+                              value={med.name}
+                              onChange={(e) => {
+                                const newMeds = [...data.medicalHistory.medications]
+                                newMeds[index].name = e.target.value
+                                updateField("medicalHistory", "medications", newMeds)
+                                if (e.target.value) markSectionComplete("medical")
+                              }}
+                              className="flex-1"
+                            />
+                            <Input
+                              placeholder="Dosage"
+                              value={med.dosage}
+                              onChange={(e) => {
+                                const newMeds = [...data.medicalHistory.medications]
+                                newMeds[index].dosage = e.target.value
+                                updateField("medicalHistory", "medications", newMeds)
+                              }}
+                              className="w-32"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeMedication(index)}
+                              className="hover:bg-red-50 hover:text-red-600"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={addMedication} className="w-full bg-transparent">
+                          + Add Medication
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Allergies</Label>
+                      <Input
+                        value={data.medicalHistory.allergies}
+                        onChange={(e) => updateField("medicalHistory", "allergies", e.target.value)}
+                        placeholder="Food, medication, environmental allergies..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Medical Conditions</Label>
+                      <Textarea
+                        value={data.medicalHistory.conditions}
+                        onChange={(e) => updateField("medicalHistory", "conditions", e.target.value)}
+                        placeholder="Chronic conditions, diagnoses, etc."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Hospitalizations</Label>
+                      <Textarea
+                        value={data.medicalHistory.hospitalizations}
+                        onChange={(e) => updateField("medicalHistory", "hospitalizations", e.target.value)}
+                        placeholder="Past hospitalizations, surgeries, or emergency visits..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Specialists Currently Seeing</Label>
+                      <Textarea
+                        value={data.medicalHistory.specialists}
+                        onChange={(e) => updateField("medicalHistory", "specialists", e.target.value)}
+                        placeholder="Neurologist, psychiatrist, developmental pediatrician, etc."
+                        className="mt-1.5"
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Family History */}
+                <AccordionItem value="family" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Family History</span>
+                      {completedSections.includes("family") && <CheckCircle2Icon className="h-4 w-4 text-green-500" />}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div>
+                      <Label>Family Structure</Label>
+                      <Textarea
+                        value={data.familyHistory.familyStructure}
+                        onChange={(e) => {
+                          updateField("familyHistory", "familyStructure", e.target.value)
+                          if (e.target.value.length > 20) markSectionComplete("family")
+                        }}
+                        placeholder="Parents, siblings, living situation, custody arrangements..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Relevant Psychiatric/Developmental History</Label>
+                      <Textarea
+                        value={data.familyHistory.relevantHistory}
+                        onChange={(e) => updateField("familyHistory", "relevantHistory", e.target.value)}
+                        placeholder="Family history of ASD, ADHD, learning disabilities, mental health conditions..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Languages Spoken at Home</Label>
+                      <Input
+                        value={data.familyHistory.languagesSpoken}
+                        onChange={(e) => updateField("familyHistory", "languagesSpoken", e.target.value)}
+                        placeholder="English, Spanish, bilingual household, etc."
+                        className="mt-1.5"
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Major Concerns */}
+                <AccordionItem value="concerns" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Major Concerns</span>
+                      {completedSections.includes("concerns") && (
+                        <CheckCircle2Icon className="h-4 w-4 text-green-500" />
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <Textarea
+                      value={data.majorConcerns}
+                      onChange={(e) => {
+                        setData({ ...data, majorConcerns: e.target.value })
+                        if (e.target.value.length > 50) markSectionComplete("concerns")
+                      }}
+                      placeholder="List current problem behaviors, impact on daily life, safety concerns, previous incidents..."
+                      className="min-h-[100px]"
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Previous/Current Treatments */}
+                <AccordionItem value="treatments" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Previous/Current Treatments</span>
+                      {completedSections.includes("treatments") && (
+                        <CheckCircle2Icon className="h-4 w-4 text-green-500" />
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div>
+                      <Label>ABA History</Label>
+                      <Textarea
+                        value={data.previousTreatments.abaHistory}
+                        onChange={(e) => {
+                          updateField("previousTreatments", "abaHistory", e.target.value)
+                          if (e.target.value.length > 20) markSectionComplete("treatments")
+                        }}
+                        placeholder="When, where, duration, hours per week, progress made..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Speech Therapy</Label>
+                      <Textarea
+                        value={data.previousTreatments.speechTherapy}
+                        onChange={(e) => updateField("previousTreatments", "speechTherapy", e.target.value)}
+                        placeholder="Duration, frequency, areas addressed, progress..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>OT/PT</Label>
+                      <Textarea
+                        value={data.previousTreatments.otPt}
+                        onChange={(e) => updateField("previousTreatments", "otPt", e.target.value)}
+                        placeholder="Occupational or physical therapy history..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Medications Tried</Label>
+                      <Textarea
+                        value={data.previousTreatments.medicationsTried}
+                        onChange={(e) => updateField("previousTreatments", "medicationsTried", e.target.value)}
+                        placeholder="Previous medications and durations..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label>Results of Each Treatment</Label>
+                      <Textarea
+                        value={data.previousTreatments.results}
+                        onChange={(e) => updateField("previousTreatments", "results", e.target.value)}
+                        placeholder="What worked, what didn't, reasons for discontinuation..."
+                        className="mt-1.5"
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Strengths */}
+                <AccordionItem value="strengths" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Strengths</span>
+                      {completedSections.includes("strengths") && (
+                        <CheckCircle2Icon className="h-4 w-4 text-green-500" />
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <Textarea
+                      value={data.strengths}
+                      onChange={(e) => {
+                        setData({ ...data, strengths: e.target.value })
+                        if (e.target.value.length > 30) markSectionComplete("strengths")
+                      }}
+                      placeholder="Child's areas of strength, preferred activities, motivators, learning style..."
+                      className="min-h-[100px]"
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Weaknesses */}
+                <AccordionItem value="weaknesses" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Weaknesses & Skill Deficits</span>
+                      {completedSections.includes("weaknesses") && (
+                        <CheckCircle2Icon className="h-4 w-4 text-green-500" />
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <Textarea
+                      value={data.weaknesses}
+                      onChange={(e) => {
+                        setData({ ...data, weaknesses: e.target.value })
+                        if (e.target.value.length > 30) markSectionComplete("weaknesses")
+                      }}
+                      placeholder="Skill deficits, challenging situations, areas needing improvement..."
+                      className="min-h-[100px]"
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+
+          {/* 3. Daily Schedule Table */}
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileTextIcon className="h-5 w-5 text-[#0D9488]" />
+                  <CardTitle>Daily Schedule</CardTitle>
+                </div>
+                {completedSections.includes("schedule") && <CheckCircle2Icon className="h-5 w-5 text-green-500" />}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Document the client's typical daily routine and activities
+              </p>
+            </CardHeader>
+            <CardContent>
+              <DailyScheduleTable
+                onSave={(scheduleData) => {
+                  markSectionComplete("schedule")
+                  toast({
+                    title: "Schedule Saved",
+                    description: "Daily schedule has been added to background history",
+                  })
+                }}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </ScrollArea>
+    </div>
+  )
+}

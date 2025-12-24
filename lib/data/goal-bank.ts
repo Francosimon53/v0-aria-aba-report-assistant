@@ -1,0 +1,250 @@
+export interface Goal {
+  id: string
+  domain: string
+  subdomain: string
+  title: string
+  description: string
+  criteria: string
+  targetPercentage: number
+  measurementType: string
+  ageRange: string
+  prerequisites?: string[]
+}
+
+export const goalBank: Goal[] = [
+  // Communication Domain
+  {
+    id: "comm-001",
+    domain: "Communication",
+    subdomain: "Receptive Language",
+    title: "Follow One-Step Instructions",
+    description: "Client will follow one-step instructions given by an adult within 5 seconds of the verbal direction.",
+    criteria: "80% accuracy across 3 consecutive sessions",
+    targetPercentage: 80,
+    measurementType: "Frequency",
+    ageRange: "2-5 years",
+    prerequisites: ["Attends to speaker", "Responds to name"],
+  },
+  {
+    id: "comm-002",
+    domain: "Communication",
+    subdomain: "Receptive Language",
+    title: "Identify Common Objects",
+    description: "Client will receptively identify 20 common objects when presented with an array of 3 items.",
+    criteria: "90% accuracy across 2 consecutive sessions",
+    targetPercentage: 90,
+    measurementType: "Discrete Trial",
+    ageRange: "2-4 years",
+  },
+  {
+    id: "comm-003",
+    domain: "Communication",
+    subdomain: "Expressive Language",
+    title: "Request Preferred Items",
+    description:
+      "Client will independently request preferred items/activities using verbal language, signs, or AAC device.",
+    criteria: "10 independent mands per session across 5 consecutive sessions",
+    targetPercentage: 100,
+    measurementType: "Frequency",
+    ageRange: "2-6 years",
+  },
+  {
+    id: "comm-004",
+    domain: "Communication",
+    subdomain: "Expressive Language",
+    title: "Label Common Objects",
+    description: "Client will expressively label 30 common objects when asked 'What is this?'",
+    criteria: "90% accuracy across 3 consecutive sessions",
+    targetPercentage: 90,
+    measurementType: "Discrete Trial",
+    ageRange: "2-5 years",
+  },
+  {
+    id: "comm-005",
+    domain: "Communication",
+    subdomain: "Social Communication",
+    title: "Initiate Social Greetings",
+    description: "Client will initiate greetings (wave, say hi/bye) with familiar adults and peers.",
+    criteria: "80% of opportunities across 5 consecutive sessions",
+    targetPercentage: 80,
+    measurementType: "Opportunity",
+    ageRange: "3-7 years",
+  },
+  // Social Skills Domain
+  {
+    id: "social-001",
+    domain: "Social Skills",
+    subdomain: "Play Skills",
+    title: "Parallel Play",
+    description: "Client will engage in parallel play alongside peers for at least 5 minutes without adult prompting.",
+    criteria: "4 out of 5 opportunities across 3 sessions",
+    targetPercentage: 80,
+    measurementType: "Duration",
+    ageRange: "2-4 years",
+  },
+  {
+    id: "social-002",
+    domain: "Social Skills",
+    subdomain: "Play Skills",
+    title: "Cooperative Play",
+    description: "Client will engage in cooperative play activities with peers, taking turns and sharing materials.",
+    criteria: "10 minutes of cooperative play across 5 consecutive sessions",
+    targetPercentage: 100,
+    measurementType: "Duration",
+    ageRange: "4-7 years",
+  },
+  {
+    id: "social-003",
+    domain: "Social Skills",
+    subdomain: "Joint Attention",
+    title: "Share Attention with Others",
+    description:
+      "Client will share attention by pointing to show items of interest and looking between object and communication partner.",
+    criteria: "5 instances per session across 5 sessions",
+    targetPercentage: 100,
+    measurementType: "Frequency",
+    ageRange: "2-5 years",
+  },
+  {
+    id: "social-004",
+    domain: "Social Skills",
+    subdomain: "Perspective Taking",
+    title: "Identify Emotions in Others",
+    description:
+      "Client will correctly identify basic emotions (happy, sad, angry, scared) in others based on facial expressions.",
+    criteria: "80% accuracy across 3 consecutive sessions",
+    targetPercentage: 80,
+    measurementType: "Discrete Trial",
+    ageRange: "4-8 years",
+  },
+  // Adaptive Behavior Domain
+  {
+    id: "adapt-001",
+    domain: "Adaptive Behavior",
+    subdomain: "Self-Care",
+    title: "Independent Handwashing",
+    description: "Client will complete all steps of handwashing independently using a task analysis.",
+    criteria: "100% of steps completed independently for 5 consecutive opportunities",
+    targetPercentage: 100,
+    measurementType: "Task Analysis",
+    ageRange: "3-6 years",
+  },
+  {
+    id: "adapt-002",
+    domain: "Adaptive Behavior",
+    subdomain: "Self-Care",
+    title: "Independent Toileting",
+    description: "Client will independently initiate and complete toileting routine including clothing management.",
+    criteria: "90% independence across 10 consecutive opportunities",
+    targetPercentage: 90,
+    measurementType: "Task Analysis",
+    ageRange: "3-7 years",
+  },
+  {
+    id: "adapt-003",
+    domain: "Adaptive Behavior",
+    subdomain: "Self-Care",
+    title: "Dressing Skills",
+    description: "Client will independently put on and remove basic clothing items (shirt, pants, socks, shoes).",
+    criteria: "80% independence across 5 consecutive sessions",
+    targetPercentage: 80,
+    measurementType: "Task Analysis",
+    ageRange: "3-6 years",
+  },
+  {
+    id: "adapt-004",
+    domain: "Adaptive Behavior",
+    subdomain: "Safety",
+    title: "Respond to Safety Commands",
+    description:
+      "Client will immediately stop current activity and respond to safety commands (stop, come here, wait).",
+    criteria: "100% compliance within 3 seconds across all opportunities",
+    targetPercentage: 100,
+    measurementType: "Latency",
+    ageRange: "2-8 years",
+  },
+  // Behavior Reduction Domain
+  {
+    id: "behav-001",
+    domain: "Behavior Reduction",
+    subdomain: "Self-Regulation",
+    title: "Use Coping Strategies",
+    description: "Client will independently use taught coping strategies when experiencing frustration or anxiety.",
+    criteria: "80% of opportunities with minimal prompting",
+    targetPercentage: 80,
+    measurementType: "Opportunity",
+    ageRange: "4-12 years",
+  },
+  {
+    id: "behav-002",
+    domain: "Behavior Reduction",
+    subdomain: "Compliance",
+    title: "Follow Adult Directions",
+    description:
+      "Client will follow adult directions within 10 seconds of initial request without engaging in problem behavior.",
+    criteria: "80% compliance across 5 consecutive sessions",
+    targetPercentage: 80,
+    measurementType: "Compliance",
+    ageRange: "3-10 years",
+  },
+  {
+    id: "behav-003",
+    domain: "Behavior Reduction",
+    subdomain: "Transitions",
+    title: "Transition Between Activities",
+    description: "Client will transition between activities within 2 minutes when given a warning and visual support.",
+    criteria: "90% of transitions completed without problem behavior",
+    targetPercentage: 90,
+    measurementType: "Duration",
+    ageRange: "3-8 years",
+  },
+  // Academic Readiness Domain
+  {
+    id: "acad-001",
+    domain: "Academic Readiness",
+    subdomain: "Pre-Literacy",
+    title: "Letter Identification",
+    description: "Client will identify all 26 uppercase letters when presented randomly.",
+    criteria: "100% accuracy across 3 consecutive sessions",
+    targetPercentage: 100,
+    measurementType: "Discrete Trial",
+    ageRange: "4-6 years",
+  },
+  {
+    id: "acad-002",
+    domain: "Academic Readiness",
+    subdomain: "Pre-Math",
+    title: "Rote Counting",
+    description: "Client will independently count from 1-20 without errors.",
+    criteria: "100% accuracy across 5 consecutive sessions",
+    targetPercentage: 100,
+    measurementType: "Discrete Trial",
+    ageRange: "3-5 years",
+  },
+  {
+    id: "acad-003",
+    domain: "Academic Readiness",
+    subdomain: "Pre-Math",
+    title: "One-to-One Correspondence",
+    description: "Client will count objects with one-to-one correspondence up to 10 items.",
+    criteria: "90% accuracy across 3 consecutive sessions",
+    targetPercentage: 90,
+    measurementType: "Discrete Trial",
+    ageRange: "3-6 years",
+  },
+  {
+    id: "acad-004",
+    domain: "Academic Readiness",
+    subdomain: "Attending",
+    title: "Attend to Group Instruction",
+    description:
+      "Client will attend to group instruction for 10 minutes, remaining seated and oriented toward instructor.",
+    criteria: "80% of intervals attending across 5 sessions",
+    targetPercentage: 80,
+    measurementType: "Interval",
+    ageRange: "4-7 years",
+  },
+]
+
+export const domains = [...new Set(goalBank.map((g) => g.domain))]
+export const subdomains = [...new Set(goalBank.map((g) => g.subdomain))]
