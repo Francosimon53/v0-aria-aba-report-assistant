@@ -1,0 +1,360 @@
+# Teaching Protocol Templates for ABA Therapy
+
+## Discrete Trial Training (DTT) Protocol Template
+
+### Target Skill: [Skill Name]
+Domain: [Communication/Social/Adaptive/Academic/Behavior]
+Prerequisite Skills: [List required foundational skills]
+
+### Operational Definition
+[Clear, observable, measurable description of the target behavior]
+
+### Materials Needed
+- [Item 1]
+- [Item 2]
+- [Item 3]
+
+### Teaching Procedure
+
+Antecedent (SD):
+[Exact instruction or cue to be given]
+Example: "Touch [item]" or "What is this?"
+
+Response:
+[Description of correct response]
+Example: Client touches the named item within 5 seconds
+
+Consequence for Correct Response:
+- Deliver reinforcement immediately (within 1-2 seconds)
+- Provide specific praise: "[Great job/Nice work] touching [item]!"
+- Record "+" on data sheet
+
+Consequence for Incorrect/No Response:
+1. Remove materials, provide neutral feedback ("Let's try again")
+2. Re-present SD with [prompt level] prompt
+3. Reinforce prompted correct response (reduced magnitude)
+4. Re-present SD with [lower prompt/independent]
+5. Reinforce and record prompt level used
+
+### Prompt Hierarchy
+1. Independent (I) - No prompt
+2. Gestural (G) - Point to correct answer
+3. Verbal (V) - Say the answer or give hint
+4. Model (M) - Demonstrate correct response
+5. Partial Physical (PP) - Light touch guidance
+6. Full Physical (FP) - Hand-over-hand
+
+### Prompt Fading Plan
+- Begin at [prompt level]
+- Fade to next level after [X] consecutive correct at current level
+- Use progressive time delay: Start 0 sec, increase by 2 sec each session
+
+### Mastery Criteria
+[X]% accuracy across [X] consecutive sessions with at least [X] different therapists
+
+### Generalization Plan
+- Teach with multiple exemplars: [list variations]
+- Practice in multiple settings: [list locations]
+- Practice with multiple people: [list therapists/caregivers]
+
+### Data Collection
+- Trial-by-trial data
+- Record: Correct (+), Incorrect (-), Prompted (note level)
+- Minimum [10] trials per session
+
+---
+
+## Natural Environment Teaching (NET) Protocol Template
+
+### Target Skill: [Skill Name]
+Domain: [Communication/Social/Adaptive]
+Functional Context: [When/why child would naturally use this skill]
+
+### Operational Definition
+[Clear description of target behavior in natural context]
+
+### Environment Setup
+Motivation: [How to capture/contrive motivation]
+Materials: [Items needed to create teaching opportunities]
+Setting: [Where teaching will occur]
+
+### Teaching Procedure
+
+Creating the Opportunity:
+1. Observe child's current interest/motivation
+2. [Specific strategy to create teaching opportunity]
+3. Wait expectantly for response
+
+Providing the SD:
+[Natural cue or created opportunity]
+Example: Hold up desired item, wait expectantly, ask "What do you want?"
+
+Target Response:
+[Expected response within natural context]
+Example: Child says "ball" or "I want ball"
+
+Consequence:
+- Immediately provide natural reinforcer (access to item/activity)
+- Pair with social reinforcement: "You said ball! Here's the ball!"
+- Expand language model: "You want the RED ball!"
+
+Prompting in NET:
+- Use least intrusive prompt
+- Prompt within the natural interaction
+- Fade prompts quickly to maintain natural feel
+- Model > Verbal > Gestural preferred over physical
+
+### Embedding Opportunities
+- Minimum [X] opportunities per hour during NET sessions
+- Target across daily routines: [meals, play, transitions, etc.]
+- Capture naturally occurring opportunities when possible
+
+### Data Collection
+- Frequency count of opportunities and responses
+- Note: Independent, Prompted, or No Response
+- Track generalization across settings/people
+
+### Mastery Criteria
+[X] independent responses across [X] different activities/settings
+
+---
+
+## Task Analysis Protocol Template
+
+### Target Skill: [Self-Care/Adaptive Skill Name]
+Domain: Adaptive Behavior
+Current Level: [Baseline - which steps independent vs. prompted]
+
+### Operational Definition
+[Description of complete routine from start to finish]
+
+### Task Analysis Steps
+
+| Step # | Step Description | Prompt Level Needed |
+|--------|------------------|---------------------|
+| 1 | [First step] | |
+| 2 | [Second step] | |
+| 3 | [Third step] | |
+| 4 | [Fourth step] | |
+| 5 | [Fifth step] | |
+| 6 | [Sixth step] | |
+| 7 | [Seventh step] | |
+| 8 | [Eighth step] | |
+
+### Teaching Procedure
+
+Chaining Method: [Forward Chain / Backward Chain / Total Task]
+
+Forward Chaining:
+- Teach Step 1 to mastery, prompt remaining steps
+- Add Step 2, teach to mastery, prompt remaining
+- Continue until all steps independent
+
+Backward Chaining:
+- Prompt all steps except last step
+- Teach last step to mastery
+- Add second-to-last step
+- Continue backward until all steps independent
+
+Total Task:
+- Teach all steps each trial
+- Provide prompts as needed for each step
+- Fade prompts for all steps simultaneously
+
+### Prompting
+- Use least-to-most prompting within each step
+- Record prompt level needed for each step
+- Fade prompts systematically
+
+### Reinforcement
+- Reinforce completion of target step(s) being taught
+- Use natural reinforcer when possible (completion of routine)
+- Pair with social praise
+
+### Mastery Criteria
+100% of steps independent across [3-5] consecutive opportunities
+
+### Data Collection
+- Record prompt level for each step each trial
+- Calculate percentage of steps independent
+- Graph progress weekly
+
+---
+
+## Social Skills Protocol Template
+
+### Target Skill: [Social Skill Name]
+Domain: Social/Play
+Social Context: [Peer play, group activity, conversation, etc.]
+
+### Operational Definition
+[Observable description of the social behavior]
+
+### Prerequisite Skills
+- [Foundational skill 1]
+- [Foundational skill 2]
+- [Imitation skills, attending, basic communication]
+
+### Teaching Procedure
+
+Phase 1: Instruction (BST - Behavioral Skills Training)
+1. Describe: Explain the skill and why it's important
+2. Model: Demonstrate the skill (video model or live)
+3. Rehearse: Practice with therapist in controlled setting
+4. Feedback: Provide specific feedback on performance
+
+Phase 2: Structured Practice
+- Practice with trained peer or therapist
+- Use contrived situations initially
+- Provide prompts and reinforcement
+- Multiple practice opportunities per session
+
+Phase 3: Natural Environment Practice
+- Practice during natural social opportunities
+- Fade prompts and contrived setups
+- Use natural social consequences
+- Promote peer-delivered reinforcement
+
+### Visual Supports
+- Social story for skill: [Yes/No]
+- Video model: [Yes/No]
+- Visual cue card: [Yes/No]
+- Script: [Yes/No]
+
+### Prompting Hierarchy for Social Skills
+1. Visual cue (point to visual/script)
+2. Gestural (social gesture to prompt)
+3. Verbal (whispered or stated prompt)
+4. Model (demonstrate expected behavior)
+
+### Generalization Plan
+- Multiple peers: [list names/descriptions]
+- Multiple settings: [classroom, playground, home, community]
+- Multiple activities: [structured games, free play, group activities]
+
+### Mastery Criteria
+[X]% of opportunities with [X] different peers across [X] settings
+
+### Data Collection
+- Record opportunities and responses
+- Note prompt level needed
+- Track across peers and settings
+
+---
+
+## Behavior Reduction Protocol Template
+
+### Target Behavior: [Problem Behavior Name]
+Operational Definition: [Clear, observable, measurable description]
+
+### Baseline Data
+- Frequency: [X] times per [hour/day/week]
+- Duration: Average [X] minutes per episode
+- Intensity: [Description or scale rating]
+
+### Function of Behavior
+Based on Functional Behavior Assessment:
+Primary Function: [Escape / Attention / Tangible / Automatic]
+Supporting Evidence: [Brief summary of FBA findings]
+
+### Antecedent Strategies
+
+Environmental Modifications:
+- [Modification 1]
+- [Modification 2]
+
+Setting Event Strategies:
+- [Strategy for addressing setting events]
+
+Antecedent Interventions:
+- [Specific antecedent intervention based on function]
+
+### Teaching Replacement Behavior
+
+Replacement Behavior: [Functionally equivalent alternative]
+Operational Definition: [Clear description]
+
+Teaching Procedure:
+1. [How replacement behavior will be taught]
+2. [Prompting procedure]
+3. [Reinforcement for replacement behavior]
+
+### Consequence Strategies
+
+Response to Problem Behavior:
+[Specific procedure based on function - must not reinforce problem behavior]
+
+Differential Reinforcement Procedure:
+Type: [DRA / DRI / DRO / DRL]
+Schedule: [Specific schedule of reinforcement]
+Procedure: [Step-by-step implementation]
+
+### Crisis/Safety Procedures
+[If applicable - procedures for managing dangerous behavior]
+
+### Monitoring and Data Collection
+- Frequency/duration/intensity data on problem behavior
+- Frequency data on replacement behavior
+- Fidelity checks on intervention implementation
+
+### Mastery/Goal Criteria
+Reduce [behavior] to fewer than [X] instances per [timeframe] for [X] consecutive [days/weeks]
+
+---
+
+## Mand Training Protocol Template
+
+### Target: Requesting [Item/Action/Information]
+Communication Modality: [Vocal / Sign / PECS / AAC Device]
+
+### Current Repertoire
+- Number of current mands: [X]
+- Current mand topography: [How child currently requests]
+- Spontaneity level: [Prompted only / Some spontaneous / Mostly spontaneous]
+
+### Target Mands to Teach
+1. [Mand 1]
+2. [Mand 2]
+3. [Mand 3]
+
+### Teaching Procedure
+
+Capturing Motivation:
+- Identify when child wants item (reaching, looking, moving toward)
+- Ensure motivation is present before teaching trial
+- Use deprivation/satiation strategies as appropriate
+
+Prompting:
+- Wait [X] seconds for independent response
+- Provide [prompt type] prompt
+- Accept approximations initially: [specify acceptable approximations]
+
+Reinforcement:
+- Immediately provide requested item/action
+- Pair with social praise
+- Match reinforcer magnitude to effort
+
+Transfer Trials:
+- Transfer from prompted to independent
+- Transfer across motivating operations
+- Transfer to natural cues
+
+### Prompt Fading
+- Use progressive time delay
+- Start: 0-second delay
+- Increase by [X] seconds when [criterion]
+- Target: [X]-second delay
+
+### Generalization
+- Multiple items per mand frame
+- Multiple people (therapists, parents, teachers)
+- Multiple settings (therapy, home, school, community)
+
+### Data Collection
+- Record independent vs. prompted mands
+- Track total mands per session
+- Note spontaneous vs. evoked
+- Monitor generalization across people/settings
+
+### Mastery Criteria
+[X] independent mands per session for [X] consecutive sessions
