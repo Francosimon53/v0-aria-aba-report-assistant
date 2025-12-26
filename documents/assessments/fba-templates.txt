@@ -1,0 +1,96 @@
+# Functional Behavior Assessment (FBA) Templates
+
+## FBA Overview and Purpose
+
+A Functional Behavior Assessment is a systematic process for identifying the variables that reliably predict and maintain problem behavior.
+
+## Components of a Comprehensive FBA
+
+### 1. Reason for Referral
+[Client Name] was referred for a Functional Behavior Assessment due to [specific behaviors] that are impacting [areas of functioning]. The behaviors have been occurring for approximately [duration].
+
+### 2. Operational Behavior Definitions
+
+Physical Aggression:
+Any instance of making forceful physical contact with another person using hands, feet, head, or objects. Includes hitting, kicking, biting, scratching, pinching, head-butting, hair pulling, pushing, and throwing objects at others.
+
+Self-Injurious Behavior (SIB):
+Any instance of self-directed physical contact that causes or has potential to cause tissue damage. Includes head hitting, self-biting, self-scratching, face slapping, and skin picking.
+
+Elopement:
+Any instance of leaving or attempting to leave a designated area without permission. Includes running away, leaving classroom without permission, exiting home without caregiver knowledge.
+
+Property Destruction:
+Any instance of causing damage to objects or property. Includes breaking items, tearing materials, throwing objects forcefully, kicking furniture.
+
+Tantrum Behavior:
+Combination of two or more: crying/screaming above conversational volume, falling to floor, flailing limbs while crying.
+
+Non-Compliance:
+Failure to initiate response to instruction within 10 seconds, or failure to complete ongoing task.
+
+### 3. Indirect Assessment Methods
+
+Parent Interview Questions:
+- Describe the behavior in detail
+- How often does it occur?
+- When is it most/least likely to occur?
+- Who is present when it occurs?
+- What happens right before?
+- What happens right after?
+- What calms the client down?
+- What interventions have been tried?
+
+Standardized Tools:
+- FAST (Functional Assessment Screening Tool)
+- MAS (Motivational Assessment Scale)
+- QABF (Questions About Behavioral Function)
+
+### 4. ABC Data Collection
+
+Record for each instance:
+- Date and time
+- Setting/Activity
+- People present
+- Antecedent (what happened before)
+- Behavior (specific description)
+- Consequence (what happened after)
+- Possible function
+
+### 5. The Four Functions of Behavior
+
+ESCAPE/AVOIDANCE:
+- Occurs during/after demands
+- Results in removal of demands
+- Decreases when demands removed
+
+ATTENTION:
+- Occurs when attention diverted
+- Results in attention from others
+- Decreases with continuous attention
+
+TANGIBLE:
+- Occurs when items unavailable
+- Results in access to items
+- Does not occur when items freely available
+
+AUTOMATIC/SENSORY:
+- Occurs across all conditions
+- Occurs when alone
+- Produces sensory input
+
+### 6. FBA Summary Statement Template
+
+Based on the Functional Behavior Assessment, [behavior] is most likely maintained by [function]. The behavior is most likely to occur when [antecedent conditions] and is less likely when [protective factors]. Setting events include [setting events]. When the behavior occurs, it results in [consequence], which reinforces the behavior through [reinforcement mechanism].
+
+### 7. Insurance Documentation Requirements
+
+FBA Must Include:
+- Clear reason for assessment
+- Operational definitions of target behaviors
+- Multiple assessment methods used
+- Data supporting function determination
+- Clear summary statement
+- Recommendations linked to function
+- BCBA signature and credentials
+- Date of assessment

@@ -1,0 +1,153 @@
+# Progress Notes and Session Documentation Templates
+
+## Daily Session Note - RBT (97153)
+
+**Client:** [Name]
+**Date:** [Date]
+**Time:** [Start] - [End]
+**Location:** [Setting]
+
+**Targets Addressed:**
+1. [Target 1]: [X/X trials] = [X]% - Prompt level: [I/G/V/M/P]
+2. [Target 2]: [X/X trials] = [X]% - Prompt level: [I/G/V/M/P]
+3. [Target 3]: [X/X trials] = [X]% - Prompt level: [I/G/V/M/P]
+
+**Behavior Data:**
+- [Behavior]: [Frequency/Duration] - Intervention used: [Strategy]
+
+**Session Summary:**
+[Client] participated in [duration] of ABA therapy. Demonstrated [progress/challenges] with [skills]. Overall engagement was [good/fair/poor].
+
+**Provider Signature:** _______________ Date: ___
+
+---
+
+## BCBA Session Note (97155)
+
+**Client:** [Name]
+**Date:** [Date]
+**Service:** Protocol Modification
+
+**Purpose:**
+☐ Data analysis ☐ Protocol modification ☐ Direct assessment ☐ Staff training
+
+**Clinical Activities:**
+1. Data Review: [Targets reviewed, trends identified]
+2. Modifications Made: [Changes and rationale]
+3. Treatment Integrity: [X]% - Feedback: [Summary]
+
+**Recommendations:**
+[Next steps]
+
+**BCBA Signature:** _______________ 
+Credentials: BCBA #___
+
+---
+
+## Caregiver Training Note (97156)
+
+**Client:** [Name]
+**Date:** [Date]
+**Caregiver(s):** [Names]
+
+**Training Topic:**
+☐ Reinforcement ☐ Prompting ☐ Behavior management ☐ Communication ☐ Data collection
+
+**Format:**
+☐ Didactic ☐ Modeling ☐ Role play ☐ Practice with feedback
+
+**Content:** [What was taught]
+
+**Caregiver Demonstration:** [X]% accuracy
+
+**Competency:**
+☐ Understands concept ☐ Needs prompting ☐ Independent ☐ Needs more training
+
+**Home Assignment:** [Task for practice]
+
+**BCBA Signature:** _______________
+
+---
+
+## Monthly Progress Report
+
+### Client Information
+- Name, DOB, Report Period
+- Diagnosis, BCBA name
+
+### Service Summary
+| Service | Authorized | Delivered |
+|---------|------------|-----------|
+| 97153 | [X] hrs | [X] hrs |
+| 97155 | [X] hrs | [X] hrs |
+| 97156 | [X] hrs | [X] hrs |
+
+### Goal Progress
+
+**Goal 1:** [Description]
+- Baseline: [X]%
+- Current: [X]%
+- Status: ☐ Mastered ☐ In Progress ☐ Not Started
+
+**Goal 2:** [Description]
+- Baseline: [X]%
+- Current: [X]%
+- Status: ☐ Mastered ☐ In Progress ☐ Not Started
+
+### Behavior Data
+| Behavior | Baseline | Current | Change |
+|----------|----------|---------|--------|
+| [Name] | [Rate] | [Rate] | [-%] |
+
+### Barriers
+☐ Attendance ☐ Caregiver involvement ☐ Medical ☐ None significant
+
+### Continued Medical Necessity
+[Statement supporting ongoing need]
+
+---
+
+## Quarterly Report Additions
+
+### Skill Acquisition Summary
+- Targets introduced: [X]
+- Targets mastered: [X]
+- Mastery rate: [X]%
+
+### Assessment Updates
+- Recent assessment: [Name, date]
+- Score changes: [Summary]
+
+### Hours Recommendation
+Based on progress, recommend:
+- 97153: [X] hours/week
+- 97155: [X] hours/month
+- 97156: [X] hours/month
+
+Rationale: [Justification]
+
+---
+
+## Documentation Best Practices
+
+### Do:
+- Write notes same day
+- Use objective language
+- Include specific data
+- Document clinical reasoning
+- Sign and date all notes
+
+### Don't:
+- Use vague language ("did well")
+- Leave sections blank
+- Backdate documentation
+- Copy/paste without individualizing
+
+### Insurance Requirements:
+- Date and time of service
+- Location
+- Service code
+- Provider credentials
+- Signature
+- Activities linked to goals
+- Measurable data

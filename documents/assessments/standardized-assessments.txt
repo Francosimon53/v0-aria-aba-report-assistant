@@ -1,0 +1,135 @@
+# Standardized ABA Assessments Guide
+
+## VB-MAPP (Verbal Behavior Milestones Assessment and Placement Program)
+
+### Overview
+Criterion-referenced assessment for language, learning, and social skills. Based on Skinner's analysis of verbal behavior. 170 milestones across 3 levels.
+
+### Levels
+
+Level 1 (0-18 months skills):
+Mand, Tact, Echoic, Listener Responding, Visual Perceptual/MTS, Independent Play, Social Behavior, Motor Imitation, Vocal Play
+
+Level 2 (18-30 months skills):
+Above plus LRFFC, Intraverbal, Classroom Routines, Linguistic Structure
+
+Level 3 (30-48 months skills):
+Above plus Reading, Writing, Math
+
+### Barriers Assessment
+24 barriers that impede learning:
+Negative behaviors, instructional control issues, weak mand/tact/echoic repertoires, prompt dependency, scrolling, impaired scanning, failure to generalize, weak motivators, self-stimulation, articulation problems, obsessive-compulsive behavior, hyperactivity, poor eye contact, sensory defensiveness
+
+### VB-MAPP Goals by Domain
+
+Mand:
+- Level 1: Mand for 10 items with sign/PECS/vocal
+- Level 2: Mand using 2-word phrases for 25 items
+- Level 3: Mand for information using wh-questions
+
+Tact:
+- Level 1: Tact 25 common objects
+- Level 2: Tact 200 items including verbs/adjectives
+- Level 3: Tact using complete sentences
+
+Listener Responding:
+- Level 1: Follow 10 motor instructions
+- Level 2: Select items by LRFFC
+- Level 3: Follow 3-step unrelated instructions
+
+---
+
+## ABLLS-R (Assessment of Basic Language and Learning Skills - Revised)
+
+### Overview
+544 skills across 25 skill areas. Criterion-referenced assessment and curriculum guide.
+
+### Domains
+
+Basic Learner Skills:
+A. Cooperation (18 items)
+B. Visual Performance (27 items)
+C. Receptive Language (57 items)
+D. Motor Imitation (20 items)
+E. Vocal Imitation (10 items)
+F. Requests/Mands (24 items)
+G. Labeling/Tacts (49 items)
+H. Intraverbals (62 items)
+I. Spontaneous Vocalizations (10 items)
+J. Syntax and Grammar (22 items)
+
+Academic/Self-Help:
+K. Play and Leisure (16 items)
+L. Social Interaction (34 items)
+M. Group Instruction (14 items)
+N. Classroom Routines (14 items)
+O-R. Self-Help Skills
+S-V. Academics (Reading, Math, Writing, Spelling)
+
+### Scoring
+0 = Not present
+1 = Emerging (full prompt)
+2 = Partial (partial prompt)
+3 = Present (independent, familiar)
+4 = Mastered (generalized, fluent)
+
+---
+
+## Vineland-3 (Adaptive Behavior Scales)
+
+### Domains
+
+Communication:
+- Receptive
+- Expressive
+- Written
+
+Daily Living Skills:
+- Personal
+- Domestic
+- Community
+
+Socialization:
+- Interpersonal Relationships
+- Play and Leisure
+- Coping Skills
+
+Motor Skills (birth-9 years):
+- Gross Motor
+- Fine Motor
+
+### Standard Score Interpretation
+130+: Very High
+115-129: High
+86-114: Average
+71-85: Low
+70 and below: Very Low
+
+### Using Vineland for Treatment Planning
+
+Communication < 85: Target receptive/expressive language, consider AAC
+Daily Living < 85: Target self-care, domestic, safety skills
+Socialization < 85: Target social interaction, play, peer relationships
+Motor < 85: Consider OT/PT referral, include motor imitation
+
+---
+
+## Assessment Schedule
+
+- Initial: Full battery before treatment
+- Ongoing: VB-MAPP/ABLLS-R quarterly
+- Annual: Vineland-3 for progress monitoring
+- As needed: FBA when new behaviors emerge
+
+## Converting Assessments to Goals
+
+From VB-MAPP:
+- Score 0: Not current target (prerequisites needed)
+- Score 1: Acquisition target
+- Score 2-3: Fluency/generalization target
+- Score 4-5: Mastered (maintenance)
+
+From Vineland-3:
+- Domain < 70: Intensive intervention
+- Domain 70-85: Targeted intervention
+- Domain > 85: Monitor and support
