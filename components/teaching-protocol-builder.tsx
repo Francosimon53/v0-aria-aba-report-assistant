@@ -18,6 +18,8 @@ import {
   AlertCircleIcon,
   FileTextIcon,
 } from "@/components/icons"
+import { useRAGSuggestions } from "@/hooks/useRAGSuggestions"
+import { Sparkles, Loader2 } from "lucide-react"
 
 interface ProtocolStep {
   id: string
@@ -326,6 +328,9 @@ export function TeachingProtocolBuilder() {
     examples: false,
   })
 
+  // RAG Integration
+  const { suggestions, isLoading, error, fetchSuggestions } = useRAGSuggestions()
+
   const handleTemplateChange = (templateKey: string) => {
     setSelectedTemplate(templateKey)
     const template = PROTOCOL_TEMPLATES[templateKey as keyof typeof PROTOCOL_TEMPLATES]
@@ -406,6 +411,7 @@ export function TeachingProtocolBuilder() {
               <p className="text-gray-600 dark:text-gray-400">
                 Create detailed, evidence-based teaching protocols for ABA programs
               </p>
+            <Button variant="outline" size="sm" onClick={() => fetchSuggestions("teaching protocols ABA DTT")} disabled={isLoading}>{isLoading ? "Loading..." : "AI Ideas"}</Button>
             </div>
           </div>
         </div>
