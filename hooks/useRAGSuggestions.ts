@@ -1,38 +1,46 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 interface RAGChunk {
   id: string;
   text: string;
   similarity: number;
-  document: {
-    id: string;
-  };
+  document: { id: string };
 }
 
 interface RAGResponse {
+  query: string;
   chunks: RAGChunk[];
   totalResults: number;
+  timestamp: string;
 }
 
 export function useRAGSuggestions() {
   const [suggestions, setSuggestions] = useState<RAGChunk[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getSuggestions = async (query: string, minSimilarity: number = 0.3) => {
-    if (!query.trim()) {
-      setSuggestions([]);
-      return;
-    }
-
-    setLoading(true);
+  const getSuggestions = useCallback(async (
+    query: string,
+    insuranceProvider?: string,
+    topK: number = 5
+  ) => {
+    setIsLoading(true);
     setError(null);
 
     try {
+      // Build query with insurance context
+      const enhancedQuery = insuranceProvider 
+        ? `${insuranceProvider} ${query}`
+        : query;
+
       const response = await fetch('/api/rag/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, minSimilarity, topK: 3 })
+        body: JSON.stringify({
+          query: enhancedQuery,
+          topK,
+          minSimilarity: 0.3
+        })
       });
 
       if (!response.ok) {
@@ -41,22 +49,23 @@ export function useRAGSuggestions() {
 
       const data: RAGResponse = await response.json();
       setSuggestions(data.chunks);
-    } catch (err: any) {
-      setError(err.message);
-      setSuggestions([]);
+      return data.chunks;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return [];
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  const clearSuggestions = () => {
+  const clearSuggestions = useCallback(() => {
     setSuggestions([]);
     setError(null);
-  };
+  }, []);
 
   return {
     suggestions,
-    loading,
+    isLoading,
     error,
     getSuggestions,
     clearSuggestions
