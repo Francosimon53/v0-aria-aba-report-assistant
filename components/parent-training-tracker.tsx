@@ -17,6 +17,8 @@ import {
   BookOpenIcon,
   VideoIcon,
 } from "@/components/icons"
+import { useRAGSuggestions } from "@/hooks/useRAGSuggestions"
+import { Sparkles, Loader2 } from "lucide-react"
 
 interface TrainingModule {
   id: string
@@ -153,6 +155,9 @@ export function ParentTrainingTracker() {
   const [selectedModule, setSelectedModule] = useState<string | null>(null)
   const [newFidelityScores, setNewFidelityScores] = useState<Record<string, string>>({})
 
+  // RAG Integration
+  const { suggestions, isLoading, error, fetchSuggestions } = useRAGSuggestions()
+
   const updateModule = (id: string, updates: Partial<TrainingModule>) => {
     setModules(modules.map((m) => (m.id === id ? { ...m, ...updates } : m)))
   }
@@ -257,6 +262,10 @@ export function ParentTrainingTracker() {
             <DownloadIcon className="h-4 w-4 mr-2" />
             Export Report
           </Button>
+            <Button variant="outline" size="sm" onClick={() => fetchSuggestions("parent training ABA curriculum caregiver")} disabled={isLoading} className="ml-2">
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              {isLoading ? "Loading..." : "AI Ideas"}
+            </Button>
         </div>
 
         {/* Overall Progress Card */}
