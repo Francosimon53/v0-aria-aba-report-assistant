@@ -1,0 +1,29 @@
+-- Insertar documento
+INSERT INTO rag_documents (title, content, document_type, insurance_provider)
+VALUES (
+  'Aetna Insurance Requirements',
+  '# Aetna Insurance Requirements for ABA Therapy
+
+## Documentation Requirements
+
+All ABA therapy reports must include:
+
+1. **Assessment Data**
+   - Minimum 3 observations per skill area
+   - Functional behavior assessment for Level 2-3 autism
+   - Parent interview data
+   - Standardized assessment scores (VB-MAPP, ABLLS-R, or Vineland-3)
+
+2. **Treatment Goals**
+   - Goals must be measurable and time-bound
+   - Parent training is incorporated
+   - Regular progress monitoring is documented
+
+3. **Medical Necessity Language**
+Services are medically necessary when:
+- Client demonstrates significant delays in adaptive functioning
+- Intensive intervention is required
+- Progress is documented through data collection',
+  'insurance_policy',
+  'Aetna'
+);
