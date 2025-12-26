@@ -9,6 +9,8 @@ import { Progress } from "./ui/progress"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
 import { Label } from "./ui/label"
+import { useRAGSuggestions } from "@/hooks/useRAGSuggestions"
+import { Sparkles, Loader2 } from "lucide-react"
 import {
   TargetIcon,
   PlusIcon,
@@ -126,6 +128,13 @@ export function GoalsTracker() {
     description: "",
     targetDate: "",
   })
+
+  // RAG Suggestions Hook
+  const { suggestions, isLoading: ragLoading, getSuggestions } = useRAGSuggestions()
+
+  const handleGetGoalSuggestions = async () => {
+    await getSuggestions("ABA therapy goals behavior reduction skill acquisition insurance requirements")
+  }
 
   const toggleLTOExpanded = (ltoId: string) => {
     setLtos(ltos.map((lto) => (lto.id === ltoId ? { ...lto, expanded: !lto.expanded } : lto)))
@@ -349,6 +358,33 @@ export function GoalsTracker() {
                 placeholder="e.g., Client will independently request items using verbal language"
                 rows={3}
               />
+              {/* RAG Suggestions Button */}
+              <button
+                type="button"
+                onClick={handleGetGoalSuggestions}
+                disabled={ragLoading}
+                className="mt-2 flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800"
+              >
+                {ragLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                Get AI Goal Suggestions
+              </button>
+              {suggestions.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {suggestions.slice(0, 3).map((s, i) => (
+                    <div
+                      key={i}
+                      onClick={() => setNewLTO({ ...newLTO, description: s.text })}
+                      className="p-2 text-sm bg-purple-50 border border-purple-200 rounded cursor-pointer hover:bg-purple-100"
+                    >
+                      {s.text.substring(0, 150)}...
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="target-date">Target Date</Label>
