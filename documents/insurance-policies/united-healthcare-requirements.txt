@@ -1,0 +1,257 @@
+# United Healthcare (UHC) ABA Therapy Requirements
+
+## Overview
+
+United Healthcare covers Applied Behavior Analysis (ABA) therapy for the treatment of Autism Spectrum Disorder when deemed medically necessary. Coverage varies by plan type.
+
+## Prior Authorization Requirements
+
+### Initial Authorization Process:
+- Required before starting any ABA services
+- Processing time: 10-15 business days
+- Valid for specified time period (typically 6-12 months)
+- Submit through UHC provider portal or fax
+
+### Required Documentation:
+1. **Diagnostic Evaluation**
+   - Current psychological evaluation (within 12 months)
+   - DSM-5 diagnosis: F84.0 (Autism Spectrum Disorder)
+   - ADOS-2 scores (preferred)
+   - Cognitive assessment results
+   
+2. **Functional Assessment**
+   - Vineland Adaptive Behavior Scales (VABS-3)
+   - Adaptive Behavior Assessment System (ABAS-3)
+   - Functional Behavior Assessment (FBA)
+   - Baseline data collection across domains
+
+3. **Medical Records**
+   - Primary care physician notes
+   - Previous intervention attempts and outcomes
+   - Current medications
+   - Relevant medical history
+
+4. **Treatment Plan**
+   - BCBA-developed comprehensive treatment plan
+   - Specific, measurable, achievable goals
+   - Recommended hours per week
+   - Treatment setting and modality
+
+## Medical Necessity Criteria
+
+### UHC Defines Medical Necessity When:
+- Treatment addresses deficits directly related to ASD diagnosis
+- Interventions are evidence-based and scientifically validated
+- Services follow nationally recognized guidelines (BACB)
+- Treatment is provided by qualified professionals
+- Expected outcomes cannot be achieved through less intensive services
+- Progress is documented and monitored regularly
+
+### Documentation Must Show:
+- How ASD symptoms impair daily functioning
+- Specific behaviors targeted for intervention
+- Why ABA is appropriate vs. other treatments
+- Safety concerns or risk factors
+- Family/caregiver involvement capacity
+
+## Treatment Goals Requirements
+
+### Goal Writing Standards:
+All goals must be written in measurable terms following this format:
+
+**Who**: Client name
+**Will do what**: Specific, observable behavior
+**How well**: Measurement criteria (accuracy %)
+**Under what conditions**: Setting, prompts, materials
+**By when**: Target date
+
+### Example Compliant Goal:
+"Johnny will independently request preferred items using 3-4 word sentences with 80% accuracy across 3 different settings (home, clinic, school) for 3 consecutive sessions by [date]."
+
+### Required Goal Domains:
+1. **Communication/Language**
+   - Expressive communication
+   - Receptive language
+   - Functional communication training
+
+2. **Social Skills**
+   - Peer interaction
+   - Joint attention
+   - Social reciprocity
+
+3. **Daily Living Skills**
+   - Self-care
+   - Independence
+   - Community skills
+
+4. **Behavior Management**
+   - Reduction of maladaptive behaviors
+   - Replacement behavior training
+   - Self-regulation skills
+
+5. **Academic/Pre-Academic**
+   - Attention to task
+   - Following instructions
+   - Learning readiness
+
+## Service Intensity Guidelines
+
+### Recommended Hours by Level of Need:
+- **Mild impairment**: 10-25 hours/week
+- **Moderate impairment**: 25-40 hours/week
+- **Severe impairment**: Up to 40+ hours/week (requires strong justification)
+
+### Justification for High Hours Must Include:
+- Severity of symptoms
+- Safety concerns
+- Failed response to lower intensity
+- Support available in natural environment
+- Realistic goals for intensive intervention
+
+## Provider Qualifications
+
+### Supervising BCBA Requirements:
+- Current BCB certification
+- State licensure where applicable
+- Liability insurance
+- Credentialed with UHC network
+
+### Direct Care Staff Requirements:
+- RBT certification OR
+- Bachelor's degree in related field OR
+- Supervised experience with ASD population
+- Training in treatment procedures
+- Supervision ratio: minimum 2 contacts per month per client
+
+## Progress Monitoring Requirements
+
+### Session Documentation:
+- Daily data collection on all active goals
+- ABC data for challenging behaviors
+- Duration of services provided
+- Interventions used
+- Client response to intervention
+- Parent/caregiver involvement
+
+### Monthly Progress Reports Should Include:
+- Data graphs for each goal
+- Percentage of goal completion
+- Description of progress or barriers
+- Any plan modifications
+- Continued medical necessity statement
+
+### Reauthorization Reports (Every 6 Months):
+- Comprehensive progress review
+- Updated assessment data (VABS, ABAS)
+- Comparison to baseline
+- Goal modifications or new goals
+- Hours recommendation with justification
+- Treatment plan updates
+
+## Parent/Caregiver Training
+
+### UHC Requirements:
+- Minimum 2 hours per month of caregiver training
+- Training must be documented separately from direct therapy
+- Topics covered must be specified
+- Caregiver implementation and generalization data
+- Training goals and objectives
+
+### Acceptable Training Topics:
+- Behavior management strategies
+- Communication techniques
+- Data collection procedures
+- Generalization strategies
+- Natural environment teaching
+- Crisis intervention
+
+## Common Reasons for Denial/Reduction
+
+### To Avoid Denial:
+1. **Incomplete Documentation**
+   - Ensure all required assessments are current
+   - Include all baseline data
+   - Submit comprehensive treatment plan
+
+2. **Lack of Medical Necessity**
+   - Clearly justify recommended hours
+   - Document why less intensive services insufficient
+   - Show connection between goals and ASD diagnosis
+
+3. **Insufficient Progress**
+   - Show data demonstrating positive response
+   - Explain barriers and modifications made
+   - Document when lack of progress due to medical complexity
+
+4. **Non-Covered Services**
+   - Ensure services are focused on ASD-related deficits
+   - Avoid educational-only goals
+   - Don't mix developmental delays unrelated to ASD
+
+## Reauthorization Process
+
+### Submit 30 Days Before Expiration:
+- Updated treatment plan
+- Progress report with data
+- Current assessment scores
+- Continued medical necessity justification
+- Hours recommendation
+
+### Required Elements:
+- Comparison to previous authorization period
+- Demonstration of meaningful progress
+- Explanation of any regression
+- Plan modifications based on progress
+- Family/caregiver input and cooperation
+
+## Appeals Process
+
+### If Authorization Denied:
+1. Review denial letter for specific reasons
+2. Gather additional supporting documentation
+3. Submit written appeal within 30 days
+4. Include peer-reviewed research supporting intervention
+5. Provide detailed clinical rationale
+6. Consider requesting peer-to-peer review
+
+### Expedited Appeals:
+Available when denial creates risk to health
+- Submit urgent appeal request
+- Provide medical documentation of urgency
+- Decision within 72 hours
+
+## Special Considerations
+
+### Telehealth Services:
+- Covered when medically appropriate
+- Same documentation requirements
+- Must demonstrate effectiveness
+- Parent supervision may be required
+
+### School-Based Services:
+- Cannot duplicate IEP services
+- Must target goals outside educational domain
+- Coordination with school staff documented
+- Clear differentiation from school services
+
+### Concurrent Services:
+- Speech therapy may be concurrent
+- Occupational therapy may be concurrent
+- Must show non-duplication of services
+- Coordination of care documented
+
+## Quality Measures
+
+UHC tracks quality indicators including:
+- Treatment plan individualization
+- Goal achievement rates
+- Caregiver satisfaction
+- Safety incidents
+- Service utilization patterns
+
+## Contact Information
+
+- Provider Services: 1-800-xxx-xxxx
+- Prior Authorization Fax: 1-xxx-xxx-xxxx
+- Provider Portal: www.uhcprovider.com
+- Appeals Address: [Include actual address when available]

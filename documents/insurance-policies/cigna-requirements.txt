@@ -1,0 +1,131 @@
+# Cigna ABA Therapy Coverage Requirements
+
+## Prior Authorization Process
+
+Cigna requires prior authorization for all ABA therapy services. The authorization process must be completed before services begin.
+
+### Required Documentation for Authorization:
+- Comprehensive psychological evaluation completed within the last 12 months
+- DSM-5 diagnosis code (F84.0 for Autism Spectrum Disorder)
+- Adaptive Behavior Assessment System (ABAS-3) scores
+- Vineland Adaptive Behavior Scales scores
+- BCBA recommendation letter
+- Treatment plan with specific, measurable goals
+- Medical necessity justification
+
+### Authorization Timeline:
+- Initial authorization: Up to 6 months of treatment
+- Reauthorization required every 6 months
+- Submit reauthorization requests 30 days before expiration
+
+## Assessment Requirements
+
+### Initial Assessment Must Include:
+1. **Behavioral Assessment**
+   - Functional Behavior Assessment (FBA)
+   - ABC (Antecedent-Behavior-Consequence) data
+   - Baseline data across all targeted skills
+   - Environmental assessment
+
+2. **Developmental Assessment**
+   - Cognitive functioning evaluation
+   - Language and communication assessment
+   - Social skills evaluation
+   - Motor skills assessment
+
+3. **Adaptive Functioning**
+   - Self-care skills
+   - Domestic skills
+   - Community participation
+   - Social interaction abilities
+
+## Treatment Plan Requirements
+
+### Goals Must Be:
+- Specific and clearly defined
+- Measurable with objective criteria
+- Achievable within the authorization period
+- Relevant to the client's diagnosis and needs
+- Time-bound with target dates
+
+### Example Goal Format:
+"[Client name] will independently request preferred items using 2-3 word phrases in 8 out of 10 opportunities across 3 consecutive sessions by [target date]."
+
+### Required Goal Categories:
+1. Communication skills
+2. Social interaction skills
+3. Adaptive living skills
+4. Behavior reduction (if applicable)
+5. Parent/caregiver training
+
+## Service Delivery Specifications
+
+### Coverage Details:
+- Maximum hours per week: Varies by medical necessity (typically 20-40 hours)
+- Setting: Home, clinic, school, or community
+- Provider qualifications: BCBA supervision required
+- RBT/technician ratio: Must comply with BACB requirements
+
+### Documentation Requirements:
+- Daily session notes required
+- Weekly progress summaries
+- Monthly data graphs showing progress
+- Quarterly comprehensive reports
+
+## Progress Reporting
+
+### Monthly Reports Must Include:
+- Current data on all treatment goals
+- Progress toward mastery criteria
+- Barriers to progress
+- Plan modifications if needed
+- Continued medical necessity justification
+
+### Quarterly Reports Must Include:
+- Comprehensive review of all goals
+- Updated assessment data
+- Treatment plan modifications
+- Recommendations for continued services
+- Caregiver training documentation
+
+## Medical Necessity Criteria
+
+Cigna defines medical necessity for ABA as treatment that:
+- Addresses skill deficits directly related to autism diagnosis
+- Is evidence-based and follows BACB guidelines
+- Shows measurable progress toward treatment goals
+- Cannot be provided through less intensive services
+- Is delivered by qualified professionals
+
+### Key Documentation Points:
+- Describe how autism symptoms impact daily functioning
+- Explain why ABA is necessary vs. other interventions
+- Document failed attempts at less intensive treatments
+- Highlight safety concerns if applicable
+- Demonstrate progress with data
+
+## Caregiver Training Requirements
+
+Cigna requires documentation of parent/caregiver training:
+- Minimum 2 hours per month of caregiver training
+- Training topics documented
+- Caregiver implementation data
+- Generalization of skills to home environment
+
+## Discharge Criteria
+
+Treatment may be discontinued when:
+- Client has met all treatment goals
+- Client shows no progress over 6 months despite plan modifications
+- Client no longer meets medical necessity criteria
+- Caregiver requests discontinuation
+- Services are no longer appropriate for the client's needs
+
+## Common Denial Reasons
+
+To avoid denials, ensure:
+- All assessments are current (within 12 months)
+- Goals are measurable and autism-specific
+- Medical necessity is clearly documented
+- Progress data is included with every authorization
+- BCBA credentials are current and documented
