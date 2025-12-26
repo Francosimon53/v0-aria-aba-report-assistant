@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PlusIcon, DownloadIcon, PrinterIcon, AlertCircleIcon, CheckCircle2Icon, XIcon } from "@/components/icons"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { useRAGSuggestions } from "@/hooks/useRAGSuggestions"
+import { Sparkles, Loader2 } from "lucide-react"
 
 type CPTCode = "97153" | "97155" | "97155HN" | "97156" | "97156HN"
 type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"
@@ -54,6 +56,9 @@ export function CPTAuthorizationRequest() {
     endTime: "",
     location: "Home",
   })
+
+  // RAG Integration for CPT suggestions
+  const { suggestions, isLoading, error, fetchSuggestions } = useRAGSuggestions()
 
   const parseTime = (timeStr: string): Date => {
     const [hours, minutes] = timeStr.split(":").map(Number)
@@ -522,6 +527,22 @@ export function CPTAuthorizationRequest() {
             Provide detailed rationale for the requested service hours. Aim for 150-300 words.
           </CardDescription>
         </CardHeader>
+            <div className="px-6 pb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchSuggestions("CPT codes medical necessity justification ABA therapy insurance authorization")}
+                disabled={isLoading}
+                className="w-full"
+              >
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                {isLoading ? "Getting suggestions..." : "Get AI Justification Help"}
+              </Button>
+            </div>
         <CardContent className="space-y-4">
           <Textarea
             value={justification}
