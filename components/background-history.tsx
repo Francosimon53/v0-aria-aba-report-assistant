@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { AITextarea } from "@/components/ui/ai-textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -207,11 +207,16 @@ export function BackgroundHistory() {
               </div>
             </CardHeader>
             <CardContent>
-              <Textarea
+              <AITextarea
+                fieldName="Reason for Referral"
                 value={data.reasonForReferral}
                 onChange={(e) => {
                   setData({ ...data, reasonForReferral: e.target.value })
                   if (e.target.value.length > 50) markSectionComplete("referral")
+                }}
+                onValueChange={(value) => {
+                  setData({ ...data, reasonForReferral: value })
+                  if (value.length > 50) markSectionComplete("referral")
                 }}
                 placeholder="Include presenting concerns, who referred the client, chief complaints, and goals for treatment..."
                 className="min-h-[120px] focus:ring-2 focus:ring-[#0D9488]"
@@ -242,11 +247,16 @@ export function BackgroundHistory() {
                   <AccordionContent className="space-y-4 pt-4">
                     <div>
                       <Label>Motor Skills (walking, fine motor development)</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Developmental Milestones - Motor Skills"
                         value={data.developmentalMilestones.motorSkills}
                         onChange={(e) => {
                           updateField("developmentalMilestones", "motorSkills", e.target.value)
                           if (e.target.value.length > 20) markSectionComplete("milestones")
+                        }}
+                        onValueChange={(value) => {
+                          updateField("developmentalMilestones", "motorSkills", value)
+                          if (value.length > 20) markSectionComplete("milestones")
                         }}
                         placeholder="Describe motor skill development..."
                         className="mt-1.5"
@@ -254,18 +264,22 @@ export function BackgroundHistory() {
                     </div>
                     <div>
                       <Label>Communication (first words, current language level)</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Developmental Milestones - Communication"
                         value={data.developmentalMilestones.communication}
                         onChange={(e) => updateField("developmentalMilestones", "communication", e.target.value)}
+                        onValueChange={(value) => updateField("developmentalMilestones", "communication", value)}
                         placeholder="Describe communication milestones..."
                         className="mt-1.5"
                       />
                     </div>
                     <div>
                       <Label>Social (eye contact, joint attention, peer interaction)</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Developmental Milestones - Social"
                         value={data.developmentalMilestones.social}
                         onChange={(e) => updateField("developmentalMilestones", "social", e.target.value)}
+                        onValueChange={(value) => updateField("developmentalMilestones", "social", value)}
                         placeholder="Describe social development..."
                         className="mt-1.5"
                       />
@@ -281,9 +295,11 @@ export function BackgroundHistory() {
                       </Label>
                     </div>
                     {data.developmentalMilestones.regressions && (
-                      <Textarea
+                      <AITextarea
+                        fieldName="Developmental Regressions"
                         value={data.developmentalMilestones.regressionDetails}
                         onChange={(e) => updateField("developmentalMilestones", "regressionDetails", e.target.value)}
+                        onValueChange={(value) => updateField("developmentalMilestones", "regressionDetails", value)}
                         placeholder="Describe regression details (when, what skills lost, circumstances)..."
                         className="mt-2"
                       />
@@ -349,18 +365,22 @@ export function BackgroundHistory() {
                     </div>
                     <div>
                       <Label>Academic Concerns</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Education Status - Academic Concerns"
                         value={data.educationStatus.academicConcerns}
                         onChange={(e) => updateField("educationStatus", "academicConcerns", e.target.value)}
+                        onValueChange={(value) => updateField("educationStatus", "academicConcerns", value)}
                         placeholder="Reading, math, behavior in classroom, etc."
                         className="mt-1.5"
                       />
                     </div>
                     <div>
                       <Label>Teacher Reports</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Education Status - Teacher Reports"
                         value={data.educationStatus.teacherReports}
                         onChange={(e) => updateField("educationStatus", "teacherReports", e.target.value)}
+                        onValueChange={(value) => updateField("educationStatus", "teacherReports", value)}
                         placeholder="Summary of teacher feedback and observations..."
                         className="mt-1.5"
                       />
@@ -420,36 +440,44 @@ export function BackgroundHistory() {
                     </div>
                     <div>
                       <Label>Allergies</Label>
-                      <Input
+                      <AITextarea
+                        fieldName="Medical History - Allergies"
                         value={data.medicalHistory.allergies}
                         onChange={(e) => updateField("medicalHistory", "allergies", e.target.value)}
+                        onValueChange={(value) => updateField("medicalHistory", "allergies", value)}
                         placeholder="Food, medication, environmental allergies..."
                         className="mt-1.5"
                       />
                     </div>
                     <div>
                       <Label>Medical Conditions</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Medical History - Conditions"
                         value={data.medicalHistory.conditions}
                         onChange={(e) => updateField("medicalHistory", "conditions", e.target.value)}
+                        onValueChange={(value) => updateField("medicalHistory", "conditions", value)}
                         placeholder="Chronic conditions, diagnoses, etc."
                         className="mt-1.5"
                       />
                     </div>
                     <div>
                       <Label>Hospitalizations</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Medical History - Hospitalizations"
                         value={data.medicalHistory.hospitalizations}
                         onChange={(e) => updateField("medicalHistory", "hospitalizations", e.target.value)}
+                        onValueChange={(value) => updateField("medicalHistory", "hospitalizations", value)}
                         placeholder="Past hospitalizations, surgeries, or emergency visits..."
                         className="mt-1.5"
                       />
                     </div>
                     <div>
                       <Label>Specialists Currently Seeing</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Medical History - Specialists"
                         value={data.medicalHistory.specialists}
                         onChange={(e) => updateField("medicalHistory", "specialists", e.target.value)}
+                        onValueChange={(value) => updateField("medicalHistory", "specialists", value)}
                         placeholder="Neurologist, psychiatrist, developmental pediatrician, etc."
                         className="mt-1.5"
                       />
@@ -468,11 +496,16 @@ export function BackgroundHistory() {
                   <AccordionContent className="space-y-4 pt-4">
                     <div>
                       <Label>Family Structure</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Family History - Family Structure"
                         value={data.familyHistory.familyStructure}
                         onChange={(e) => {
                           updateField("familyHistory", "familyStructure", e.target.value)
                           if (e.target.value.length > 20) markSectionComplete("family")
+                        }}
+                        onValueChange={(value) => {
+                          updateField("familyHistory", "familyStructure", value)
+                          if (value.length > 20) markSectionComplete("family")
                         }}
                         placeholder="Parents, siblings, living situation, custody arrangements..."
                         className="mt-1.5"
@@ -480,18 +513,22 @@ export function BackgroundHistory() {
                     </div>
                     <div>
                       <Label>Relevant Psychiatric/Developmental History</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Family History - Relevant History"
                         value={data.familyHistory.relevantHistory}
                         onChange={(e) => updateField("familyHistory", "relevantHistory", e.target.value)}
+                        onValueChange={(value) => updateField("familyHistory", "relevantHistory", value)}
                         placeholder="Family history of ASD, ADHD, learning disabilities, mental health conditions..."
                         className="mt-1.5"
                       />
                     </div>
                     <div>
                       <Label>Languages Spoken at Home</Label>
-                      <Input
+                      <AITextarea
+                        fieldName="Family History - Languages Spoken"
                         value={data.familyHistory.languagesSpoken}
                         onChange={(e) => updateField("familyHistory", "languagesSpoken", e.target.value)}
+                        onValueChange={(value) => updateField("familyHistory", "languagesSpoken", value)}
                         placeholder="English, Spanish, bilingual household, etc."
                         className="mt-1.5"
                       />
@@ -510,11 +547,16 @@ export function BackgroundHistory() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-4">
-                    <Textarea
+                    <AITextarea
+                      fieldName="Major Concerns"
                       value={data.majorConcerns}
                       onChange={(e) => {
                         setData({ ...data, majorConcerns: e.target.value })
                         if (e.target.value.length > 50) markSectionComplete("concerns")
+                      }}
+                      onValueChange={(value) => {
+                        setData({ ...data, majorConcerns: value })
+                        if (value.length > 50) markSectionComplete("concerns")
                       }}
                       placeholder="List current problem behaviors, impact on daily life, safety concerns, previous incidents..."
                       className="min-h-[100px]"
@@ -535,11 +577,16 @@ export function BackgroundHistory() {
                   <AccordionContent className="space-y-4 pt-4">
                     <div>
                       <Label>ABA History</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Previous Treatments - ABA History"
                         value={data.previousTreatments.abaHistory}
                         onChange={(e) => {
                           updateField("previousTreatments", "abaHistory", e.target.value)
                           if (e.target.value.length > 20) markSectionComplete("treatments")
+                        }}
+                        onValueChange={(value) => {
+                          updateField("previousTreatments", "abaHistory", value)
+                          if (value.length > 20) markSectionComplete("treatments")
                         }}
                         placeholder="When, where, duration, hours per week, progress made..."
                         className="mt-1.5"
@@ -547,36 +594,44 @@ export function BackgroundHistory() {
                     </div>
                     <div>
                       <Label>Speech Therapy</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Previous Treatments - Speech Therapy"
                         value={data.previousTreatments.speechTherapy}
                         onChange={(e) => updateField("previousTreatments", "speechTherapy", e.target.value)}
+                        onValueChange={(value) => updateField("previousTreatments", "speechTherapy", value)}
                         placeholder="Duration, frequency, areas addressed, progress..."
                         className="mt-1.5"
                       />
                     </div>
                     <div>
                       <Label>OT/PT</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Previous Treatments - OT/PT"
                         value={data.previousTreatments.otPt}
                         onChange={(e) => updateField("previousTreatments", "otPt", e.target.value)}
+                        onValueChange={(value) => updateField("previousTreatments", "otPt", value)}
                         placeholder="Occupational or physical therapy history..."
                         className="mt-1.5"
                       />
                     </div>
                     <div>
                       <Label>Medications Tried</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Previous Treatments - Medications Tried"
                         value={data.previousTreatments.medicationsTried}
                         onChange={(e) => updateField("previousTreatments", "medicationsTried", e.target.value)}
+                        onValueChange={(value) => updateField("previousTreatments", "medicationsTried", value)}
                         placeholder="Previous medications and durations..."
                         className="mt-1.5"
                       />
                     </div>
                     <div>
                       <Label>Results of Each Treatment</Label>
-                      <Textarea
+                      <AITextarea
+                        fieldName="Previous Treatments - Results"
                         value={data.previousTreatments.results}
                         onChange={(e) => updateField("previousTreatments", "results", e.target.value)}
+                        onValueChange={(value) => updateField("previousTreatments", "results", value)}
                         placeholder="What worked, what didn't, reasons for discontinuation..."
                         className="mt-1.5"
                       />
@@ -595,11 +650,16 @@ export function BackgroundHistory() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-4">
-                    <Textarea
+                    <AITextarea
+                      fieldName="Strengths"
                       value={data.strengths}
                       onChange={(e) => {
                         setData({ ...data, strengths: e.target.value })
                         if (e.target.value.length > 30) markSectionComplete("strengths")
+                      }}
+                      onValueChange={(value) => {
+                        setData({ ...data, strengths: value })
+                        if (value.length > 30) markSectionComplete("strengths")
                       }}
                       placeholder="Child's areas of strength, preferred activities, motivators, learning style..."
                       className="min-h-[100px]"
@@ -618,11 +678,16 @@ export function BackgroundHistory() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-4">
-                    <Textarea
+                    <AITextarea
+                      fieldName="Weaknesses"
                       value={data.weaknesses}
                       onChange={(e) => {
                         setData({ ...data, weaknesses: e.target.value })
                         if (e.target.value.length > 30) markSectionComplete("weaknesses")
+                      }}
+                      onValueChange={(value) => {
+                        setData({ ...data, weaknesses: value })
+                        if (value.length > 30) markSectionComplete("weaknesses")
                       }}
                       placeholder="Skill deficits, challenging situations, areas needing improvement..."
                       className="min-h-[100px]"

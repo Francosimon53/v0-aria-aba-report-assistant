@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { WizardNavigation } from "./wizard-navigation"
-import { AIWritingAssistant } from "./ai-writing-assistant"
 import { ClientForm } from "./client-form"
 import { GoalBankBrowser } from "./goal-bank-browser"
 import { ReportPreviewTool } from "./report-preview-tool"
@@ -71,9 +70,7 @@ export function Dashboard() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [completedSteps, setCompletedSteps] = useState<ActiveView[]>([])
   const [activeField, setActiveField] = useState<string | undefined>()
-  const [aiPanelOpen, setAiPanelOpen] = useState(true)
-  const [aiMessages, setAiMessages] = useState<Array<{ role: string; content: string }>>([])
-  const activeFieldRef = useState<HTMLInputElement | HTMLTextAreaElement | null>(null)
+  const [aiMessages, setAiMessages] = useState<{ role: string; content: string }[]>([])
 
   useEffect(() => {
     const saved = localStorage.getItem("aria_completed_steps")
@@ -530,70 +527,41 @@ export function Dashboard() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 h-14">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hover:bg-gray-100"
-          >
-            <MenuIcon className="w-5 h-5" />
-          </Button>
+        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="lg:hidden"
+            >
+              <MenuIcon className="h-5 w-5" />
+            </Button>
 
-          <div className="flex-1">
-            <div className="text-xs text-gray-500">
+            <div className="text-sm text-gray-500">
               Assessment / <span className="text-gray-900 font-medium">{activeView}</span>
             </div>
           </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setAiPanelOpen(!aiPanelOpen)}
-            className="gap-2 bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 text-purple-700 border-0"
-          >
-            <SparklesIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{aiPanelOpen ? "Hide" : "Show"} AI Assistant</span>
-          </Button>
         </header>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto bg-gray-50">{renderActiveView()}</div>
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-5xl mx-auto p-6">
+            {renderActiveView()}
 
-        {/* Navigation */}
-        {hasNavigation && (
-          <div className="bg-white border-t border-gray-200">
-            <WizardNavigation
-              onPrevious={handlePrevious}
-              onNext={handleNext}
-              hasPrevious={hasPrevious}
-              hasNext={hasNext}
-              isLastStep={isLastStep}
-              canProceed={true}
-            />
+            {hasNavigation && (
+              <WizardNavigation
+                onPrevious={hasPrevious ? handlePrevious : undefined}
+                onNext={hasNext ? handleNext : undefined}
+                isLastStep={isLastStep}
+              />
+            )}
           </div>
-        )}
-      </main>
-
-      {/* AI Writing Assistant Panel */}
-      {aiPanelOpen && (
-        <AIWritingAssistant
-          activeField={activeField}
-          onGenerateText={handleGenerateText}
-          onInsertText={handleInsertText}
-          onClose={() => setAiPanelOpen(false)}
-        />
-      )}
-
-      {/* Auto-save indicator */}
-      {lastSaved && (
-        <div className="fixed bottom-20 left-6 z-40 text-xs text-muted-foreground bg-white px-3 py-2 rounded-full shadow-lg border border-gray-200 animate-in fade-in-0 slide-in-from-bottom-2">
-          Saved {new Date(lastSaved).toLocaleTimeString()}
         </div>
-      )}
+      </div>
 
       <KeyboardShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
     </div>
