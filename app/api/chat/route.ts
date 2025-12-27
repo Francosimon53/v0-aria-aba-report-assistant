@@ -50,15 +50,15 @@ export async function POST(req: NextRequest) {
       messages,
       clientData,
       currentStep,
-      isTextGeneration, // Added isTextGeneration flag
+      isTextGeneration,
     }: {
       messages: Array<{ role: string; content: string }>
       clientData?: any
       currentStep?: string
-      isTextGeneration?: boolean // Added type
+      isTextGeneration?: boolean
     } = await req.json()
 
-    if (!messages || !Array.isArray(messages)) {
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid messages format" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -90,8 +90,8 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: maxTokens, // Use dynamic token limit
-        system: systemPrompt, // Use appropriate system prompt
+        max_tokens: maxTokens,
+        system: systemPrompt,
         messages: [
           {
             role: "user",
@@ -108,26 +108,43 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await response.json()
-    const responseText = result.content?.[0]?.text || "Got it! Check the form fields on the left."
+
+    console.log("[v0] Raw API result:", JSON.stringify(result, null, 2))
+
+    let responseText = "Got it! Check the form fields on the left."
+
+    if (result.content && Array.isArray(result.content) && result.content.length > 0) {
+      responseText = result.content[0]?.text || responseText
+    } else if (result.content && typeof result.content === "string") {
+      responseText = result.content
+    } else {
+      console.error("[v0] Unexpected content format:", result.content)
+    }
 
     console.log("[v0] API response:", { responseText: responseText.substring(0, 100) + "..." })
 
-    const cleanedText = responseText
-      .replace(/#{1,6}\s/g, "") // Remove markdown headers
-      .replace(/\*\*(.+?)\*\*/g, "$1") // Remove bold
-      .replace(/\*(.+?)\*/g, "$1") // Remove italics
-      .replace(/^\s*[-*]\s+/gm, "") // Remove bullet points
-      .replace(/\[([^\]]+)\]/g, "$1") // Remove brackets around placeholders
+    const cleanedText = (typeof responseText === "string" ? responseText : String(responseText))
+      .replace(/#{1,6}\s/g, "")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/^\s*[-*]\s+/gm, "")
+      .replace(/\[([^\]]+)\]/g, "$1")
       .trim()
 
     return Response.json({
       message: cleanedText,
     })
   } catch (error) {
-    console.error("[v0] API error:", error)
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    })
+    console.error("[v0] API error details:", error)
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+        details: error instanceof Error ? error.stack : String(error),
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    )
   }
 }

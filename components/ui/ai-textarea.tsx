@@ -51,34 +51,56 @@ export const AITextarea = React.forwardRef<HTMLTextAreaElement, AITextareaProps>
 
         console.log("[v0] Sending request to /api/chat:", { prompt, fieldName })
 
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: "user",
-                content: prompt,
-              },
-            ],
-            clientData,
-            currentStep: fieldName,
-            isTextGeneration: true,
-          }),
-        })
+        let response
+        try {
+          response = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: [
+                {
+                  role: "user",
+                  content: prompt,
+                },
+              ],
+              clientData,
+              currentStep: fieldName,
+              isTextGeneration: true,
+            }),
+          })
+        } catch (fetchError) {
+          console.error("[v0] Fetch error:", fetchError)
+          throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : "Unknown"}`)
+        }
 
         console.log("[v0] Response status:", response.status)
 
         if (!response.ok) {
           const errorText = await response.text()
           console.error("[v0] API error response:", errorText)
-          throw new Error("Failed to generate text")
+          throw new Error(`Failed to generate text: ${errorText}`)
         }
 
-        const data = await response.json()
-        console.log("[v0] Received data:", data)
+        let data
+        try {
+          data = await response.json()
+          console.log("[v0] Received data:", data)
+        } catch (parseError) {
+          console.error("[v0] JSON parse error:", parseError)
+          throw new Error("Invalid response format from server")
+        }
+
+        if (!data || typeof data !== "object") {
+          console.error("[v0] Invalid data format:", data)
+          throw new Error("Invalid data format received")
+        }
 
         const text = data.message || data.content || ""
+
+        if (!text || typeof text !== "string") {
+          console.error("[v0] No text in response:", data)
+          throw new Error("No text content in response")
+        }
 
         const cleanedText = text
           .replace(/#{1,6}\s/g, "")
@@ -108,7 +130,16 @@ export const AITextarea = React.forwardRef<HTMLTextAreaElement, AITextareaProps>
         setIsOpen(false)
         setCustomPrompt("")
       } catch (error) {
-        console.error("[v0] AI generation error:", error)
+        console.error("[v0] AI generation error (full details):", {
+          error,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          action,
+          fieldName,
+        })
+
+        // Show error to user
+        alert(`Error generating text: ${error instanceof Error ? error.message : "Unknown error"}`)
       } finally {
         setIsGenerating(false)
       }
