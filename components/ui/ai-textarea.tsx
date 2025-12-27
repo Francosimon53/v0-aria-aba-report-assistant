@@ -26,6 +26,8 @@ export const AITextarea = React.forwardRef<HTMLTextAreaElement, AITextareaProps>
     React.useImperativeHandle(ref, () => textareaRef.current!)
 
     const handleGenerate = async (action: "generate" | "improve" | "template" | "custom") => {
+      console.log("[v0] AI Generate clicked:", { action, fieldName, hasValue: !!value })
+
       setIsGenerating(true)
 
       try {
@@ -47,6 +49,8 @@ export const AITextarea = React.forwardRef<HTMLTextAreaElement, AITextareaProps>
             break
         }
 
+        console.log("[v0] Sending request to /api/chat:", { prompt, fieldName })
+
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -59,13 +63,24 @@ export const AITextarea = React.forwardRef<HTMLTextAreaElement, AITextareaProps>
             ],
             clientData,
             currentStep: fieldName,
+            isTextGeneration: true,
           }),
         })
 
-        if (!response.ok) throw new Error("Failed to generate text")
+        console.log("[v0] Response status:", response.status)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("[v0] API error response:", errorText)
+          throw new Error("Failed to generate text")
+        }
 
         const data = await response.json()
+        console.log("[v0] Received data:", data)
+
         const text = data.message || data.content || ""
+
+        console.log("[v0] Generated text:", text)
 
         setGeneratedText(text)
 

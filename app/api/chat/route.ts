@@ -24,10 +24,12 @@ export async function POST(req: NextRequest) {
       messages,
       clientData,
       currentStep,
+      isTextGeneration, // Added isTextGeneration flag
     }: {
       messages: Array<{ role: string; content: string }>
       clientData?: any
       currentStep?: string
+      isTextGeneration?: boolean // Added type
     } = await req.json()
 
     if (!messages || !Array.isArray(messages)) {
@@ -47,6 +49,14 @@ export async function POST(req: NextRequest) {
 
     const userMessage = messages[messages.length - 1]?.content || ""
 
+    const systemPrompt = isTextGeneration
+      ? `You are ARIA, an expert ABA (Applied Behavior Analysis) clinical writer. Generate professional, detailed, and clinically appropriate content for ABA assessment reports. Use proper clinical terminology, be thorough but concise, and follow BACB ethical guidelines.`
+      : CONCISE_CHAT_PROMPT
+
+    const maxTokens = isTextGeneration ? 1000 : 100
+
+    console.log("[v0] API request:", { isTextGeneration, maxTokens, userMessage })
+
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -56,8 +66,8 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 100,
-        system: CONCISE_CHAT_PROMPT,
+        max_tokens: maxTokens, // Use dynamic token limit
+        system: systemPrompt, // Use appropriate system prompt
         messages: [
           {
             role: "user",
@@ -69,11 +79,14 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
+      console.error("[v0] Claude API error:", errorText)
       throw new Error(`API error: ${response.status} - ${errorText}`)
     }
 
     const result = await response.json()
     const responseText = result.content?.[0]?.text || "Got it! Check the form fields on the left."
+
+    console.log("[v0] API response:", { responseText: responseText.substring(0, 100) + "..." })
 
     return Response.json({
       message: responseText,
