@@ -72,6 +72,8 @@ export function Dashboard() {
   const [completedSteps, setCompletedSteps] = useState<ActiveView[]>([])
   const [activeField, setActiveField] = useState<string | undefined>()
   const [aiPanelOpen, setAiPanelOpen] = useState(true)
+  const [aiMessages, setAiMessages] = useState<Array<{ role: string; content: string }>>([])
+  const activeFieldRef = useState<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem("aria_completed_steps")
@@ -228,6 +230,58 @@ export function Dashboard() {
   }
 
   const isStepCompleted = (step: ActiveView) => completedSteps.includes(step)
+
+  const handleGenerateText = async (field: string, prompt: string): Promise<string> => {
+    try {
+      const newMessages = [...aiMessages, { role: "user", content: prompt }]
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: newMessages,
+          clientData,
+          currentStep: activeView,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to generate text")
+      }
+
+      const data = await response.json()
+      const aiResponse = data.message || "I'm here to help! What would you like assistance with?"
+
+      setAiMessages([...newMessages, { role: "assistant", content: aiResponse }])
+
+      return aiResponse
+    } catch (error) {
+      console.error("[v0] Error generating text:", error)
+      return "Sorry, I couldn't generate text at this time. Please try again."
+    }
+  }
+
+  const handleInsertText = (text: string) => {
+    const activeElement = document.activeElement as HTMLInputElement | HTMLTextAreaElement
+
+    if (activeElement && (activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA")) {
+      const start = activeElement.selectionStart || 0
+      const end = activeElement.selectionEnd || 0
+      const currentValue = activeElement.value || ""
+
+      const newValue = currentValue.substring(0, start) + text + currentValue.substring(end)
+      activeElement.value = newValue
+
+      // Trigger change event so form updates
+      const event = new Event("input", { bubbles: true })
+      activeElement.dispatchEvent(event)
+
+      // Set cursor position after inserted text
+      const newCursorPos = start + text.length
+      activeElement.setSelectionRange(newCursorPos, newCursorPos)
+      activeElement.focus()
+    }
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -528,14 +582,8 @@ export function Dashboard() {
       {aiPanelOpen && (
         <AIWritingAssistant
           activeField={activeField}
-          onGenerateText={async (field, prompt) => {
-            // Placeholder for AI text generation
-            return "AI generated text will appear here..."
-          }}
-          onInsertText={(text) => {
-            // Placeholder for inserting text into active field
-            console.log("Insert text:", text)
-          }}
+          onGenerateText={handleGenerateText}
+          onInsertText={handleInsertText}
           onClose={() => setAiPanelOpen(false)}
         />
       )}
