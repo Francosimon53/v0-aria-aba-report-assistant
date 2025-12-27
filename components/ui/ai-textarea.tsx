@@ -80,18 +80,26 @@ export const AITextarea = React.forwardRef<HTMLTextAreaElement, AITextareaProps>
 
         const text = data.message || data.content || ""
 
-        console.log("[v0] Generated text:", text)
+        const cleanedText = text
+          .replace(/#{1,6}\s/g, "")
+          .replace(/\*\*(.+?)\*\*/g, "$1")
+          .replace(/\*(.+?)\*/g, "$1")
+          .replace(/^\s*[-*]\s+/gm, "")
+          .replace(/\[([^\]]+)\]/g, "$1")
+          .trim()
 
-        setGeneratedText(text)
+        console.log("[v0] Generated text:", cleanedText)
+
+        setGeneratedText(cleanedText)
 
         // Insert text into textarea
         if (onValueChange) {
-          onValueChange(text)
+          onValueChange(cleanedText)
         }
 
         // Also update the textarea value directly
         if (textareaRef.current) {
-          textareaRef.current.value = text
+          textareaRef.current.value = cleanedText
           // Trigger change event
           const event = new Event("input", { bubbles: true })
           textareaRef.current.dispatchEvent(event)

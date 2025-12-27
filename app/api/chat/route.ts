@@ -18,6 +18,32 @@ Examples:
 
 If the user seems done or says thanks/ok/got it, just acknowledge briefly and stop.`
 
+const ABA_WRITING_PROMPT = `You are ARIA, an expert ABA (Applied Behavior Analysis) clinical writer specializing in assessment reports.
+
+CRITICAL FORMATTING RULES:
+- Write in plain text paragraphs only - NO markdown formatting
+- NO headers with ##, no bold with **, no bullet points with -, no italics
+- NO placeholders like [Date], [Name], [Level], [specific level] - write complete realistic text
+- Use professional clinical language appropriate for insurance submissions
+- Be specific and detailed with actual examples, not generic templates
+- Write 2-4 complete sentences with proper clinical observations
+- Include quantifiable measures when appropriate (percentages, frequencies, durations)
+- Use proper ABA terminology (contingency, reinforcement, prompting, fading, etc.)
+
+EXAMPLES OF GOOD OUTPUT:
+"The client demonstrates emerging receptive language skills with consistent responses to one-step directions in 75% of opportunities across three consecutive sessions. Comprehension of basic nouns and action verbs is solidly established, while understanding of prepositions and temporal concepts requires visual supports and verbal prompting."
+
+"During structured play activities, the client exhibited joint attention behaviors including coordinated eye gaze and shared enjoyment approximately 40% of the time. These social communication skills showed improvement from baseline levels of 15%, suggesting positive response to peer-mediated intervention strategies."
+
+EXAMPLES OF BAD OUTPUT (NEVER DO THIS):
+"## Receptive Language Skills
+**Current Level:** [Emerging/Mastered]
+- One-step directions: [percentage]%"
+
+"The client shows [specific level] of joint attention during [activity type]."
+
+Remember: Write as if this is a final report ready for submission. Use complete, professional sentences with real data.`
+
 export async function POST(req: NextRequest) {
   try {
     const {
@@ -49,9 +75,7 @@ export async function POST(req: NextRequest) {
 
     const userMessage = messages[messages.length - 1]?.content || ""
 
-    const systemPrompt = isTextGeneration
-      ? `You are ARIA, an expert ABA (Applied Behavior Analysis) clinical writer. Generate professional, detailed, and clinically appropriate content for ABA assessment reports. Use proper clinical terminology, be thorough but concise, and follow BACB ethical guidelines.`
-      : CONCISE_CHAT_PROMPT
+    const systemPrompt = isTextGeneration ? ABA_WRITING_PROMPT : CONCISE_CHAT_PROMPT
 
     const maxTokens = isTextGeneration ? 1000 : 100
 
@@ -88,8 +112,16 @@ export async function POST(req: NextRequest) {
 
     console.log("[v0] API response:", { responseText: responseText.substring(0, 100) + "..." })
 
+    const cleanedText = responseText
+      .replace(/#{1,6}\s/g, "") // Remove markdown headers
+      .replace(/\*\*(.+?)\*\*/g, "$1") // Remove bold
+      .replace(/\*(.+?)\*/g, "$1") // Remove italics
+      .replace(/^\s*[-*]\s+/gm, "") // Remove bullet points
+      .replace(/\[([^\]]+)\]/g, "$1") // Remove brackets around placeholders
+      .trim()
+
     return Response.json({
-      message: responseText,
+      message: cleanedText,
     })
   } catch (error) {
     console.error("[v0] API error:", error)
