@@ -104,12 +104,14 @@ export function AIAssistantWidget({
     setInput("")
     setIsTyping(true)
 
+    const safeMessages = Array.isArray(messages) ? messages : []
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map((m) => ({
+          messages: [...safeMessages, userMessage].map((m) => ({
             role: m.role,
             content: m.content,
           })),
@@ -288,7 +290,7 @@ export function AIAssistantWidget({
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
-              {messages.map((message) => (
+              {(Array.isArray(messages) ? messages : []).map((message) => (
                 <div key={message.id} className={`flex gap-2 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
                   <div
                     className={`h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 ${
