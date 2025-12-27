@@ -28,6 +28,7 @@ import { behaviorLibrary, behaviorCategories } from "@/lib/data/behavior-library
 import { useToast } from "@/hooks/use-toast"
 import { ImportDialog } from "./import-dialog"
 import { parseAssessmentDataFile } from "@/lib/import-parsers"
+import { AITextarea } from "@/components/ui/ai-textarea"
 
 interface AssessmentFormProps {
   clientId: string
@@ -410,12 +411,13 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                 step={5}
                                 className="w-full"
                               />
-                              <Textarea
+                              <AITextarea
                                 placeholder={`Notes for ${domain}...`}
                                 value={domainData?.notes || ""}
                                 onChange={(e) => handleDomainChange(domain, domainData?.score || 0, e.target.value)}
                                 className="text-sm"
                                 rows={2}
+                                fieldName={`${domain} Notes`}
                               />
                             </div>
                           )
@@ -454,12 +456,13 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                 step={5}
                                 className="w-full"
                               />
-                              <Textarea
+                              <AITextarea
                                 placeholder={`Notes for ${domain}...`}
                                 value={domainData?.notes || ""}
                                 onChange={(e) => handleDomainChange(domain, domainData?.score || 0, e.target.value)}
                                 className="text-sm"
                                 rows={2}
+                                fieldName={`${domain} Notes`}
                               />
                             </div>
                           )
@@ -581,7 +584,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
                       <div className="space-y-2">
                         <Label>Hours Justification</Label>
-                        <Textarea
+                        <AITextarea
                           value={formData.hoursJustification}
                           onChange={(e) =>
                             setFormData((prev) => ({
@@ -591,6 +594,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                           }
                           placeholder="Provide clinical justification for the recommended service hours..."
                           rows={4}
+                          fieldName="Hours Justification"
                         />
                       </div>
                     </CardContent>
@@ -694,7 +698,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
                             <div className="space-y-2">
                               <Label htmlFor="custom-behavior-description">Description</Label>
-                              <Textarea
+                              <AITextarea
                                 id="custom-behavior-description"
                                 placeholder="Brief description of the behavior..."
                                 value={customBehaviorData.description}
@@ -702,12 +706,13 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                   setCustomBehaviorData({ ...customBehaviorData, description: e.target.value })
                                 }
                                 rows={2}
+                                fieldName="Behavior Description"
                               />
                             </div>
 
                             <div className="space-y-2">
                               <Label htmlFor="custom-behavior-definition">Operational Definition *</Label>
-                              <Textarea
+                              <AITextarea
                                 id="custom-behavior-definition"
                                 placeholder="Clear, measurable definition of the behavior (e.g., 'Any instance of...')"
                                 value={customBehaviorData.operationalDefinition}
@@ -718,6 +723,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                   })
                                 }
                                 rows={3}
+                                fieldName="Operational Definition"
                               />
                             </div>
 
@@ -898,13 +904,14 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                 {/* Operational Definition */}
                                 <div className="space-y-2">
                                   <Label>Operational Definition *</Label>
-                                  <Textarea
+                                  <AITextarea
                                     value={behavior.operationalDefinition}
                                     onChange={(e) =>
                                       updateBehavior(behavior.id, { operationalDefinition: e.target.value })
                                     }
                                     placeholder="Clearly define the behavior in observable and measurable terms..."
                                     rows={3}
+                                    fieldName="Operational Definition"
                                   />
                                 </div>
 
