@@ -411,7 +411,7 @@ export function TeachingProtocolBuilder() {
               <p className="text-gray-600 dark:text-gray-400">
                 Create detailed, evidence-based teaching protocols for ABA programs
               </p>
-            <Button variant="outline" size="sm" onClick={() => fetchSuggestions("teaching protocols ABA DTT")} disabled={isLoading}>{isLoading ? "Loading..." : "AI Ideas"}</Button>
+            <Button variant="outline" size="sm" className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-medium rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all shadow-md" onClick={() => fetchSuggestions("teaching protocols ABA DTT")} disabled={isLoading}>{isLoading ? "Loading..." : "AI Ideas"}</Button>
             </div>
           </div>
         </div>

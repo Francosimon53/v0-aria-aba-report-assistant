@@ -262,7 +262,7 @@ export function ParentTrainingTracker() {
             <DownloadIcon className="h-4 w-4 mr-2" />
             Export Report
           </Button>
-            <Button variant="outline" size="sm" onClick={() => fetchSuggestions("parent training ABA curriculum caregiver")} disabled={isLoading} className="ml-2">
+            <Button variant="outline" size="sm" className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-medium rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all shadow-md" onClick={() => fetchSuggestions("parent training ABA curriculum caregiver")} disabled={isLoading} className="ml-2">
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
               {isLoading ? "Loading..." : "AI Ideas"}
             </Button>
