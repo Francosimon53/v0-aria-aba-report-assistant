@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
     const queryEmbedding = embeddingResponse.data[0].embedding;
 
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.NEXT_PUBLIC_ARIA_SUPABASE_URL!,
+      process.env.ARIA_SUPABASE_SERVICE_ROLE_KEY!
     );
 
     const { data, error } = await supabase
