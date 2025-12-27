@@ -16,8 +16,6 @@ import {
   AlertTriangleIcon,
   DownloadIcon,
 } from "@/components/icons"
-import { useRAGSuggestions } from "@/hooks/useRAGSuggestions"
-import { Sparkles, Loader2 } from "lucide-react"
 
 interface Intervention {
   id: string
@@ -195,13 +193,6 @@ export function InterventionsLibrary() {
   const [selectedInterventions, setSelectedInterventions] = useState<Set<string>>(new Set())
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
 
-  // RAG Suggestions Hook
-  const { suggestions, isLoading: ragLoading, getSuggestions } = useRAGSuggestions()
-
-  const handleGetInterventionSuggestions = async () => {
-    await getSuggestions("ABA therapy interventions FCT DRA NCR insurance approved evidence-based")
-  }
-
   const toggleIntervention = (id: string) => {
     const newSelected = new Set(selectedInterventions)
     if (newSelected.has(id)) {
@@ -342,27 +333,6 @@ export function InterventionsLibrary() {
             Evidence-based interventions organized by behavioral function. Select interventions to add to your client's
             treatment plan.
           </p>
-
-          {/* AI Suggestions Button */}
-          <button
-            type="button"
-            onClick={handleGetInterventionSuggestions}
-            disabled={ragLoading}
-            className="mb-4 w-full flex items-center justify-center gap-2 py-2 px-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-medium rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all shadow-md"
-          >
-            {ragLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            Get AI Intervention Suggestions
-          </button>
-          {suggestions.length > 0 && (
-            <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded">
-              <p className="text-sm font-medium text-purple-800 mb-2">AI Suggestions:</p>
-              <p className="text-sm text-purple-700">{suggestions[0]?.text?.substring(0, 200)}...</p>
-            </div>
-          )}
 
           {/* Search Bar */}
           <div className="relative">
