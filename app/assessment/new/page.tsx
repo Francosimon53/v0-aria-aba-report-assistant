@@ -53,7 +53,6 @@ class AssessmentErrorBoundary extends Component<{ children: ReactNode }, { hasEr
     return this.props.children
   }
 }
-// </CHANGE>
 
 export default function AssessmentPage() {
   return (
