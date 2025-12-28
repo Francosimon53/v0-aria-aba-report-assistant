@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FileTextIcon, CheckIcon, ClockIcon, TrendingUpIcon, PlusIcon, SparklesIcon, EyeIcon } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 interface Assessment {
   id: string
@@ -18,7 +19,7 @@ interface Assessment {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [userName, setUserName] = useState("Dr. Johnson")
+  const [userName, setUserName] = useState("Welcome back")
   const [currentDate, setCurrentDate] = useState("")
   const [recentAssessments, setRecentAssessments] = useState<Assessment[]>([])
   const [totalAssessments, setTotalAssessments] = useState(0)
@@ -31,6 +32,35 @@ export default function DashboardPage() {
 
   useEffect(() => {
     console.log("[v0] Dashboard: Component mounted")
+
+    const fetchUserData = async () => {
+      try {
+        const supabase = createClient()
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser()
+
+        if (error) {
+          console.log("[v0] Dashboard: Auth error:", error.message)
+          setUserName("Welcome back")
+        } else if (user) {
+          const displayName =
+            user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "Welcome back"
+          setUserName(displayName)
+          console.log("[v0] Dashboard: User loaded:", displayName)
+        } else {
+          setUserName("Welcome back")
+          console.log("[v0] Dashboard: No user found")
+        }
+      } catch (error) {
+        console.log("[v0] Dashboard: Failed to fetch user:", error)
+        setUserName("Welcome back")
+      }
+    }
+
+    fetchUserData()
+
     const date = new Date()
     setCurrentDate(
       date.toLocaleDateString("en-US", {
@@ -110,7 +140,9 @@ export default function DashboardPage() {
         <div className="container mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-1">Welcome back, {userName}!</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-1">
+                {userName.includes("@") || userName === "Welcome back" ? userName : `Welcome back, ${userName}`}!
+              </h1>
               <p className="text-gray-500">{currentDate}</p>
             </div>
             <div className="flex gap-3">

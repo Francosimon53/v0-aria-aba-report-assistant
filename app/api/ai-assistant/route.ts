@@ -37,6 +37,11 @@ Remember: Write as if this is a final report ready for insurance submission. Use
 
 export async function POST(req: NextRequest) {
   try {
+    const anthropicKey = process.env.ANTHROPIC_API_KEY
+    if (!anthropicKey) {
+      return Response.json({ error: "AI service not configured", content: "" }, { status: 503 })
+    }
+
     const body = await req.json()
 
     const {
@@ -89,7 +94,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
+        "x-api-key": anthropicKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
