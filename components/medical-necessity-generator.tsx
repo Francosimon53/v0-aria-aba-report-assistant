@@ -158,6 +158,62 @@ export function MedicalNecessityGenerator({
     }
   }
 
+  const handleImproveStatement = async () => {
+    console.log("[v0] Improve statement clicked")
+    setLoading(true)
+    try {
+      const payload = {
+        type: "medicalNecessity",
+        action: "improve",
+        data: {
+          currentStatement: editedText,
+          clientName: clientData?.firstName ? `${clientData.firstName} ${clientData.lastName}` : "Client",
+          diagnosis: diagnosis || "Autism Spectrum Disorder",
+          requestedHours: Number.parseInt(requestedHours) || 25,
+          focusArea: "clinical language, insurance key phrases, and compliance",
+        },
+      }
+
+      console.log("[v0] Improve payload:", payload)
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: `Improve and enhance this medical necessity statement. Make it more clinically rigorous, include relevant insurance key phrases naturally, and ensure it meets insurance submission standards. Do not add markdown formatting. Current statement:\n\n${editedText}`,
+            },
+          ],
+          fieldName: "Medical Necessity Statement",
+          currentStep: "Medical Necessity",
+          isTextGeneration: true,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to improve statement")
+      }
+
+      const data = await response.json()
+      console.log("[v0] Improved statement:", data)
+
+      const improvedText = data.text || data.content || ""
+      setEditedText(improvedText)
+      setGeneratedText(improvedText)
+
+      const confidence = calculateConfidence(improvedText)
+      setConfidenceScore(confidence)
+      console.log("[v0] New confidence score:", confidence)
+    } catch (error) {
+      console.error("[v0] Error improving statement:", error)
+      alert("Failed to improve statement. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleCopyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(editedText)
@@ -405,32 +461,64 @@ export function MedicalNecessityGenerator({
                   </div>
                 </ScrollArea>
 
-                <div className="flex items-center justify-between text-sm border-t pt-4">
-                  <div className="flex gap-4">
-                    <span
-                      className={characterCount >= 300 && characterCount <= 500 ? "text-green-600" : "text-gray-500"}
-                    >
-                      {characterCount} characters
-                    </span>
-                    <span
-                      className={characterCount >= 300 && characterCount <= 500 ? "text-green-600" : "text-gray-500"}
-                    >
-                      ~{Math.round(editedText.split(/\s+/).length)} words
-                    </span>
+                <div className="space-y-3 border-t pt-4">
+                  <Button
+                    onClick={handleImproveStatement}
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white"
+                    size="sm"
+                  >
+                    {loading ? (
+                      <>
+                        <SparklesIcon className="mr-2 h-4 w-4 animate-spin" />
+                        Improving...
+                      </>
+                    ) : (
+                      <>
+                        <SparklesIcon className="mr-2 h-4 w-4" />
+                        Improve with AI
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex gap-4">
+                      <span
+                        className={characterCount >= 300 && characterCount <= 500 ? "text-green-600" : "text-gray-500"}
+                      >
+                        {characterCount} characters
+                      </span>
+                      <span
+                        className={characterCount >= 300 && characterCount <= 500 ? "text-green-600" : "text-gray-500"}
+                      >
+                        ~{Math.round(editedText.split(/\s+/).length)} words
+                      </span>
+                    </div>
+                    {confidenceScore !== null && (
+                      <Badge
+                        variant={
+                          confidenceScore >= 80 ? "default" : confidenceScore >= 60 ? "secondary" : "destructive"
+                        }
+                        className="text-xs"
+                      >
+                        {confidenceScore}%
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleCopyToClipboard}>
-                      <CopyIcon className="mr-2 h-4 w-4" />
-                      Copy
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleExportToWord}>
-                      <FileDownIcon className="mr-2 h-4 w-4" />
-                      Export
-                    </Button>
-                    <Button size="sm" className="bg-[#0D9488] hover:bg-[#0F766E]">
-                      Copy to Report
-                    </Button>
-                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" size="sm" onClick={handleCopyToClipboard} className="flex-1 bg-transparent">
+                    <CopyIcon className="mr-2 h-4 w-4" />
+                    Copy
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleExportToWord} className="flex-1 bg-transparent">
+                    <FileDownIcon className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                  <Button size="sm" className="flex-1 bg-[#0D9488] hover:bg-[#0F766E]">
+                    Copy to Report
+                  </Button>
                 </div>
               </>
             ) : (
