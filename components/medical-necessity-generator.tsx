@@ -96,44 +96,62 @@ export function MedicalNecessityGenerator({
   }
 
   const handleGenerate = async () => {
+    console.log("[v0] Generate button clicked")
+    console.log("[v0] Form data:", {
+      diagnosis,
+      targetBehaviors,
+      severity,
+      functionalImpact,
+      requestedHours,
+    })
+
     setLoading(true)
     try {
+      const payload = {
+        type: "medicalNecessity",
+        data: {
+          clientName: clientData?.firstName ? `${clientData.firstName} ${clientData.lastName}` : "Client",
+          age: clientData?.dateOfBirth ? new Date().getFullYear() - new Date(clientData.dateOfBirth).getFullYear() : 5,
+          diagnosis: diagnosis || "Autism Spectrum Disorder",
+          impairments: assessmentData?.domains || [],
+          hoursRequested: Number.parseInt(requestedHours) || 25,
+          insurance: clientData?.insurance || "Standard",
+          targetBehaviors,
+          severity,
+          functionalImpact,
+          previousTreatments,
+          environmentalFactors,
+          template,
+        },
+      }
+
+      console.log("[v0] Sending payload:", payload)
+
       const response = await fetch("/api/aba-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "medicalNecessity",
-          data: {
-            clientName: clientData?.firstName ? `${clientData.firstName} ${clientData.lastName}` : "Client",
-            age: clientData?.dateOfBirth
-              ? new Date().getFullYear() - new Date(clientData.dateOfBirth).getFullYear()
-              : 5,
-            diagnosis: diagnosis || "Autism Spectrum Disorder",
-            impairments: assessmentData?.domains || [],
-            hoursRequested: Number.parseInt(requestedHours) || 25,
-            insurance: clientData?.insurance || "Standard",
-            targetBehaviors,
-            severity,
-            functionalImpact,
-            previousTreatments,
-            environmentalFactors,
-            template,
-          },
-        }),
+        body: JSON.stringify(payload),
       })
 
+      console.log("[v0] Response status:", response.status)
+
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error("[v0] API error response:", errorText)
         throw new Error("Failed to generate medical necessity statement")
       }
 
       const data = await response.json()
+      console.log("[v0] Generated content:", data)
+
       setGeneratedText(data.content)
       setEditedText(data.content)
 
       const confidence = calculateConfidence(data.content)
       setConfidenceScore(confidence)
+      console.log("[v0] Confidence score:", confidence)
     } catch (error) {
-      console.error("Error generating medical necessity:", error)
+      console.error("[v0] Error generating medical necessity:", error)
       alert("Failed to generate statement. Please try again.")
     } finally {
       setLoading(false)
@@ -166,10 +184,7 @@ export function MedicalNecessityGenerator({
   }
 
   const handleInsertKeyPhrase = (phrase: string) => {
-    if (!activeField) {
-      setEditedText((prev) => prev + (prev ? " " : "") + phrase)
-      return
-    }
+    console.log("[v0] Insert key phrase:", phrase, "into field:", activeField)
 
     const setters: Record<string, (value: string) => void> = {
       behaviors: setTargetBehaviors,
