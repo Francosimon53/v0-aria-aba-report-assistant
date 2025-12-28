@@ -480,7 +480,7 @@ Write this section in professional clinical language appropriate for insurance s
   }
 
   return (
-    <div className="w-full bg-gradient-to-b from-slate-50 to-white">
+    <div className="w-full bg-gradient-to-b from-slate-50 to-white min-h-screen">
       {/* Header */}
       <div className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6 py-4">
@@ -501,6 +501,51 @@ Write this section in professional clinical language appropriate for insurance s
           </div>
         </div>
       </div>
+
+      {/* Welcome Screen when Demo Mode is not active */}
+      {!demoMode && (
+        <div className="max-w-4xl mx-auto px-6 py-16">
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+            <div className="flex justify-center mb-6">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+                <Sparkles className="h-10 w-10 text-white" />
+              </div>
+            </div>
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">AI-Powered ABA Report Generator</h2>
+            <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+              Generate comprehensive, professional ABA assessment reports using artificial intelligence. Each section is
+              tailored with clinical precision and insurance compliance.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+              <div className="p-6 bg-slate-50 rounded-lg">
+                <FileText className="h-8 w-8 text-teal-600 mx-auto mb-3" />
+                <h3 className="font-semibold text-slate-900 mb-2">12 Report Sections</h3>
+                <p className="text-sm text-slate-600">From client information to treatment recommendations</p>
+              </div>
+              <div className="p-6 bg-slate-50 rounded-lg">
+                <Sparkles className="h-8 w-8 text-cyan-600 mx-auto mb-3" />
+                <h3 className="font-semibold text-slate-900 mb-2">AI-Generated Content</h3>
+                <p className="text-sm text-slate-600">Professional clinical language with evidence-based insights</p>
+              </div>
+              <div className="p-6 bg-slate-50 rounded-lg">
+                <Check className="h-8 w-8 text-green-600 mx-auto mb-3" />
+                <h3 className="font-semibold text-slate-900 mb-2">Insurance Ready</h3>
+                <p className="text-sm text-slate-600">Compliant with payer requirements and documentation standards</p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleDemoMode}
+              className="px-8 py-4 rounded-lg bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 font-semibold transition-all shadow-lg hover:shadow-xl text-lg flex items-center gap-3 mx-auto"
+            >
+              <Trophy className="h-5 w-5" />
+              Try Demo Mode
+            </button>
+            <p className="text-sm text-slate-500 mt-4">Uses sample data for Marcus Johnson (ASD Level 2)</p>
+          </div>
+        </div>
+      )}
 
       {/* Progress Section */}
       {demoMode && assessmentData && (
