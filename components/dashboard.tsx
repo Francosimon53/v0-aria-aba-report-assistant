@@ -137,6 +137,8 @@ export function Dashboard() {
   })
 
   const renderActiveView = () => {
+    console.log("[v0] renderActiveView called with activeView:", activeView)
+
     switch (activeView) {
       case "client":
         return (
@@ -150,6 +152,7 @@ export function Dashboard() {
           />
         )
       case "background":
+        console.log("[v0] Rendering BackgroundHistory for view:", activeView)
         return <BackgroundHistory clientData={clientData} onSave={() => markStepComplete("background")} />
       case "assessment":
         return (
@@ -285,6 +288,10 @@ export function Dashboard() {
       activeElement.focus()
     }
   }
+
+  useEffect(() => {
+    console.log("[v0] activeView changed to:", activeView)
+  }, [activeView])
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
