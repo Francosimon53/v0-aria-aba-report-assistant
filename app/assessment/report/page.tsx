@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ReportPreviewTool } from "@/components/report-preview-tool"
+import { AIReportGenerator } from "@/components/ai-report-generator"
 import { useRouter } from "next/navigation"
 import type { ClientData, AssessmentData, SelectedGoal } from "@/lib/types"
 
@@ -9,8 +9,6 @@ export default function ReportPage() {
   const [clientData, setClientData] = useState<ClientData | null>(null)
   const [assessmentData, setAssessmentData] = useState<AssessmentData | null>(null)
   const [selectedGoals, setSelectedGoals] = useState<SelectedGoal[]>([])
-  const [agencyData, setAgencyData] = useState(null)
-  const [reassessmentData, setReassessmentData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
@@ -25,10 +23,6 @@ export default function ReportPage() {
 
     setIsLoading(false)
   }, [])
-
-  const handleExport = () => {
-    console.log("Export initiated from report page")
-  }
 
   if (isLoading) {
     return (
@@ -59,14 +53,7 @@ export default function ReportPage() {
 
   return (
     <div className="w-full h-full bg-background">
-      <ReportPreviewTool
-        clientData={clientData}
-        assessmentData={assessmentData}
-        selectedGoals={selectedGoals}
-        agencyData={agencyData}
-        reassessmentData={reassessmentData}
-        onExport={handleExport}
-      />
+      <AIReportGenerator />
     </div>
   )
 }
