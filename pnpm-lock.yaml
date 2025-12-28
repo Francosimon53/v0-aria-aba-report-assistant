@@ -132,7 +132,7 @@ importers:
         specifier: 4.1.0
         version: 4.1.0
       docx:
-        specifier: latest
+        specifier: 9.5.1
         version: 9.5.1
       embla-carousel-react:
         specifier: 8.5.1
