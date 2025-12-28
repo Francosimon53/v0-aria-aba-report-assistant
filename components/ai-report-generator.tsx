@@ -234,22 +234,58 @@ export function AIReportGenerator() {
     setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, status: "generating" } : s)))
 
     try {
+      const data = assessmentData || sampleAssessmentData
+
+      // Build prompt text for the section
+      const promptText = `Generate a professional clinical report section for "${section.title}" with the following client information:
+
+Client: ${data.clientInfo?.firstName} ${data.clientInfo?.lastName}
+Age: ${data.clientInfo?.age} years old
+Diagnosis: ${data.clientInfo?.diagnosis}
+ICD-10: ${data.clientInfo?.icd10Code}
+
+Background Information:
+- Developmental: ${data.background?.developmental || "Not provided"}
+- Medical: ${data.background?.medical || "Not provided"}
+- Educational: ${data.background?.educational || "Not provided"}
+- Family: ${data.background?.family || "Not provided"}
+- Strengths: ${data.background?.strengths || "Not provided"}
+
+Assessment Tools Used: ${data.assessmentTools?.join(", ") || "Not specified"}
+Assessment Dates: ${data.assessmentDates || "Not specified"}
+
+Behaviors Observed:
+${data.behaviors?.map((b: any) => `- ${b.name}: Baseline ${b.baseline}, Function: ${b.function}`).join("\n") || "Not provided"}
+
+Goals:
+${data.goals?.map((g: any) => `- ${g.domain}: ${g.shortTerm}`).join("\n") || "Not provided"}
+
+Service Recommendations:
+- Weekly Hours: ${data.recommendations?.weeklyHours || "Not specified"}
+- RBT Hours: ${data.recommendations?.rbtHours || "Not specified"}
+- BCBA Hours: ${data.recommendations?.bcbaHours || "Not specified"}
+
+Write this section in professional clinical language appropriate for insurance submission. Include evidence-based recommendations and detailed behavioral analysis. Target approximately ${section.estimatedWords} words.`
+
       const response = await fetch("/api/ai-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "report-section",
-          sectionId,
-          assessmentData: assessmentData || sampleAssessmentData,
-          reportTitle: "Behavioral Analysis Assessment Report",
-          clientName: `${assessmentData?.clientInfo?.firstName} ${assessmentData?.clientInfo?.lastName}`,
+          messages: [{ role: "user", content: promptText }],
+          clientDiagnosis: data.clientInfo?.diagnosis || "Autism Spectrum Disorder",
+          isReportSection: true,
+          sectionType: sectionId,
+          clientData: data,
         }),
       })
 
-      if (!response.ok) throw new Error("Failed to generate section")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to generate section")
+      }
 
-      const data = await response.json()
-      const content = data.message || data.content || ""
+      const result = await response.json()
+      const content = result.content || result.message || ""
 
       setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, status: "complete", content } : s)))
     } catch (error) {
