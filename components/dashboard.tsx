@@ -31,7 +31,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { MenuIcon, PlusIcon, SparklesIcon, CheckCircleIcon } from "@/components/icons"
+import { MenuIcon, PlusIcon, SparklesIcon, CheckCircleIcon, ArrowLeftIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 import { getNextStep, getPreviousStep } from "./wizard-sidebar"
 
@@ -545,6 +545,17 @@ export function Dashboard() {
               className="lg:hidden"
             >
               <MenuIcon className="h-5 w-5" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => (window.location.href = "/")}
+              className="flex items-center gap-2 text-teal-600 hover:bg-teal-50"
+              title="Back to Home"
+            >
+              <ArrowLeftIcon className="h-4 w-4" />
+              <span className="hidden sm:inline text-sm font-medium">Back</span>
             </Button>
 
             <div className="text-sm text-gray-500">
