@@ -11,7 +11,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { DailyScheduleTable } from "@/components/daily-schedule-table"
 import { CheckCircle2Icon, DownloadIcon, FileTextIcon, SaveIcon, ArrowRightIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 
 interface BackgroundHistoryData {
@@ -201,7 +200,7 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
         </CardContent>
       </Card>
 
-      <ScrollArea className="h-[calc(100vh-250px)]">
+      <div className="flex-1 overflow-y-auto pb-24">
         <div className="space-y-6 pr-4">
           {/* 1. Reason for Referral */}
           <Card>
@@ -751,7 +750,7 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
             </Button>
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
