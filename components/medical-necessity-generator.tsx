@@ -107,30 +107,29 @@ export function MedicalNecessityGenerator({
 
     setLoading(true)
     try {
-      const payload = {
-        type: "medicalNecessity",
-        data: {
-          clientName: clientData?.firstName ? `${clientData.firstName} ${clientData.lastName}` : "Client",
-          age: clientData?.dateOfBirth ? new Date().getFullYear() - new Date(clientData.dateOfBirth).getFullYear() : 5,
-          diagnosis: diagnosis || "Autism Spectrum Disorder",
-          impairments: assessmentData?.domains || [],
-          hoursRequested: Number.parseInt(requestedHours) || 25,
-          insurance: clientData?.insurance || "Standard",
-          targetBehaviors,
-          severity,
-          functionalImpact,
-          previousTreatments,
-          environmentalFactors,
-          template,
-        },
-      }
+      const prompt = `Write a comprehensive medical necessity statement for ABA services authorization.
 
-      console.log("[v0] Sending payload:", payload)
+CLIENT: ${clientData?.firstName ? `${clientData.firstName} ${clientData.lastName}` : "Client"}, age ${clientData?.dateOfBirth ? new Date().getFullYear() - new Date(clientData.dateOfBirth).getFullYear() : 5} years old
+DIAGNOSIS: ${diagnosis || "Autism Spectrum Disorder"}
+INSURANCE: ${clientData?.insurance || "Not specified"}
+REQUESTED HOURS: ${requestedHours}/week
 
-      const response = await fetch("/api/aba-generate", {
+TARGET BEHAVIORS: ${targetBehaviors}
+SEVERITY/FREQUENCY: ${severity}
+FUNCTIONAL IMPACT: ${functionalImpact}
+PREVIOUS TREATMENTS: ${previousTreatments}
+ENVIRONMENTAL FACTORS: ${environmentalFactors}
+
+Generate a professional, insurance-compliant medical necessity statement (300-500 words). Include the key phrases naturally: significant impairment, evidence-based treatment, medically necessary, skilled intervention required, functional impairment, intensive services, clinical necessity, substantial limitations.`
+
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          messages: [{ role: "user", content: prompt }],
+          isTextGeneration: true,
+          fieldName: "Medical Necessity Statement",
+        }),
       })
 
       console.log("[v0] Response status:", response.status)
@@ -144,10 +143,11 @@ export function MedicalNecessityGenerator({
       const data = await response.json()
       console.log("[v0] Generated content:", data)
 
-      setGeneratedText(data.content)
-      setEditedText(data.content)
+      const generatedContent = data.message || data.content || ""
+      setGeneratedText(generatedContent)
+      setEditedText(generatedContent)
 
-      const confidence = calculateConfidence(data.content)
+      const confidence = calculateConfidence(generatedContent)
       setConfidenceScore(confidence)
       console.log("[v0] Confidence score:", confidence)
     } catch (error) {
