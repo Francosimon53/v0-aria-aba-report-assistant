@@ -96,15 +96,6 @@ export function MedicalNecessityGenerator({
   }
 
   const handleGenerate = async () => {
-    console.log("[v0] Generate button clicked")
-    console.log("[v0] Form data:", {
-      diagnosis,
-      targetBehaviors,
-      severity,
-      functionalImpact,
-      requestedHours,
-    })
-
     setLoading(true)
     try {
       const prompt = `Write a comprehensive medical necessity statement for ABA services authorization.
@@ -132,26 +123,20 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
         }),
       })
 
-      console.log("[v0] Response status:", response.status)
-
       if (!response.ok) {
         const errorText = await response.text()
-        console.error("[v0] API error response:", errorText)
         throw new Error("Failed to generate medical necessity statement")
       }
 
       const data = await response.json()
-      console.log("[v0] Generated content:", data)
-
       const generatedContent = data.message || data.content || ""
       setGeneratedText(generatedContent)
       setEditedText(generatedContent)
 
       const confidence = calculateConfidence(generatedContent)
       setConfidenceScore(confidence)
-      console.log("[v0] Confidence score:", confidence)
     } catch (error) {
-      console.error("[v0] Error generating medical necessity:", error)
+      console.error("Error generating medical necessity:", error)
       alert("Failed to generate statement. Please try again.")
     } finally {
       setLoading(false)
