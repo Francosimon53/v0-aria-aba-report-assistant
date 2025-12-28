@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
+import { AITextarea } from "@/components/ui/ai-textarea"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { SparklesIcon, CheckIcon, AlertCircleIcon, FileTextIcon } from "@/components/icons"
+import { SparklesIcon, CheckIcon, AlertCircleIcon, FileTextIcon, CopyIcon, FileDownIcon } from "@/components/icons"
 import type { ClientData, AssessmentData } from "@/lib/types"
 
 interface MedicalNecessityGeneratorProps {
@@ -46,6 +46,7 @@ export function MedicalNecessityGenerator({
   const [template, setTemplate] = useState<string>("moderate")
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null)
   const [characterCount, setCharacterCount] = useState(0)
+  const [activeField, setActiveField] = useState<string | null>(null)
 
   const [diagnosis, setDiagnosis] = useState(clientData?.diagnosis || "")
   const [targetBehaviors, setTargetBehaviors] = useState(behaviors.join(", ") || "")
@@ -139,6 +140,59 @@ export function MedicalNecessityGenerator({
     }
   }
 
+  const handleCopyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(editedText)
+      alert("Medical necessity statement copied to clipboard!")
+    } catch (error) {
+      console.error("Failed to copy:", error)
+      alert("Failed to copy to clipboard")
+    }
+  }
+
+  const handleExportToWord = () => {
+    const blob = new Blob(
+      [
+        `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Medical Necessity Statement</title></head><body><h1>Medical Necessity Statement</h1><p>${editedText.replace(/\n/g, "<br>")}</p></body></html>`,
+      ],
+      { type: "application/msword" },
+    )
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `medical-necessity-${clientData?.lastName || "statement"}.doc`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleInsertKeyPhrase = (phrase: string) => {
+    if (!activeField) {
+      setEditedText((prev) => prev + (prev ? " " : "") + phrase)
+      return
+    }
+
+    const setters: Record<string, (value: string) => void> = {
+      behaviors: setTargetBehaviors,
+      severity: setSeverity,
+      impact: setFunctionalImpact,
+      previous: setPreviousTreatments,
+      environmental: setEnvironmentalFactors,
+    }
+
+    const getters: Record<string, string> = {
+      behaviors: targetBehaviors,
+      severity: severity,
+      impact: functionalImpact,
+      previous: previousTreatments,
+      environmental: environmentalFactors,
+    }
+
+    if (setters[activeField]) {
+      const currentValue = getters[activeField]
+      setters[activeField](currentValue + (currentValue ? " " : "") + phrase)
+    }
+  }
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-6 pb-24 bg-gray-50 dark:bg-gray-950 min-h-full">
@@ -194,10 +248,12 @@ export function MedicalNecessityGenerator({
 
                 <div>
                   <Label htmlFor="behaviors">Target Behaviors *</Label>
-                  <Textarea
+                  <AITextarea
                     id="behaviors"
                     value={targetBehaviors}
                     onChange={(e) => setTargetBehaviors(e.target.value)}
+                    onFocus={() => setActiveField("behaviors")}
+                    fieldName="Target Behaviors for ABA Treatment"
                     placeholder="e.g., Aggression, elopement, limited communication"
                     rows={3}
                   />
@@ -205,10 +261,12 @@ export function MedicalNecessityGenerator({
 
                 <div>
                   <Label htmlFor="severity">Severity/Frequency *</Label>
-                  <Textarea
+                  <AITextarea
                     id="severity"
                     value={severity}
                     onChange={(e) => setSeverity(e.target.value)}
+                    onFocus={() => setActiveField("severity")}
+                    fieldName="Behavior Severity and Frequency"
                     placeholder="e.g., Aggression occurs 15-20x daily, requiring constant supervision"
                     rows={3}
                   />
@@ -216,10 +274,12 @@ export function MedicalNecessityGenerator({
 
                 <div>
                   <Label htmlFor="impact">Functional Impact *</Label>
-                  <Textarea
+                  <AITextarea
                     id="impact"
                     value={functionalImpact}
                     onChange={(e) => setFunctionalImpact(e.target.value)}
+                    onFocus={() => setActiveField("impact")}
+                    fieldName="Functional Impact on Daily Life"
                     placeholder="Describe impact on education, social interactions, family life, safety"
                     rows={4}
                   />
@@ -227,10 +287,12 @@ export function MedicalNecessityGenerator({
 
                 <div>
                   <Label htmlFor="previous">Previous Treatment Attempts</Label>
-                  <Textarea
+                  <AITextarea
                     id="previous"
                     value={previousTreatments}
                     onChange={(e) => setPreviousTreatments(e.target.value)}
+                    onFocus={() => setActiveField("previous")}
+                    fieldName="Previous Treatment History"
                     placeholder="e.g., Speech therapy (2 years), OT (18 months) - limited progress"
                     rows={3}
                   />
@@ -251,10 +313,12 @@ export function MedicalNecessityGenerator({
 
                 <div>
                   <Label htmlFor="environmental">Environmental Factors</Label>
-                  <Textarea
+                  <AITextarea
                     id="environmental"
                     value={environmentalFactors}
                     onChange={(e) => setEnvironmentalFactors(e.target.value)}
+                    onFocus={() => setActiveField("environmental")}
+                    fieldName="Environmental and Contextual Factors"
                     placeholder="e.g., Limited community resources, parent works full-time, sibling with special needs"
                     rows={3}
                   />
@@ -304,9 +368,11 @@ export function MedicalNecessityGenerator({
             {generatedText ? (
               <>
                 <ScrollArea className="flex-1 mb-4">
-                  <Textarea
+                  <AITextarea
                     value={editedText}
                     onChange={(e) => setEditedText(e.target.value)}
+                    onFocus={() => setActiveField(null)}
+                    fieldName="Medical Necessity Statement"
                     className="min-h-[400px] font-mono text-sm leading-relaxed"
                     placeholder="Generated medical necessity statement will appear here..."
                   />
@@ -338,8 +404,13 @@ export function MedicalNecessityGenerator({
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      Save to Library
+                    <Button variant="outline" size="sm" onClick={handleCopyToClipboard}>
+                      <CopyIcon className="mr-2 h-4 w-4" />
+                      Copy
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExportToWord}>
+                      <FileDownIcon className="mr-2 h-4 w-4" />
+                      Export
                     </Button>
                     <Button size="sm" className="bg-[#0D9488] hover:bg-[#0F766E]">
                       Copy to Report
@@ -367,10 +438,20 @@ export function MedicalNecessityGenerator({
           <div className="flex items-start gap-4">
             <AlertCircleIcon className="h-5 w-5 text-[#0D9488] mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-semibold mb-2">Insurance Key Phrases</h3>
+              <h3 className="font-semibold mb-2">
+                Insurance Key Phrases
+                <span className="text-xs text-muted-foreground ml-2 font-normal">
+                  (Click to insert into active field)
+                </span>
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {KEY_PHRASES.map((phrase) => (
-                  <Badge key={phrase} variant="outline" className="text-xs">
+                  <Badge
+                    key={phrase}
+                    variant="outline"
+                    className="text-xs cursor-pointer hover:bg-[#0D9488] hover:text-white transition-colors"
+                    onClick={() => handleInsertKeyPhrase(phrase)}
+                  >
                     {phrase}
                   </Badge>
                 ))}
