@@ -502,32 +502,65 @@ Write this section in professional clinical language appropriate for insurance s
       {demoMode && (
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="bg-white rounded-xl border border-teal-100 p-8">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {assessmentData?.clientInfo?.firstName} {assessmentData?.clientInfo?.lastName}
-                </h2>
-                <p className="text-sm text-slate-600">{assessmentData?.clientInfo?.diagnosis}</p>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-teal-600">{progressPercent}%</div>
-                <p className="text-sm text-slate-600">
+            <div className="flex items-center gap-8">
+              {/* Circular Progress */}
+              <div className="flex-shrink-0">
+                <div className="relative w-24 h-24">
+                  {/* Background Circle */}
+                  <svg className="w-24 h-24 transform -rotate-90">
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="40"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="none"
+                      className="text-slate-100"
+                    />
+                    {/* Progress Circle with gradient */}
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="40"
+                      stroke="url(#progressGradient)"
+                      strokeWidth="8"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 40}`}
+                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - progressPercent / 100)}`}
+                      className="transition-all duration-500 ease-out"
+                    />
+                    {/* Gradient Definition */}
+                    <defs>
+                      <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#0D9488" />
+                        <stop offset="100%" stopColor="#06B6D4" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  {/* Center Text */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-bold text-slate-900">{progressPercent}%</span>
+                  </div>
+                </div>
+                {/* Section Count Below Circle */}
+                <p className="text-center text-sm text-slate-600 mt-2">
                   {completedCount} of {sections.length} sections
                 </p>
               </div>
-            </div>
 
-            {/* Progress Bar */}
-            <div className="relative w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
+              {/* Client Info */}
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-slate-900">
+                  {assessmentData?.clientInfo?.firstName} {assessmentData?.clientInfo?.lastName}
+                </h2>
+                <p className="text-sm text-slate-600 mt-1">{assessmentData?.clientInfo?.diagnosis}</p>
+              </div>
             </div>
 
             {/* Motivational Message */}
             {isGenerating && (
-              <div className="mt-4 flex items-center gap-2 text-teal-600">
+              <div className="mt-6 flex items-center gap-2 text-teal-600">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span className="text-sm font-medium">{motivationalMessages[motivationalIndex]}</span>
               </div>
