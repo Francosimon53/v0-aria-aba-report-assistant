@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     console.log("[v0] File converted to base64, size:", base64.length)
 
     const result = await generateObject({
-      model: "anthropic/claude-sonnet-4",
+      model: "anthropic/claude-3-5-sonnet-20241022",
       messages: [
         {
           role: "user",
@@ -52,17 +52,17 @@ Look for:
 - Address
 - Assessment type (WJ, ABLLS, VB-MAPP, etc.)
 
-If you cannot find a field, leave it empty. Do not make up information.`,
+If you cannot find a field, leave it empty string. Do not make up information.`,
             },
             {
               type: "image",
-              image: `data:${file.type || "application/pdf"};base64,${base64}`,
+              image: `data:application/pdf;base64,${base64}`,
             },
           ],
         },
       ],
       schema: ClientDataSchema,
-      maxTokens: 2000,
+      maxTokens: 1000,
     })
 
     console.log("[v0] AI extraction successful:", result.object)
@@ -73,10 +73,13 @@ If you cannot find a field, leave it empty. Do not make up information.`,
     })
   } catch (error) {
     console.error("[v0] PDF parsing error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Failed to parse PDF"
+    const errorDetails = error instanceof Error ? error.stack : String(error)
+
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Failed to parse PDF",
-        details: error instanceof Error ? error.stack : undefined,
+        error: errorMessage,
+        details: errorDetails,
       },
       { status: 500 },
     )
