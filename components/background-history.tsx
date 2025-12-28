@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { DailyScheduleTable } from "@/components/daily-schedule-table"
-import { SaveIcon, CheckCircle2Icon, FileTextIcon, DownloadIcon } from "@/components/icons"
+import { CheckCircle2Icon, DownloadIcon, FileTextIcon, SaveIcon, ArrowRightIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
@@ -732,6 +732,24 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
               />
             </CardContent>
           </Card>
+
+          {/* Continue button at the bottom right */}
+          <div className="flex justify-end mt-6 pb-6">
+            <Button
+              onClick={() => {
+                if (onSave) onSave()
+                toast({
+                  title: "Progress Saved",
+                  description: "Moving to the next section...",
+                })
+              }}
+              className="gap-2 bg-[#0D9488] hover:bg-[#0a6b62] text-white px-6"
+              size="lg"
+            >
+              Continue
+              <ArrowRightIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </ScrollArea>
     </div>
