@@ -1,20 +1,18 @@
 "use client"
 
 import { useRef } from "react"
+import { useToast } from "@/components/ui/use-toast"
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
 import {
   CheckCircle2Icon,
   AlertCircleIcon,
   XCircleIcon,
-  FileTextIcon,
   DownloadIcon,
   PrinterIcon,
   EditIcon,
@@ -23,16 +21,14 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   TrashIcon,
-  SparklesIcon,
   XIcon,
   CopyIcon,
   SendIcon,
   CheckIcon,
   LoaderIcon,
+  FileTextIcon,
 } from "@/components/icons"
-import { SignaturePad } from "@/components/signature-pad"
 import type { ClientData, AssessmentData, SelectedGoal } from "@/lib/types"
-import { safeGetItem } from "@/lib/safe-storage"
 
 type ExportStatus = "idle" | "loading" | "success" | "error"
 
@@ -50,19 +46,29 @@ interface ReportSection {
 interface ReportPreviewToolProps {
   clientData: ClientData | null
   assessmentData: AssessmentData | null
-  backgroundData: any | null
-  goalsData: SelectedGoal[]
+  selectedGoals: SelectedGoal[]
+  agencyData: any
+  reassessmentData: any
+  onExport: () => void
 }
 
-export function ReportPreviewTool({ clientData, assessmentData, backgroundData, goalsData }: ReportPreviewToolProps) {
+export function ReportPreviewTool({
+  clientData,
+  assessmentData,
+  selectedGoals: goalsData = [],
+  agencyData,
+  reassessmentData,
+  onExport,
+}: ReportPreviewToolProps) {
+  const safeGoalsData = useMemo(() => (Array.isArray(goalsData) ? goalsData : []), [goalsData])
+
   const [sections, setSections] = useState<ReportSection[]>([])
+  const safeSections = useMemo(() => (Array.isArray(sections) ? sections : []), [sections])
+
   const [selectedSection, setSelectedSection] = useState<string | null>(null)
   const [previewMode, setPreviewMode] = useState<"edit" | "preview">("preview")
   const [versions, setVersions] = useState<{ date: Date; sections: ReportSection[] }[]>([])
   const [showCompliance, setShowCompliance] = useState(true)
-  const [completionPercentage, setCompletionPercentage] = useState(0)
-  const [complianceScore, setComplianceScore] = useState(0)
-
   const [copyStatus, setCopyStatus] = useState<ExportStatus>("idle")
   const [emailStatus, setEmailStatus] = useState<ExportStatus>("idle")
   const [pdfStatus, setPdfStatus] = useState<ExportStatus>("idle")
@@ -78,6 +84,8 @@ export function ReportPreviewTool({ clientData, assessmentData, backgroundData, 
     bcba: null,
     parent: null,
   })
+
+  const { toast } = useToast()
 
   const handleSignatureChange = (type: "bcba" | "parent", signature: string | null, name: string, date: string) => {
     setSignatures((prev) => ({
@@ -119,8 +127,8 @@ Assessment Date: ${assessmentData.assessmentDate}`
   }
 
   const generateGoals = () => {
-    if (goalsData.length === 0) return ""
-    return goalsData.map((g, i) => `Goal ${i + 1}: ${g.goalId}\nPriority: ${g.priority}`).join("\n\n")
+    if (safeGoalsData.length === 0) return ""
+    return safeGoalsData.map((g, i) => `Goal ${i + 1}: ${g.goalId}\nPriority: ${g.priority}`).join("\n\n")
   }
 
   const generateParentTraining = () => {
@@ -186,11 +194,11 @@ ${signatures.parent?.name || "Parent/Guardian"}`
         id: "goals",
         title: "Treatment Goals & Objectives",
         required: true,
-        completed: goalsData.length > 0,
+        completed: safeGoalsData.length > 0,
         content: generateGoals(),
         order: 5,
         enabled: true,
-        issues: goalsData.length === 0 ? ["No treatment goals selected"] : [],
+        issues: safeGoalsData.length === 0 ? ["No treatment goals selected"] : [],
       },
       {
         id: "medical-necessity",
@@ -203,22 +211,12 @@ ${signatures.parent?.name || "Parent/Guardian"}`
         issues: !assessmentData?.medicalNecessity ? ["Medical necessity statement required"] : [],
       },
       {
-        id: "cpt-auth-request",
-        title: "CPT Authorization Request Summary",
-        required: true,
-        completed: !!safeGetItem("aria_cpt_auth_request", ""),
-        content: safeGetItem("aria_cpt_auth_request", ""),
-        order: 7,
-        enabled: true,
-        issues: !safeGetItem("aria_cpt_auth_request", "") ? ["CPT Authorization Request not generated"] : [],
-      },
-      {
         id: "hours-justification",
         title: "Service Hours Justification",
         required: true,
         completed: !!assessmentData?.hoursJustification,
         content: assessmentData?.hoursJustification || "",
-        order: 8,
+        order: 7,
         enabled: true,
         issues: !assessmentData?.hoursJustification ? ["Hours justification required for insurance"] : [],
       },
@@ -228,7 +226,7 @@ ${signatures.parent?.name || "Parent/Guardian"}`
         required: true,
         completed: !!assessmentData?.parentTrainingPlan,
         content: assessmentData?.parentTrainingPlan || generateParentTraining(),
-        order: 9,
+        order: 8,
         enabled: true,
       },
       {
@@ -237,7 +235,7 @@ ${signatures.parent?.name || "Parent/Guardian"}`
         required: false,
         completed: !!assessmentData?.crisisPlan,
         content: assessmentData?.crisisPlan || "",
-        order: 10,
+        order: 9,
         enabled: true,
       },
       {
@@ -246,66 +244,76 @@ ${signatures.parent?.name || "Parent/Guardian"}`
         required: true,
         completed: false,
         content: generateSignatures(),
-        order: 11,
+        order: 10,
         enabled: true,
         issues: ["Digital signatures pending"],
       },
     ]
     setSections(initialSections)
-  }, [clientData, assessmentData, goalsData])
+  }, [clientData, assessmentData, safeGoalsData])
 
-  useEffect(() => {
-    if (sections.length > 0) {
-      setCompletionPercentage(getCompletionPercentage())
-      setComplianceScore(getComplianceScore())
-    }
-  }, [sections])
+  const completionPercentage = useMemo(() => {
+    const requiredSections = safeSections.filter((s) => s.required)
+    if (requiredSections.length === 0) return 0
+    const completedRequired = requiredSections.filter((s) => s.completed).length
+    return Math.round((completedRequired / requiredSections.length) * 100)
+  }, [safeSections])
 
-  const complianceChecks = [
-    {
-      label: "All required sections completed",
-      completed: sections.filter((s) => s.required).every((s) => s.completed),
-      required: true,
-    },
-    {
-      label: "Goals have measurable criteria",
-      completed: goalsData.length > 0,
-      required: true,
-    },
-    {
-      label: "Service hours justified",
-      completed: !!assessmentData?.hoursJustification,
-      required: true,
-    },
-    {
-      label: "Medical necessity statement included",
-      completed: !!assessmentData?.medicalNecessity,
-      required: true,
-    },
-    {
-      label: "Risk assessment completed (if applicable)",
-      completed: true,
-      required: false,
-    },
-    {
-      label: "Parent training plan outlined",
-      completed: !!assessmentData?.parentTrainingPlan,
-      required: true,
-    },
-    {
-      label: "Consent form signed",
-      completed: false,
-      required: true,
-    },
-    {
-      label: "Report reviewed by BCBA",
-      completed: false,
-      required: true,
-    },
-  ]
+  const complianceChecks = useMemo(
+    () => [
+      {
+        label: "All required sections completed",
+        completed: safeSections.every((s) => s.required && s.completed),
+        required: true,
+      },
+      {
+        label: "Goals have measurable criteria",
+        completed: safeGoalsData.length > 0,
+        required: true,
+      },
+      {
+        label: "Service hours justified",
+        completed: !!assessmentData?.hoursJustification,
+        required: true,
+      },
+      {
+        label: "Medical necessity statement included",
+        completed: !!assessmentData?.medicalNecessity,
+        required: true,
+      },
+      {
+        label: "Risk assessment completed (if applicable)",
+        completed: true,
+        required: false,
+      },
+      {
+        label: "Parent training plan outlined",
+        completed: !!assessmentData?.parentTrainingPlan,
+        required: true,
+      },
+      {
+        label: "Consent form signed",
+        completed: false,
+        required: true,
+      },
+      {
+        label: "Report reviewed by BCBA",
+        completed: false,
+        required: true,
+      },
+    ],
+    [safeSections, safeGoalsData, assessmentData],
+  )
+
+  const complianceScore = useMemo(() => {
+    const requiredChecks = complianceChecks.filter((c) => c.required)
+    if (requiredChecks.length === 0) return 100
+    const completedChecks = requiredChecks.filter((c) => c.completed).length
+    return Math.round((completedChecks / requiredChecks.length) * 100)
+  }, [complianceChecks])
 
   const moveSection = (index: number, direction: "up" | "down") => {
-    const newSections = [...sections]
+    const newSections = [...safeSections]
     const targetIndex = direction === "up" ? index - 1 : index + 1
     if (targetIndex < 0 || targetIndex >= newSections.length) return
     ;[newSections[index], newSections[targetIndex]] = [newSections[targetIndex], newSections[index]]
@@ -315,11 +323,17 @@ ${signatures.parent?.name || "Parent/Guardian"}`
   }
 
   const toggleSection = (id: string) => {
-    setSections(sections.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)))
+    setSections((prevSections) => {
+      const safePrev = Array.isArray(prevSections) ? prevSections : []
+      return safePrev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s))
+    })
   }
 
   const updateContent = (id: string, content: string) => {
-    setSections(sections.map((s) => (s.id === id ? { ...s, content, completed: content.length > 0 } : s)))
+    setSections((prevSections) => {
+      const safePrev = Array.isArray(prevSections) ? prevSections : []
+      return safePrev.map((s) => (s.id === id ? { ...s, content, completed: content.length > 0 } : s))
+    })
   }
 
   const addCustomSection = () => {
@@ -329,22 +343,25 @@ ${signatures.parent?.name || "Parent/Guardian"}`
       required: false,
       completed: false,
       content: "",
-      order: sections.length + 1,
+      order: safeSections.length + 1,
       enabled: true,
     }
-    setSections([...sections, newSection])
+    setSections([...safeSections, newSection])
   }
 
   const deleteSection = (id: string) => {
-    setSections(sections.filter((s) => s.id !== id))
+    setSections((prevSections) => {
+      const safePrev = Array.isArray(prevSections) ? prevSections : []
+      return safePrev.filter((s) => s.id !== id)
+    })
   }
 
   const saveVersion = () => {
-    setVersions([...versions, { date: new Date(), sections: [...sections] }])
+    setVersions([...versions, { date: new Date(), sections: [...safeSections] }])
   }
 
   const generateFullReport = () => {
-    return sections
+    return safeSections
       .filter((s) => s.enabled)
       .sort((a, b) => a.order - b.order)
       .map((s) => `${s.title.toUpperCase()}\n${"=".repeat(60)}\n${s.content}\n\n`)
@@ -442,7 +459,7 @@ ${signatures.parent?.name || "Parent/Guardian"}`
           <p><strong>Report Date:</strong> ${reportDate}</p>
           <p><strong>Assessment Type:</strong> ${assessmentData?.assessmentType || "Initial Assessment"}</p>
         </div>
-        ${sections
+        ${safeSections
           .filter((s) => s.enabled)
           .sort((a, b) => a.order - b.order)
           .map(
@@ -485,7 +502,7 @@ ${signatures.parent?.name || "Parent/Guardian"}`
 
       const subject = encodeURIComponent(`ABA Assessment Report - ${clientName} - ${reportDate}`)
 
-      const enabledSections = sections
+      const enabledSections = safeSections
         .filter((s) => s.enabled)
         .map((s) => s.title)
         .join(", ")
@@ -556,8 +573,7 @@ ${signatures.parent?.name || "Parent/Guardian"}`
 \\pard\\brdrb\\brdrs\\brdrw10\\brsp20\\par
 \\par
 `
-
-      sections
+      safeSections
         .filter((s) => s.enabled)
         .sort((a, b) => a.order - b.order)
         .forEach((section) => {
@@ -615,20 +631,6 @@ Generated by ARIA ABA Report Assistant\\i0\\fs24\\par
       setPrintStatus("error")
       setTimeout(() => setPrintStatus("idle"), 2000)
     }
-  }
-
-  const getCompletionPercentage = () => {
-    const requiredSections = sections.filter((s) => s.required)
-    if (requiredSections.length === 0) return 0
-    const completedRequired = requiredSections.filter((s) => s.completed).length
-    return Math.round((completedRequired / requiredSections.length) * 100)
-  }
-
-  const getComplianceScore = () => {
-    const requiredChecks = complianceChecks.filter((c) => c.required)
-    if (requiredChecks.length === 0) return 0
-    const completedChecks = requiredChecks.filter((c) => c.completed).length
-    return Math.round((completedChecks / requiredChecks.length) * 100)
   }
 
   const renderExportButton = (
@@ -710,7 +712,7 @@ Generated by ARIA ABA Report Assistant\\i0\\fs24\\par
               <div>
                 <h3 className="font-semibold mb-3 text-sm">Section Checklist</h3>
                 <div className="space-y-2">
-                  {sections.map((section, index) => (
+                  {safeSections.map((section, index) => (
                     <div
                       key={section.id}
                       className={`p-3 rounded-lg border transition-all cursor-pointer ${
@@ -767,7 +769,7 @@ Generated by ARIA ABA Report Assistant\\i0\\fs24\\par
                               e.stopPropagation()
                               moveSection(index, "down")
                             }}
-                            disabled={index === sections.length - 1}
+                            disabled={index === safeSections.length - 1}
                           >
                             <ArrowDownIcon className="h-3 w-3" />
                           </Button>
@@ -864,137 +866,42 @@ Generated by ARIA ABA Report Assistant\\i0\\fs24\\par
                 Edit
               </Button>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={saveVersion}>
-                Save Version
-              </Button>
-              {selectedSection && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-[#0D9488] border-[#0D9488] hover:bg-[#0D9488]/10 bg-transparent"
-                >
-                  <SparklesIcon className="h-4 w-4 mr-2" />
-                  AI Improve
-                </Button>
-              )}
-            </div>
+            <Button variant="outline" size="sm" onClick={saveVersion}>
+              Save Version
+            </Button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
-            {previewMode === "preview" ? (
-              <Card className="max-w-4xl mx-auto shadow-lg">
-                <CardContent className="p-8">
-                  <div className="text-center border-b-2 border-[#0D9488] pb-6 mb-8">
-                    <h1 className="text-2xl font-bold text-[#0D9488] mb-2">Behavior Analysis Assessment Report</h1>
-                    <p className="text-muted-foreground">
-                      <strong>Client:</strong>{" "}
-                      {clientData ? `${clientData.firstName} ${clientData.lastName}` : "Not specified"}
-                    </p>
-                    <p className="text-muted-foreground">
-                      <strong>Date:</strong>{" "}
-                      {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-                    </p>
-                  </div>
-                  {sections
-                    .filter((s) => s.enabled)
-                    .sort((a, b) => a.order - b.order)
-                    .map((section) => (
-                      <div key={section.id} className="mb-8">
-                        <h2 className="text-lg font-semibold text-[#0D9488] border-b border-border pb-2 mb-4 uppercase tracking-wide">
-                          {section.title}
-                        </h2>
-                        <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                          {section.content || <span className="text-muted-foreground italic">No content entered</span>}
+          <div className="flex-1 overflow-y-auto" ref={reportRef}>
+            {selectedSection ? (
+              <div className="p-6">
+                {(() => {
+                  const section = safeSections.find((s) => s.id === selectedSection)
+                  if (!section) return null
+
+                  return (
+                    <div>
+                      <h2 className="text-xl font-bold mb-4">{section.title}</h2>
+                      {previewMode === "edit" ? (
+                        <Textarea
+                          value={section.content}
+                          onChange={(e) => updateContent(section.id, e.target.value)}
+                          className="min-h-[400px] font-mono text-sm"
+                          placeholder="Enter content for this section..."
+                        />
+                      ) : (
+                        <div className="prose prose-sm max-w-none">
+                          <div className="whitespace-pre-wrap">{section.content || "No content yet"}</div>
                         </div>
-                      </div>
-                    ))}
-                  <div className="mt-12 pt-8 border-t-2 border-primary/20">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <FileTextIcon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg">Digital Signatures</h3>
-                        <p className="text-sm text-muted-foreground">Sign using your mouse, trackpad, or touchscreen</p>
-                      </div>
+                      )}
                     </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <SignaturePad
-                        label="BCBA Signature"
-                        sublabel="Board Certified Behavior Analyst"
-                        onSignatureChange={(sig, name, date) => handleSignatureChange("bcba", sig, name, date)}
-                      />
-                      <SignaturePad
-                        label="Parent/Guardian Signature"
-                        sublabel="Legal Guardian or Caregiver"
-                        onSignatureChange={(sig, name, date) => handleSignatureChange("parent", sig, name, date)}
-                      />
-                    </div>
-
-                    {(signatures.bcba?.name || signatures.parent?.name) && (
-                      <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center gap-2 text-green-700">
-                          <CheckIcon className="h-4 w-4" />
-                          <span className="text-sm font-medium">
-                            {signatures.bcba?.name && signatures.parent?.name
-                              ? "Both signatures captured"
-                              : signatures.bcba?.name
-                                ? "BCBA signature captured"
-                                : "Parent/Guardian signature captured"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-12 pt-6 border-t border-border text-center text-xs text-muted-foreground">
-                    <p>This report is confidential and intended for authorized recipients only.</p>
-                    <p className="mt-1">Generated by ARIA ABA Report Assistant</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : selectedSection ? (
-              <div className="max-w-4xl mx-auto">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="mb-4">
-                      <Input
-                        value={sections.find((s) => s.id === selectedSection)?.title || ""}
-                        onChange={(e) => {
-                          setSections(
-                            sections.map((s) => (s.id === selectedSection ? { ...s, title: e.target.value } : s)),
-                          )
-                        }}
-                        className="text-lg font-semibold"
-                        placeholder="Section Title"
-                      />
-                    </div>
-                    <Textarea
-                      value={sections.find((s) => s.id === selectedSection)?.content || ""}
-                      onChange={(e) => updateContent(selectedSection, e.target.value)}
-                      className="min-h-[400px] font-mono text-sm"
-                      placeholder="Enter section content..."
-                    />
-                    <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                      <span>
-                        {sections
-                          .find((s) => s.id === selectedSection)
-                          ?.content.split(/\s+/)
-                          .filter(Boolean).length || 0}{" "}
-                        words
-                      </span>
-                      <span>{sections.find((s) => s.id === selectedSection)?.content.length || 0} characters</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                  )
+                })()}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 <div className="text-center">
                   <FileTextIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Select a section from the left to edit</p>
+                  <p>Select a section to preview or edit</p>
                 </div>
               </div>
             )}

@@ -2,63 +2,68 @@ import type { NextRequest } from "next/server"
 
 export const maxDuration = 60
 
-const PROMPTS = {
-  default: `You are ARIA, a brief ABA assistant. 
+const CONCISE_CHAT_PROMPT = `You are ARIA, a brief ABA assistant. 
+
 CRITICAL RULES:
 1. Maximum 2 sentences per response
 2. Be direct and actionable
 3. Never ask follow-up questions unless absolutely necessary
 4. If user asks for help, give ONE specific tip immediately
-5. End conversations naturally - don't keep asking "what else?"`,
+5. End conversations naturally - don't keep asking "what else?"
 
-  support: `You are ARIA Support Assistant, helping users with ARIA ABA Report software.
+Examples:
+- User: "Help with goals" → "For behavior reduction, use measurable terms like 'reduce aggression from 10 to 3 incidents per week.' Click a goal template below to start."
+- User: "What info do I need?" → "Start with client name, DOB, diagnosis, and insurance. The required fields are marked with red asterisks."
+- User: "Thanks" → "You're welcome! The form auto-saves as you go."
 
-KNOWLEDGE BASE:
-- ARIA helps BCBAs create ABA assessment reports, progress notes, and medical necessity documentation
-- Plans: Starter ($49/mo, 5 reports), Professional ($99/mo, 25 reports), Enterprise ($249/mo, unlimited)
-- Features: AI-powered report generation, insurance-compliant templates, goal banks, data visualization
-- HIPAA compliant with encrypted data storage
-- Supports Medicaid, TRICARE, and major private insurers
-- Team collaboration available on Professional (5 users) and Enterprise (unlimited)
-- Cancel anytime from Account Settings
-- Reports can be exported as PDF, Word, or copied to clipboard
-- Email support responds within 24 hours
+If the user seems done or says thanks/ok/got it, just acknowledge briefly and stop.`
 
-RESPONSE RULES:
-1. Maximum 2-3 sentences per response
-2. Be helpful, friendly, and specific
-3. If you don't know something, suggest contacting support@aria-aba.com
-4. For billing issues, direct to Account Settings or support email
-5. Answer questions directly without being repetitive`,
+const ABA_WRITING_PROMPT = `You are ARIA, an expert ABA (Applied Behavior Analysis) clinical writer specializing in assessment reports.
 
-  compliance: `You are ARIA Compliance Assistant, expert in ABA therapy regulations.
-CRITICAL RULES:
-1. Maximum 2-3 sentences per response
-2. Cite specific regulations when relevant (HIPAA, BACB guidelines)
-3. Be precise but accessible
-4. For complex questions, provide a brief answer then offer to elaborate`,
-}
+CRITICAL FORMATTING RULES:
+- Write in plain text paragraphs only - NO markdown formatting
+- NO headers with ##, no bold with **, no bullet points with -, no italics
+- NO placeholders like [Date], [Name], [Level], [specific level] - write complete realistic text
+- Use professional clinical language appropriate for insurance submissions
+- Be specific and detailed with actual examples, not generic templates
+- Write 2-4 complete sentences with proper clinical observations
+- Include quantifiable measures when appropriate (percentages, frequencies, durations)
+- Use proper ABA terminology (contingency, reinforcement, prompting, fading, etc.)
+
+EXAMPLES OF GOOD OUTPUT:
+"The client demonstrates emerging receptive language skills with consistent responses to one-step directions in 75% of opportunities across three consecutive sessions. Comprehension of basic nouns and action verbs is solidly established, while understanding of prepositions and temporal concepts requires visual supports and verbal prompting."
+
+"During structured play activities, the client exhibited joint attention behaviors including coordinated eye gaze and shared enjoyment approximately 40% of the time. These social communication skills showed improvement from baseline levels of 15%, suggesting positive response to peer-mediated intervention strategies."
+
+EXAMPLES OF BAD OUTPUT (NEVER DO THIS):
+"## Receptive Language Skills
+**Current Level:** [Emerging/Mastered]
+- One-step directions: [percentage]%"
+
+"The client shows [specific level] of joint attention during [activity type]."
+
+Remember: Write as if this is a final report ready for submission. Use complete, professional sentences with real data.`
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const {
+      messages,
+      clientData,
+      currentStep,
+      isTextGeneration,
+    }: {
+      messages: Array<{ role: string; content: string }>
+      clientData?: any
+      currentStep?: string
+      isTextGeneration?: boolean
+    } = await req.json()
 
-    let messages: Array<{ role: string; content: string }> = []
-    const context = body.context || "default"
-
-    // Handle single message format (from support chat)
-    if (body.message && typeof body.message === "string") {
-      messages = [{ role: "user", content: body.message }]
-    } else if (body.messages && Array.isArray(body.messages)) {
-      messages = body.messages
-    } else {
-      return new Response(JSON.stringify({ error: "Invalid message format" }), {
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "Invalid messages format" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       })
     }
-
-    const { clientData, currentStep } = body
 
     let contextInfo = ""
     if (clientData?.firstName) {
@@ -68,12 +73,13 @@ export async function POST(req: NextRequest) {
       contextInfo += `, Current step: ${currentStep}`
     }
 
-    const systemPrompt = PROMPTS[context as keyof typeof PROMPTS] || PROMPTS.default
+    const userMessage = messages[messages.length - 1]?.content || ""
 
-    const formattedMessages = messages.map((msg, idx) => ({
-      role: msg.role === "assistant" ? "assistant" : "user",
-      content: idx === messages.length - 1 && contextInfo ? `[${contextInfo}] ${msg.content}` : msg.content,
-    }))
+    const systemPrompt = isTextGeneration ? ABA_WRITING_PROMPT : CONCISE_CHAT_PROMPT
+
+    const maxTokens = isTextGeneration ? 1000 : 100
+
+    console.log("[v0] API request:", { isTextGeneration, maxTokens, userMessage })
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -84,28 +90,61 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 200,
+        max_tokens: maxTokens,
         system: systemPrompt,
-        messages: formattedMessages,
+        messages: [
+          {
+            role: "user",
+            content: `${contextInfo ? `[${contextInfo}] ` : ""}${userMessage}`,
+          },
+        ],
       }),
     })
 
     if (!response.ok) {
       const errorText = await response.text()
+      console.error("[v0] Claude API error:", errorText)
       throw new Error(`API error: ${response.status} - ${errorText}`)
     }
 
     const result = await response.json()
-    const responseText = result.content?.[0]?.text || "I'm here to help! Could you tell me more about what you need?"
+
+    console.log("[v0] Raw API result:", JSON.stringify(result, null, 2))
+
+    let responseText = "Got it! Check the form fields on the left."
+
+    if (result.content && Array.isArray(result.content) && result.content.length > 0) {
+      responseText = result.content[0]?.text || responseText
+    } else if (result.content && typeof result.content === "string") {
+      responseText = result.content
+    } else {
+      console.error("[v0] Unexpected content format:", result.content)
+    }
+
+    console.log("[v0] API response:", { responseText: responseText.substring(0, 100) + "..." })
+
+    const cleanedText = (typeof responseText === "string" ? responseText : String(responseText))
+      .replace(/#{1,6}\s/g, "")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/^\s*[-*]\s+/gm, "")
+      .replace(/\[([^\]]+)\]/g, "$1")
+      .trim()
 
     return Response.json({
-      message: responseText,
+      message: cleanedText,
     })
   } catch (error) {
-    console.error("[v0] API error:", error)
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    })
+    console.error("[v0] API error details:", error)
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+        details: error instanceof Error ? error.stack : String(error),
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    )
   }
 }

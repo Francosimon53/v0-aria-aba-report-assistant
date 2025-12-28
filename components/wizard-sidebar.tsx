@@ -1,24 +1,37 @@
 "use client"
 
+import type React from "react"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { ChevronLeftIcon, ChevronRightIcon, CheckCircle2Icon, HomeIcon } from "@/components/icons"
-import type { ClientData, AssessmentData } from "@/lib/types"
 import {
-  getStepsByEvaluationType,
-  getNextStepInArray,
-  getPreviousStepInArray,
-  type WizardStep,
-} from "@/lib/wizard-steps-config"
-import { withAid, getAidFromParams } from "@/lib/navigation-helpers"
+  UserIcon,
+  ClipboardListIcon,
+  TargetIcon,
+  FileTextIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CheckCircle2Icon,
+  RepeatIcon,
+  DatabaseIcon,
+  HelpCircleIcon,
+  HomeIcon,
+  ClockIcon,
+  AlertTriangleIcon,
+  TrendingUpIcon,
+  UsersIcon,
+  CalendarIcon,
+  EditIcon,
+  FileIcon,
+  BarChart3Icon,
+} from "@/components/icons"
+import type { ClientData, AssessmentData } from "@/lib/types"
 
 type ActiveView =
   | "client"
   | "background"
   | "assessment"
-  | "domains"
   | "abc"
   | "risk"
   | "reassessment"
@@ -26,6 +39,9 @@ type ActiveView =
   | "integration"
   | "goals"
   | "goalstracker"
+  | "interventions"
+  | "protocols"
+  | "parenttraining"
   | "schedule"
   | "cptauth"
   | "consent"
@@ -33,6 +49,184 @@ type ActiveView =
   | "report"
   | "timesaved"
   | "support"
+
+interface WizardStep {
+  id: ActiveView
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  description: string
+  phase: number // 1-6 phases
+  phaseLabel: string
+}
+
+const WIZARD_STEPS: WizardStep[] = [
+  // Phase 1: Client Information
+  {
+    id: "client",
+    label: "Client Info",
+    icon: UserIcon,
+    description: "Demographics & insurance",
+    phase: 1,
+    phaseLabel: "Client Information",
+  },
+  {
+    id: "background",
+    label: "Background & History",
+    icon: FileIcon,
+    description: "Developmental & clinical history",
+    phase: 1,
+    phaseLabel: "Client Information",
+  },
+
+  // Phase 2: Assessment
+  {
+    id: "assessment",
+    label: "Assessment",
+    icon: ClipboardListIcon,
+    description: "Enter assessment data",
+    phase: 2,
+    phaseLabel: "Assessment",
+  },
+  {
+    id: "abc",
+    label: "ABC Observation",
+    icon: ClipboardListIcon,
+    description: "Record behavioral observations",
+    phase: 2,
+    phaseLabel: "Assessment",
+  },
+  {
+    id: "risk",
+    label: "Risk Assessment",
+    icon: AlertTriangleIcon,
+    description: "Safety evaluation & crisis plan",
+    phase: 2,
+    phaseLabel: "Assessment",
+  },
+
+  // Phase 3: Reassessment (Optional)
+  {
+    id: "reassessment",
+    label: "Reassessment",
+    icon: RepeatIcon,
+    description: "Track progress & update",
+    phase: 3,
+    phaseLabel: "Reassessment",
+  },
+  {
+    id: "progressdashboard",
+    label: "Progress Dashboard",
+    icon: BarChart3Icon,
+    description: "Visual outcomes & comparison",
+    phase: 3,
+    phaseLabel: "Reassessment",
+  },
+
+  // Phase 4: Data & Goals
+  {
+    id: "integration",
+    label: "Data Integration",
+    icon: DatabaseIcon,
+    description: "Import & visualize data",
+    phase: 4,
+    phaseLabel: "Data & Goals",
+  },
+  {
+    id: "goals",
+    label: "Goal Bank",
+    icon: TargetIcon,
+    description: "Select treatment goals",
+    phase: 4,
+    phaseLabel: "Data & Goals",
+  },
+  {
+    id: "goalstracker",
+    label: "Goals Tracker",
+    icon: TrendingUpIcon,
+    description: "Monitor progress & outcomes",
+    phase: 4,
+    phaseLabel: "Data & Goals",
+  },
+  {
+    id: "interventions",
+    label: "Interventions",
+    icon: TargetIcon,
+    description: "Evidence-based strategies",
+    phase: 4,
+    phaseLabel: "Data & Goals",
+  },
+  {
+    id: "protocols",
+    label: "Teaching Protocols",
+    icon: FileTextIcon,
+    description: "Build step-by-step programs",
+    phase: 4,
+    phaseLabel: "Data & Goals",
+  },
+
+  // Phase 5: Services & Training
+  {
+    id: "parenttraining",
+    label: "Parent Training",
+    icon: UsersIcon,
+    description: "Track curriculum & fidelity",
+    phase: 5,
+    phaseLabel: "Services & Training",
+  },
+  {
+    id: "schedule",
+    label: "Service Schedule",
+    icon: CalendarIcon,
+    description: "Weekly CPT code planning",
+    phase: 5,
+    phaseLabel: "Services & Training",
+  },
+  {
+    id: "cptauth",
+    label: "CPT Auth Request",
+    icon: FileTextIcon,
+    description: "Service request & justification",
+    phase: 5,
+    phaseLabel: "Services & Training",
+  },
+  {
+    id: "consent",
+    label: "Consent Forms",
+    icon: EditIcon,
+    description: "Digital signatures & legal docs",
+    phase: 5,
+    phaseLabel: "Services & Training",
+  },
+
+  // Phase 6: Report & Finalize
+  {
+    id: "medicalnecessity",
+    label: "Medical Necessity",
+    icon: FileTextIcon,
+    description: "AI-powered justification writer",
+    phase: 6,
+    phaseLabel: "Report & Finalize",
+  },
+  {
+    id: "report",
+    label: "Generate Report",
+    icon: FileTextIcon,
+    description: "Generate & export",
+    phase: 6,
+    phaseLabel: "Report & Finalize",
+  },
+]
+
+// Utility pages (always accessible at bottom)
+const UTILITY_ITEMS = [
+  { id: "timesaved" as ActiveView, label: "Time Saved", icon: ClockIcon, description: "Track your productivity" },
+  {
+    id: "support" as ActiveView,
+    label: "Compliance & Support",
+    icon: HelpCircleIcon,
+    description: "HIPAA, regulations & FAQs",
+  },
+]
 
 interface WizardSidebarProps {
   activeView: ActiveView
@@ -43,8 +237,6 @@ interface WizardSidebarProps {
   assessmentData: AssessmentData | null
   selectedGoalsCount: number
   completedSteps: ActiveView[]
-  evaluationType: "Initial Assessment" | "Reassessment"
-  assessmentId?: string | null // Add assessmentId prop</CHANGE>
 }
 
 export function WizardSidebar({
@@ -56,56 +248,40 @@ export function WizardSidebar({
   assessmentData,
   selectedGoalsCount,
   completedSteps,
-  evaluationType,
-  assessmentId, // Accept assessmentId prop</CHANGE>
 }: WizardSidebarProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const safeCompletedSteps = completedSteps ?? []
-
-  const WIZARD_STEPS = getStepsByEvaluationType(evaluationType)
-
   // Get current step index
   const currentStepIndex = WIZARD_STEPS.findIndex((s) => s.id === activeView)
   const currentPhase = currentStepIndex >= 0 ? WIZARD_STEPS[currentStepIndex].phase : 0
 
   // Check if a step is accessible (current or previous phases completed)
   const isStepAccessible = (step: WizardStep) => {
+    // All steps are accessible if we want free navigation within completed phases
     const stepIndex = WIZARD_STEPS.findIndex((s) => s.id === step.id)
-    return stepIndex <= currentStepIndex || safeCompletedSteps.includes(step.id) || step.phase <= currentPhase
-  }
-
-  const handleStepClick = (step: WizardStep) => {
-    if (step.route) {
-      const aidFromUrl = getAidFromParams(searchParams)
-      const aid = aidFromUrl || assessmentId
-      router.push(withAid(step.route, aid))
-    } else {
-      onViewChange(step.id)
-    }
+    return stepIndex <= currentStepIndex || completedSteps.includes(step.id) || step.phase <= currentPhase
   }
 
   // Group steps by phase
-  const phases = Array.from(new Set((WIZARD_STEPS ?? []).map((s) => s.phase))).sort()
-  const phaseLabels: Record<number, string> = {}
-  ;(WIZARD_STEPS ?? []).forEach((step) => {
-    if (!phaseLabels[step.phase]) {
-      phaseLabels[step.phase] = step.phaseLabel
-    }
-  })
+  const phases = [1, 2, 3, 4, 5, 6]
+  const phaseLabels: Record<number, string> = {
+    1: "Client Information",
+    2: "Assessment",
+    3: "Reassessment",
+    4: "Data & Goals",
+    5: "Services & Training",
+    6: "Report & Finalize",
+  }
 
   const isPhaseComplete = (phase: number) => {
-    const phaseSteps = (WIZARD_STEPS ?? []).filter((s) => s.phase === phase)
-    return phaseSteps.every((s) => safeCompletedSteps.includes(s.id))
+    const phaseSteps = WIZARD_STEPS.filter((s) => s.phase === phase)
+    return phaseSteps.every((s) => completedSteps.includes(s.id))
   }
 
   const isPhaseActive = (phase: number) => {
     return currentPhase === phase
   }
 
-  const isStepInFlow = (stepId: ActiveView) => {
-    return (WIZARD_STEPS ?? []).some((s) => s.id === stepId)
-  }
+  const safeCompletedSteps = Array.isArray(completedSteps) ? completedSteps : []
+  // </CHANGE>
 
   return (
     <div
@@ -138,19 +314,13 @@ export function WizardSidebar({
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground">Progress</span>
             <span className="text-xs font-bold text-[#0D9488]">
-              {Math.round(
-                (safeCompletedSteps.filter((s) => isStepInFlow(s)).length / Math.max((WIZARD_STEPS ?? []).length, 1)) *
-                  100,
-              )}
-              %
+              {Math.round((safeCompletedSteps.length / WIZARD_STEPS.length) * 100)}%
             </span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-[#0D9488] to-cyan-500 transition-all duration-500 ease-out rounded-full"
-              style={{
-                width: `${(safeCompletedSteps.filter((s) => isStepInFlow(s)).length / Math.max((WIZARD_STEPS ?? []).length, 1)) * 100}%`,
-              }}
+              style={{ width: `${(safeCompletedSteps.length / WIZARD_STEPS.length) * 100}%` }}
             />
           </div>
         </div>
@@ -213,7 +383,7 @@ export function WizardSidebar({
                 {phaseSteps.map((step, stepIndex) => {
                   const Icon = step.icon
                   const isActive = activeView === step.id
-                  const isCompleted = safeCompletedSteps.includes(step.id)
+                  const isCompleted = safeCompletedSteps.includes(step.id) // Use safeCompletedSteps for checking if step is completed
                   const accessible = isStepAccessible(step)
                   const globalIndex = WIZARD_STEPS.findIndex((s) => s.id === step.id)
 
@@ -237,7 +407,7 @@ export function WizardSidebar({
                           isActive && "bg-[#0D9488]/10 border-l-2 border-[#0D9488] rounded-l-none",
                           !accessible && "opacity-50 cursor-not-allowed",
                         )}
-                        onClick={() => accessible && handleStepClick(step)}
+                        onClick={() => accessible && onViewChange(step.id)}
                         disabled={!accessible}
                       >
                         {/* Step indicator */}
@@ -257,19 +427,24 @@ export function WizardSidebar({
                         </div>
 
                         {!collapsed && (
-                          <div className="flex flex-col items-start min-w-0 flex-1">
-                            <span
+                          <div className="flex-1 text-left min-w-0">
+                            <div
                               className={cn(
-                                "text-sm font-medium truncate w-full text-left",
-                                isActive ? "text-[#0D9488]" : "text-foreground",
+                                "text-sm font-medium truncate transition-colors duration-300",
+                                isActive ? "text-[#0D9488]" : isCompleted ? "text-foreground" : "text-muted-foreground",
                               )}
                             >
                               {step.label}
-                            </span>
-                            <span className="text-xs text-muted-foreground truncate w-full text-left">
-                              {step.description}
-                            </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">{step.description}</div>
                           </div>
+                        )}
+
+                        {/* Goal count badge */}
+                        {!collapsed && step.id === "goals" && selectedGoalsCount > 0 && (
+                          <span className="ml-auto bg-[#0D9488] text-white text-xs px-2 py-0.5 rounded-full">
+                            {selectedGoalsCount}
+                          </span>
                         )}
                       </Button>
                     </div>
@@ -279,6 +454,35 @@ export function WizardSidebar({
             </div>
           )
         })}
+
+        {/* Utility Items - Always accessible */}
+        <div className="mt-4 pt-4 border-t border-border px-2">
+          {!collapsed && (
+            <div className="px-2 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Utilities</div>
+          )}
+          {UTILITY_ITEMS.map((item) => {
+            const Icon = item.icon
+            const isActive = activeView === item.id
+
+            return (
+              <Button
+                key={item.id}
+                variant={isActive ? "secondary" : "ghost"}
+                className={cn("w-full justify-start gap-3 h-auto py-2.5", collapsed && "justify-center px-2")}
+                onClick={() => onViewChange(item.id)}
+              >
+                <Icon className={cn("h-4 w-4", isActive ? "text-[#0D9488]" : "text-muted-foreground")} />
+                {!collapsed && (
+                  <div className="flex-1 text-left">
+                    <span className={cn("text-sm font-medium", isActive ? "text-foreground" : "text-muted-foreground")}>
+                      {item.label}
+                    </span>
+                  </div>
+                )}
+              </Button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Footer with step counter */}
@@ -287,7 +491,7 @@ export function WizardSidebar({
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Step</span>
             <span className="font-bold text-[#0D9488]">
-              {currentStepIndex + 1} / {WIZARD_STEPS.length}
+              {currentStepIndex >= 0 ? currentStepIndex + 1 : "-"} / {WIZARD_STEPS.length}
             </span>
           </div>
         </div>
@@ -296,19 +500,21 @@ export function WizardSidebar({
   )
 }
 
-// Navigation helper functions (exported for use in parent components)
-export function getNextStep(
-  currentView: ActiveView,
-  evaluationType: "Initial Assessment" | "Reassessment",
-): ActiveView | null {
-  const steps = getStepsByEvaluationType(evaluationType)
-  return getNextStepInArray(currentView, steps)
+// Export step utilities for navigation
+export const getNextStep = (current: ActiveView): ActiveView | null => {
+  const index = WIZARD_STEPS.findIndex((s) => s.id === current)
+  if (index >= 0 && index < WIZARD_STEPS.length - 1) {
+    return WIZARD_STEPS[index + 1].id
+  }
+  return null
 }
 
-export function getPreviousStep(
-  currentView: ActiveView,
-  evaluationType: "Initial Assessment" | "Reassessment",
-): ActiveView | null {
-  const steps = getStepsByEvaluationType(evaluationType)
-  return getPreviousStepInArray(currentView, steps)
+export const getPreviousStep = (current: ActiveView): ActiveView | null => {
+  const index = WIZARD_STEPS.findIndex((s) => s.id === current)
+  if (index > 0) {
+    return WIZARD_STEPS[index - 1].id
+  }
+  return null
 }
+
+export const WIZARD_STEPS_EXPORT = WIZARD_STEPS

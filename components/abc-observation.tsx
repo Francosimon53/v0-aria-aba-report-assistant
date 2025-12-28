@@ -3,12 +3,11 @@
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { AITextarea } from "@/components/ui/ai-textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PlusIcon, XIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, SaveIcon } from "@/components/icons"
 import { premiumToast } from "@/components/ui/premium-toast"
-import { safeSetJSON } from "@/lib/safe-storage"
 
 interface ABCObservation {
   id: string
@@ -65,7 +64,8 @@ export function ABCObservation() {
   }
 
   const handleSave = () => {
-    safeSetJSON("aria_abc_observations", observations)
+    // Save to localStorage or backend
+    localStorage.setItem("aria_abc_observations", JSON.stringify(observations))
     premiumToast.success("ABC observations saved successfully")
   }
 
@@ -159,12 +159,13 @@ export function ABCObservation() {
                       Antecedent
                     </Label>
                     <p className="text-xs text-muted-foreground mb-2">What happened before the behavior?</p>
-                    <Textarea
+                    <AITextarea
                       id={`antecedent-${observation.id}`}
                       value={observation.antecedent}
                       onChange={(e) => updateObservation(observation.id, "antecedent", e.target.value)}
                       placeholder="Describe the situation, context, or trigger that occurred immediately before the behavior..."
                       className="min-h-[120px] resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
+                      fieldName="Antecedent"
                     />
                   </div>
 
@@ -180,12 +181,13 @@ export function ABCObservation() {
                       Behavior
                     </Label>
                     <p className="text-xs text-muted-foreground mb-2">What did the person do?</p>
-                    <Textarea
+                    <AITextarea
                       id={`behavior-${observation.id}`}
                       value={observation.behavior}
                       onChange={(e) => updateObservation(observation.id, "behavior", e.target.value)}
                       placeholder="Describe the specific, observable behavior in objective terms..."
                       className="min-h-[120px] resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
+                      fieldName="Behavior"
                     />
                   </div>
 
@@ -201,12 +203,13 @@ export function ABCObservation() {
                       Consequence
                     </Label>
                     <p className="text-xs text-muted-foreground mb-2">What happened after the behavior?</p>
-                    <Textarea
+                    <AITextarea
                       id={`consequence-${observation.id}`}
                       value={observation.consequence}
                       onChange={(e) => updateObservation(observation.id, "consequence", e.target.value)}
                       placeholder="Describe the response or outcome that followed the behavior..."
                       className="min-h-[120px] resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
+                      fieldName="Consequence"
                     />
                   </div>
 

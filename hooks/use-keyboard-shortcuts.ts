@@ -12,6 +12,11 @@ interface ShortcutHandler {
 
 export function useKeyboardShortcuts(shortcuts: ShortcutHandler[]) {
   useEffect(() => {
+    if (!Array.isArray(shortcuts)) {
+      console.warn("[v0] useKeyboardShortcuts: shortcuts is not an array", shortcuts)
+      return
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       shortcuts.forEach((shortcut) => {
         const keyMatches = event.key.toLowerCase() === shortcut.key.toLowerCase()

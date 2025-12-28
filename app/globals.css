@@ -43,40 +43,40 @@
 }
 
 .dark {
-  --background: oklch(0.12 0.015 220);
-  --foreground: oklch(0.95 0.005 220);
-  --card: oklch(0.16 0.015 220);
-  --card-foreground: oklch(0.95 0.005 220);
-  --popover: oklch(0.16 0.015 220);
-  --popover-foreground: oklch(0.95 0.005 220);
-  --primary: oklch(0.7 0.14 175);
-  --primary-foreground: oklch(0.12 0.02 220);
-  --secondary: oklch(0.22 0.015 220);
-  --secondary-foreground: oklch(0.95 0.005 220);
-  --muted: oklch(0.22 0.015 220);
-  --muted-foreground: oklch(0.65 0.01 220);
-  --accent: oklch(0.7 0.14 175);
-  --accent-foreground: oklch(0.12 0.02 220);
-  --destructive: oklch(0.55 0.2 25);
-  --destructive-foreground: oklch(0.95 0.005 220);
-  --border: oklch(0.28 0.015 220);
-  --input: oklch(0.22 0.015 220);
-  --ring: oklch(0.7 0.14 175);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.18 0.01 250);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.18 0.01 250);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.65 0.15 195);
+  --primary-foreground: oklch(0.15 0.02 250);
+  --secondary: oklch(0.25 0.01 250);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.25 0.01 250);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.55 0.15 195);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.5 0.2 25);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.3 0.01 250);
+  --input: oklch(0.3 0.01 250);
+  --ring: oklch(0.65 0.15 195);
   --success: oklch(0.6 0.2 145);
   --warning: oklch(0.7 0.15 75);
-  --chart-1: oklch(0.7 0.14 175);
+  --chart-1: oklch(0.65 0.15 195);
   --chart-2: oklch(0.6 0.2 145);
-  --chart-3: oklch(0.6 0.14 175);
+  --chart-3: oklch(0.55 0.15 195);
   --chart-4: oklch(0.7 0.15 75);
-  --chart-5: oklch(0.55 0.2 25);
-  --sidebar: oklch(0.14 0.015 220);
-  --sidebar-foreground: oklch(0.95 0.005 220);
-  --sidebar-primary: oklch(0.7 0.14 175);
-  --sidebar-primary-foreground: oklch(0.95 0.005 220);
-  --sidebar-accent: oklch(0.22 0.015 220);
-  --sidebar-accent-foreground: oklch(0.95 0.005 220);
-  --sidebar-border: oklch(0.28 0.015 220);
-  --sidebar-ring: oklch(0.7 0.14 175);
+  --chart-5: oklch(0.5 0.2 25);
+  --sidebar: oklch(0.18 0.01 250);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.65 0.15 195);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.25 0.01 250);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.3 0.01 250);
+  --sidebar-ring: oklch(0.65 0.15 195);
 }
 
 @theme inline {
@@ -129,155 +129,6 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
-
-  /* Dark mode overrides for hardcoded colors */
-  /* These rules automatically convert light-mode hardcoded colors to dark equivalents */
-  .dark .bg-white {
-    background-color: var(--card) !important;
-  }
-  .dark .bg-slate-50,
-  .dark .bg-gray-50 {
-    background-color: var(--background) !important;
-  }
-  .dark .bg-slate-100,
-  .dark .bg-gray-100 {
-    background-color: var(--secondary) !important;
-  }
-  .dark .bg-slate-200,
-  .dark .bg-gray-200 {
-    background-color: var(--muted) !important;
-  }
-  .dark .text-slate-900,
-  .dark .text-gray-900 {
-    color: var(--foreground) !important;
-  }
-  .dark .text-slate-800,
-  .dark .text-gray-800 {
-    color: var(--foreground) !important;
-  }
-  .dark .text-slate-700,
-  .dark .text-gray-700 {
-    color: oklch(0.85 0.01 220) !important;
-  }
-  .dark .text-slate-600,
-  .dark .text-gray-600 {
-    color: var(--muted-foreground) !important;
-  }
-  .dark .text-slate-500,
-  .dark .text-gray-500 {
-    color: var(--muted-foreground) !important;
-  }
-  .dark .text-slate-400,
-  .dark .text-gray-400 {
-    color: oklch(0.55 0.01 220) !important;
-  }
-  .dark .border-slate-200,
-  .dark .border-gray-200 {
-    border-color: var(--border) !important;
-  }
-  .dark .border-slate-100,
-  .dark .border-gray-100 {
-    border-color: var(--border) !important;
-  }
-  .dark .border-slate-300,
-  .dark .border-gray-300 {
-    border-color: var(--border) !important;
-  }
-  .dark .hover\:bg-slate-50:hover,
-  .dark .hover\:bg-gray-50:hover {
-    background-color: var(--secondary) !important;
-  }
-  .dark .hover\:bg-slate-100:hover,
-  .dark .hover\:bg-gray-100:hover {
-    background-color: var(--muted) !important;
-  }
-  .dark .hover\:border-slate-300:hover,
-  .dark .hover\:border-gray-300:hover {
-    border-color: oklch(0.4 0.015 220) !important;
-  }
-  /* Green states in dark mode */
-  .dark .bg-green-50 {
-    background-color: oklch(0.25 0.08 145) !important;
-  }
-  .dark .border-green-200 {
-    border-color: oklch(0.45 0.12 145) !important;
-  }
-  /* Input and form elements */
-  .dark input,
-  .dark textarea,
-  .dark select {
-    background-color: var(--input) !important;
-    color: var(--foreground) !important;
-  }
-  .dark input::placeholder,
-  .dark textarea::placeholder {
-    color: var(--muted-foreground) !important;
-  }
-
-  /* Added accessibility improvements for contrast and touch targets */
-  /* Ensure minimum WCAG AA contrast for teal backgrounds */
-  .bg-teal-500,
-  .bg-teal-600 {
-    color: oklch(1 0 0) !important; /* Pure white for maximum contrast */
-  }
-
-  .text-white {
-    --tw-text-opacity: 1 !important;
-  }
-
-  /* Ensure interactive elements have minimum 44x44px touch target (WCAG 2.1 Level AAA) */
-  @supports (touch-action: manipulation) {
-    button,
-    a[role="button"],
-    [role="button"],
-    input[type="checkbox"],
-    input[type="radio"] {
-      min-height: 44px;
-      min-width: 44px;
-    }
-
-    /* Ensure adequate spacing between touch targets */
-    button + button,
-    button + a[role="button"],
-    a[role="button"] + a[role="button"],
-    a[role="button"] + button {
-      margin-left: 8px;
-    }
-  }
-
-  /* Improve focus visibility for keyboard navigation */
-  :focus-visible {
-    outline: 3px solid var(--ring);
-    outline-offset: 2px;
-  }
-
-  button:focus-visible,
-  a:focus-visible,
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible {
-    outline: 3px solid var(--ring);
-    outline-offset: 2px;
-  }
-
-  /* Enhanced contrast for text inputs and textareas */
-  input::placeholder,
-  textarea::placeholder {
-    color: var(--muted-foreground);
-    opacity: 0.8;
-  }
-
-  /* Ensure adequate contrast for badges and small text on colored backgrounds */
-  .bg-teal-50,
-  .bg-teal-100 {
-    color: oklch(0.2 0.02 175) !important; /* Very dark teal for text */
-  }
-
-  .dark .bg-teal-900\/20,
-  .dark .bg-teal-900\/30 {
-    color: oklch(0.85 0.12 175) !important; /* Light teal for dark mode */
-  }
-  /* End accessibility improvements */
 }
 
 /* Premium animations */
@@ -391,80 +242,4 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: shimmer 3s linear infinite;
-}
-
-/* Added print styles for professional report output */
-@media print {
-  body {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    background: white !important;
-  }
-
-  .print\:hidden {
-    display: none !important;
-  }
-
-  .report-document {
-    box-shadow: none !important;
-    max-width: none !important;
-    margin: 0 !important;
-  }
-
-  .report-document thead {
-    background: #1f2937 !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-
-  .report-document th {
-    color: white !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-
-  .report-document blockquote {
-    background: #eff6ff !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-
-  @page {
-    size: letter;
-    margin: 0.5in;
-  }
-
-  /* Page breaks */
-  h2 {
-    page-break-after: avoid;
-    break-after: avoid;
-  }
-
-  table {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  blockquote {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* Ensure footer prints at bottom */
-  .report-document > div:last-child {
-    page-break-before: avoid;
-  }
-}
-
-/* Report typography enhancements */
-.report-document {
-  font-family: Georgia, "Times New Roman", serif;
-}
-
-.report-document h1,
-.report-document h2,
-.report-document h3,
-.report-document h4 {
-  font-family: "Inter", system-ui, sans-serif;
-}
-
-.report-document table {
-  font-family: "Inter", system-ui, sans-serif;
 }

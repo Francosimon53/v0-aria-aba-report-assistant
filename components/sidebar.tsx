@@ -19,10 +19,11 @@ import {
   ClockIcon,
   AlertTriangleIcon,
   TrendingUpIcon,
+  UsersIcon,
   CalendarIcon,
   EditIcon,
   FileIcon,
-  BarChart3Icon,
+  BarChart3Icon, // Added BarChart3Icon for Progress Dashboard
 } from "@/components/icons"
 import type { ClientData, AssessmentData } from "@/lib/types"
 
@@ -36,15 +37,18 @@ type ActiveView =
   | "integration"
   | "support"
   | "timesaved"
-  | "abc"
-  | "risk"
-  | "goalstracker"
-  | "schedule"
-  | "consent"
-  | "background"
-  | "medicalnecessity"
-  | "progressdashboard"
-  | "cptauth"
+  | "abc" // Added ABC observation view type
+  | "interventions" // Added interventions view type
+  | "protocols" // Added protocols view type
+  | "risk" // Added risk view type
+  | "goalstracker" // Added goalstracker view type
+  | "parenttraining" // Added parent training view type
+  | "schedule" // Added schedule view type
+  | "consent" // Added consent view type
+  | "background" // Added background view type
+  | "medicalnecessity" // Added medical necessity view type
+  | "progressdashboard" // Added progress dashboard view type
+  | "cptauth" // Added cptauth view type
 
 interface SidebarProps {
   activeView: ActiveView
@@ -74,7 +78,7 @@ export function Sidebar({
       completed: !!clientData,
     },
     {
-      id: "background" as const,
+      id: "background" as const, // Added Background & History nav item
       label: "Background & History",
       icon: FileIcon,
       description: "Developmental & clinical history",
@@ -94,7 +98,7 @@ export function Sidebar({
       completed: false,
     },
     {
-      id: "progressdashboard" as const,
+      id: "progressdashboard" as const, // Added Progress Dashboard nav item
       label: "Progress Dashboard",
       icon: BarChart3Icon,
       description: "Visual outcomes & comparison",
@@ -110,6 +114,18 @@ export function Sidebar({
       label: "Risk Assessment",
       icon: AlertTriangleIcon,
       description: "Safety evaluation & crisis plan",
+    },
+    {
+      id: "interventions" as const,
+      label: "Interventions",
+      icon: TargetIcon,
+      description: "Evidence-based strategies",
+    },
+    {
+      id: "protocols" as const,
+      label: "Teaching Protocols",
+      icon: FileTextIcon,
+      description: "Build step-by-step programs",
     },
     {
       id: "integration" as const,
@@ -131,28 +147,28 @@ export function Sidebar({
       description: "Monitor progress & outcomes",
     },
     {
+      id: "parenttraining" as const,
+      label: "Parent Training",
+      icon: UsersIcon,
+      description: "Track curriculum & fidelity",
+    },
+    {
       id: "schedule" as const,
       label: "Service Schedule",
       icon: CalendarIcon,
       description: "Weekly CPT code planning",
     },
     {
-      id: "cptauth" as const,
+      id: "cptauth" as const, // Added CPT Authorization Request nav item
       label: "CPT Auth Request",
       icon: FileTextIcon,
       description: "Service request & justification",
     },
     {
-      id: "consent" as const,
+      id: "consent" as const, // Added consent form navigation item
       label: "Consent Forms",
       icon: EditIcon,
       description: "Digital signatures & legal docs",
-    },
-    {
-      id: "medicalnecessity" as const,
-      label: "Medical Necessity",
-      icon: FileTextIcon,
-      description: "AI-powered justification writer",
     },
     {
       id: "report" as const,
@@ -171,6 +187,12 @@ export function Sidebar({
       label: "Compliance & Support",
       icon: HelpCircleIcon,
       description: "HIPAA, regulations & FAQs",
+    },
+    {
+      id: "medicalnecessity" as const, // Added medical necessity nav item
+      label: "Medical Necessity",
+      icon: FileTextIcon,
+      description: "AI-powered justification writer",
     },
   ]
 

@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
+import { AITextarea } from "@/components/ui/ai-textarea"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { SparklesIcon, CheckIcon, AlertCircleIcon, FileTextIcon } from "@/components/icons"
+import { SparklesIcon, CheckIcon, AlertCircleIcon, FileTextIcon, CopyIcon, FileDownIcon } from "@/components/icons"
 import type { ClientData, AssessmentData } from "@/lib/types"
 
 interface MedicalNecessityGeneratorProps {
@@ -46,6 +46,7 @@ export function MedicalNecessityGenerator({
   const [template, setTemplate] = useState<string>("moderate")
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null)
   const [characterCount, setCharacterCount] = useState(0)
+  const [activeField, setActiveField] = useState<string | null>(null)
 
   const [diagnosis, setDiagnosis] = useState(clientData?.diagnosis || "")
   const [targetBehaviors, setTargetBehaviors] = useState(behaviors.join(", ") || "")
@@ -97,45 +98,154 @@ export function MedicalNecessityGenerator({
   const handleGenerate = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/aba-generate", {
+      const prompt = `Write a comprehensive medical necessity statement for ABA services authorization.
+
+CLIENT: ${clientData?.firstName ? `${clientData.firstName} ${clientData.lastName}` : "Client"}, age ${clientData?.dateOfBirth ? new Date().getFullYear() - new Date(clientData.dateOfBirth).getFullYear() : 5} years old
+DIAGNOSIS: ${diagnosis || "Autism Spectrum Disorder"}
+INSURANCE: ${clientData?.insurance || "Not specified"}
+REQUESTED HOURS: ${requestedHours}/week
+
+TARGET BEHAVIORS: ${targetBehaviors}
+SEVERITY/FREQUENCY: ${severity}
+FUNCTIONAL IMPACT: ${functionalImpact}
+PREVIOUS TREATMENTS: ${previousTreatments}
+ENVIRONMENTAL FACTORS: ${environmentalFactors}
+
+Generate a professional, insurance-compliant medical necessity statement (300-500 words). Include the key phrases naturally: significant impairment, evidence-based treatment, medically necessary, skilled intervention required, functional impairment, intensive services, clinical necessity, substantial limitations.`
+
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "medicalNecessity",
-          data: {
-            clientName: clientData?.firstName ? `${clientData.firstName} ${clientData.lastName}` : "Client",
-            age: clientData?.dateOfBirth
-              ? new Date().getFullYear() - new Date(clientData.dateOfBirth).getFullYear()
-              : 5,
-            diagnosis: diagnosis || "Autism Spectrum Disorder",
-            impairments: assessmentData?.domains || [],
-            hoursRequested: Number.parseInt(requestedHours) || 25,
-            insurance: clientData?.insurance || "Standard",
-            targetBehaviors,
-            severity,
-            functionalImpact,
-            previousTreatments,
-            environmentalFactors,
-            template,
-          },
+          messages: [{ role: "user", content: prompt }],
+          isTextGeneration: true,
+          fieldName: "Medical Necessity Statement",
         }),
       })
 
       if (!response.ok) {
+        const errorText = await response.text()
         throw new Error("Failed to generate medical necessity statement")
       }
 
       const data = await response.json()
-      setGeneratedText(data.content)
-      setEditedText(data.content)
+      const generatedContent = data.message || data.content || ""
+      setGeneratedText(generatedContent)
+      setEditedText(generatedContent)
 
-      const confidence = calculateConfidence(data.content)
+      const confidence = calculateConfidence(generatedContent)
       setConfidenceScore(confidence)
     } catch (error) {
       console.error("Error generating medical necessity:", error)
       alert("Failed to generate statement. Please try again.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleImproveStatement = async () => {
+    console.log("[v0] Improve statement clicked")
+    setLoading(true)
+    try {
+      const payload = {
+        type: "medicalNecessity",
+        action: "improve",
+        data: {
+          currentStatement: editedText,
+          clientName: clientData?.firstName ? `${clientData.firstName} ${clientData.lastName}` : "Client",
+          diagnosis: diagnosis || "Autism Spectrum Disorder",
+          requestedHours: Number.parseInt(requestedHours) || 25,
+          focusArea: "clinical language, insurance key phrases, and compliance",
+        },
+      }
+
+      console.log("[v0] Improve payload:", payload)
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: `Improve and enhance this medical necessity statement. Make it more clinically rigorous, include relevant insurance key phrases naturally, and ensure it meets insurance submission standards. Do not add markdown formatting. Current statement:\n\n${editedText}`,
+            },
+          ],
+          fieldName: "Medical Necessity Statement",
+          currentStep: "Medical Necessity",
+          isTextGeneration: true,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to improve statement")
+      }
+
+      const data = await response.json()
+      console.log("[v0] Improved statement:", data)
+
+      const improvedText = data.text || data.content || ""
+      setEditedText(improvedText)
+      setGeneratedText(improvedText)
+
+      const confidence = calculateConfidence(improvedText)
+      setConfidenceScore(confidence)
+      console.log("[v0] New confidence score:", confidence)
+    } catch (error) {
+      console.error("[v0] Error improving statement:", error)
+      alert("Failed to improve statement. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCopyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(editedText)
+      alert("Medical necessity statement copied to clipboard!")
+    } catch (error) {
+      console.error("Failed to copy:", error)
+      alert("Failed to copy to clipboard")
+    }
+  }
+
+  const handleExportToWord = () => {
+    const blob = new Blob(
+      [
+        `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Medical Necessity Statement</title></head><body><h1>Medical Necessity Statement</h1><p>${editedText.replace(/\n/g, "<br>")}</p></body></html>`,
+      ],
+      { type: "application/msword" },
+    )
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `medical-necessity-${clientData?.lastName || "statement"}.doc`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleInsertKeyPhrase = (phrase: string) => {
+    console.log("[v0] Insert key phrase:", phrase, "into field:", activeField)
+
+    const setters: Record<string, (value: string) => void> = {
+      behaviors: setTargetBehaviors,
+      severity: setSeverity,
+      impact: setFunctionalImpact,
+      previous: setPreviousTreatments,
+      environmental: setEnvironmentalFactors,
+    }
+
+    const getters: Record<string, string> = {
+      behaviors: targetBehaviors,
+      severity: severity,
+      impact: functionalImpact,
+      previous: previousTreatments,
+      environmental: environmentalFactors,
+    }
+
+    if (setters[activeField]) {
+      const currentValue = getters[activeField]
+      setters[activeField](currentValue + (currentValue ? " " : "") + phrase)
     }
   }
 
@@ -194,10 +304,12 @@ export function MedicalNecessityGenerator({
 
                 <div>
                   <Label htmlFor="behaviors">Target Behaviors *</Label>
-                  <Textarea
+                  <AITextarea
                     id="behaviors"
                     value={targetBehaviors}
                     onChange={(e) => setTargetBehaviors(e.target.value)}
+                    onFocus={() => setActiveField("behaviors")}
+                    fieldName="Target Behaviors for ABA Treatment"
                     placeholder="e.g., Aggression, elopement, limited communication"
                     rows={3}
                   />
@@ -205,10 +317,12 @@ export function MedicalNecessityGenerator({
 
                 <div>
                   <Label htmlFor="severity">Severity/Frequency *</Label>
-                  <Textarea
+                  <AITextarea
                     id="severity"
                     value={severity}
                     onChange={(e) => setSeverity(e.target.value)}
+                    onFocus={() => setActiveField("severity")}
+                    fieldName="Behavior Severity and Frequency"
                     placeholder="e.g., Aggression occurs 15-20x daily, requiring constant supervision"
                     rows={3}
                   />
@@ -216,10 +330,12 @@ export function MedicalNecessityGenerator({
 
                 <div>
                   <Label htmlFor="impact">Functional Impact *</Label>
-                  <Textarea
+                  <AITextarea
                     id="impact"
                     value={functionalImpact}
                     onChange={(e) => setFunctionalImpact(e.target.value)}
+                    onFocus={() => setActiveField("impact")}
+                    fieldName="Functional Impact on Daily Life"
                     placeholder="Describe impact on education, social interactions, family life, safety"
                     rows={4}
                   />
@@ -227,10 +343,12 @@ export function MedicalNecessityGenerator({
 
                 <div>
                   <Label htmlFor="previous">Previous Treatment Attempts</Label>
-                  <Textarea
+                  <AITextarea
                     id="previous"
                     value={previousTreatments}
                     onChange={(e) => setPreviousTreatments(e.target.value)}
+                    onFocus={() => setActiveField("previous")}
+                    fieldName="Previous Treatment History"
                     placeholder="e.g., Speech therapy (2 years), OT (18 months) - limited progress"
                     rows={3}
                   />
@@ -251,10 +369,12 @@ export function MedicalNecessityGenerator({
 
                 <div>
                   <Label htmlFor="environmental">Environmental Factors</Label>
-                  <Textarea
+                  <AITextarea
                     id="environmental"
                     value={environmentalFactors}
                     onChange={(e) => setEnvironmentalFactors(e.target.value)}
+                    onFocus={() => setActiveField("environmental")}
+                    fieldName="Environmental and Contextual Factors"
                     placeholder="e.g., Limited community resources, parent works full-time, sibling with special needs"
                     rows={3}
                   />
@@ -304,9 +424,11 @@ export function MedicalNecessityGenerator({
             {generatedText ? (
               <>
                 <ScrollArea className="flex-1 mb-4">
-                  <Textarea
+                  <AITextarea
                     value={editedText}
                     onChange={(e) => setEditedText(e.target.value)}
+                    onFocus={() => setActiveField(null)}
+                    fieldName="Medical Necessity Statement"
                     className="min-h-[400px] font-mono text-sm leading-relaxed"
                     placeholder="Generated medical necessity statement will appear here..."
                   />
@@ -324,27 +446,64 @@ export function MedicalNecessityGenerator({
                   </div>
                 </ScrollArea>
 
-                <div className="flex items-center justify-between text-sm border-t pt-4">
-                  <div className="flex gap-4">
-                    <span
-                      className={characterCount >= 300 && characterCount <= 500 ? "text-green-600" : "text-gray-500"}
-                    >
-                      {characterCount} characters
-                    </span>
-                    <span
-                      className={characterCount >= 300 && characterCount <= 500 ? "text-green-600" : "text-gray-500"}
-                    >
-                      ~{Math.round(editedText.split(/\s+/).length)} words
-                    </span>
+                <div className="space-y-3 border-t pt-4">
+                  <Button
+                    onClick={handleImproveStatement}
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white"
+                    size="sm"
+                  >
+                    {loading ? (
+                      <>
+                        <SparklesIcon className="mr-2 h-4 w-4 animate-spin" />
+                        Improving...
+                      </>
+                    ) : (
+                      <>
+                        <SparklesIcon className="mr-2 h-4 w-4" />
+                        Improve with AI
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex gap-4">
+                      <span
+                        className={characterCount >= 300 && characterCount <= 500 ? "text-green-600" : "text-gray-500"}
+                      >
+                        {characterCount} characters
+                      </span>
+                      <span
+                        className={characterCount >= 300 && characterCount <= 500 ? "text-green-600" : "text-gray-500"}
+                      >
+                        ~{Math.round(editedText.split(/\s+/).length)} words
+                      </span>
+                    </div>
+                    {confidenceScore !== null && (
+                      <Badge
+                        variant={
+                          confidenceScore >= 80 ? "default" : confidenceScore >= 60 ? "secondary" : "destructive"
+                        }
+                        className="text-xs"
+                      >
+                        {confidenceScore}%
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      Save to Library
-                    </Button>
-                    <Button size="sm" className="bg-[#0D9488] hover:bg-[#0F766E]">
-                      Copy to Report
-                    </Button>
-                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" size="sm" onClick={handleCopyToClipboard} className="flex-1 bg-transparent">
+                    <CopyIcon className="mr-2 h-4 w-4" />
+                    Copy
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleExportToWord} className="flex-1 bg-transparent">
+                    <FileDownIcon className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                  <Button size="sm" className="flex-1 bg-[#0D9488] hover:bg-[#0F766E]">
+                    Copy to Report
+                  </Button>
                 </div>
               </>
             ) : (
@@ -367,10 +526,20 @@ export function MedicalNecessityGenerator({
           <div className="flex items-start gap-4">
             <AlertCircleIcon className="h-5 w-5 text-[#0D9488] mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-semibold mb-2">Insurance Key Phrases</h3>
+              <h3 className="font-semibold mb-2">
+                Insurance Key Phrases
+                <span className="text-xs text-muted-foreground ml-2 font-normal">
+                  (Click to insert into active field)
+                </span>
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {KEY_PHRASES.map((phrase) => (
-                  <Badge key={phrase} variant="outline" className="text-xs">
+                  <Badge
+                    key={phrase}
+                    variant="outline"
+                    className="text-xs cursor-pointer hover:bg-[#0D9488] hover:text-white transition-colors"
+                    onClick={() => handleInsertKeyPhrase(phrase)}
+                  >
                     {phrase}
                   </Badge>
                 ))}

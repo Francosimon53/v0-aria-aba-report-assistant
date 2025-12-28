@@ -1,211 +1,191 @@
-// Sample assessment data for preview/demo purposes
-// Direct export to avoid module resolution issues
+/**
+ * Sample assessment data for Marcus Johnson (Demo Mode)
+ * Used in AI Report Generator for testing and demonstration
+ */
 
 export const sampleAssessmentData = {
   clientInfo: {
     firstName: "Marcus",
     lastName: "Johnson",
-    dob: "2019-03-15",
-    age: "5 years, 9 months",
-    diagnosis: "Autism Spectrum Disorder (ASD) - Level 2",
-    icd10: "F84.0",
-    address: "1234 Oak Street, Miami, FL 33125",
-    caregiver: "Sarah Johnson (Mother), David Johnson (Father)",
-    phone: "(305) 555-0123",
-    clientId: "MJ-2024-0892",
+    dob: "2016-03-15",
+    age: 8,
     gender: "Male",
-    ethnicity: "African American",
-    primaryLanguage: "English",
-    schoolPlacement: "Pre-K Special Education Classroom",
+    diagnosis: "Autism Spectrum Disorder - Level 2",
+    icd10Code: "F84.0",
+    clientId: "MJ-2024-001",
+    address: "123 Main Street, Springfield, IL 62701",
+    caregiver: "Sarah Johnson (Mother)",
+    phone: "(555) 123-4567",
   },
   providerInfo: {
-    name: "Behavioral Health Associates",
-    bcbaName: "Dr. Amanda Rodriguez, BCBA-D",
-    bcbaLicense: "BCBA-D #1-19-38475",
-    bcbaPhone: "(305) 555-0456",
-    bcbaEmail: "a.rodriguez@bhamiami.com",
+    name: "Bright Futures ABA Therapy",
+    bcbaName: "Dr. Emily Rodriguez",
+    bcbaLicense: "BCBA-2024-IL-12345",
+    bcbaPhone: "(555) 987-6543",
+    bcbaEmail: "emily.rodriguez@brightfuturesaba.com",
     npi: "1234567890",
-    taxId: "XX-XXXXXXX",
-    address: "500 Professional Plaza, Suite 200, Miami, FL 33130",
+    agencyLogo: "/bright-futures-aba-logo.jpg",
   },
   insurance: {
-    provider: "Blue Cross Blue Shield of Florida",
-    policyNumber: "BCB-FL-9876543",
-    authNumber: "AUTH-2024-112233",
-    groupNumber: "GRP-55512",
-    subscriberName: "David Johnson",
-    subscriberDOB: "1985-07-22",
-    relationship: "Father",
+    provider: "Blue Cross Blue Shield",
+    policyNumber: "BCBS-IL-2024-9876",
+    authNumber: "AUTH-2024-556789",
   },
   background: {
     developmental:
-      "Marcus was born full-term at 39 weeks via uncomplicated vaginal delivery. Birth weight was 7 lbs, 4 oz. Early developmental milestones were met within normal limits until approximately 18 months of age when parents noted regression in previously acquired language skills.",
+      "Marcus was diagnosed with ASD at age 3. Early milestones were delayed - first words at 24 months, walking at 16 months. He has shown significant progress with early intervention services including speech therapy and occupational therapy.",
     medical:
-      "Diagnosed with Autism Spectrum Disorder at age 2.5 years by developmental pediatrician. No significant medical conditions or hospitalizations. Current Medications: Melatonin 3mg at bedtime for sleep initiation, daily multivitamin.",
+      "No significant medical conditions. Regular pediatric care. Takes no medications currently. Has seasonal allergies managed with over-the-counter antihistamines.",
     educational:
-      "Marcus currently attends Sunshine Academy, a private pre-K program with an integrated special education classroom. He receives Speech-Language Therapy 2x/week, Occupational Therapy 1x/week, and Special Education Support full-time.",
+      "Currently in 2nd grade with an IEP. Receives special education support for 50% of the school day. Shows strong visual learning skills and enjoys computer-based activities.",
     family:
-      "Marcus lives with both parents and his 8-year-old sister, Aaliyah, in a single-family home. Both parents work full-time. Maternal grandmother provides childcare support 2-3 days per week.",
+      "Lives with mother (Sarah), father (David), and younger sister (Emma, age 5). Mother reports family history of ADHD on paternal side. Family is very supportive and engaged in treatment.",
     previousTreatments:
-      "Previous ABA Therapy (Ages 3-4): 15 hours/week. Speech-Language Therapy ongoing since age 2. Occupational Therapy ongoing since age 2.",
+      "Received ABA therapy from ages 3-5 (15 hours/week). Speech therapy ongoing since age 3. Occupational therapy from ages 4-6. Family participated in parent training program in 2022.",
     strengths:
-      "Strong visual learner, good gross motor abilities, demonstrates affection toward family members, high motivation for preferred items.",
+      "Strong visual learner, excellent memory for facts and details, follows visual schedules well, enjoys technology and educational apps, affectionate with family members, improving social awareness.",
     weaknesses:
-      "Limited functional communication, significant social skill deficits, difficulty with transitions, sensory sensitivities.",
-    dailySchedule: "6:30 AM wake up, 8:00 AM school, 2:30 PM dismissal, 4:00 PM therapy sessions, 7:30 PM bedtime.",
+      "Difficulty with transitions, limited expressive language (50-75 words), challenges with peer interaction, sensory sensitivities (loud noises, certain textures), occasional aggressive behavior when frustrated.",
+    dailySchedule:
+      "Wakes at 7:00 AM, breakfast and morning routine, school 8:30 AM - 3:00 PM, after-school snack, play time or therapy sessions, dinner at 6:00 PM, bath and bedtime routine starting at 7:30 PM.",
   },
   assessmentTools: [
-    "Vineland Adaptive Behavior Scales, Third Edition (Vineland-3)",
-    "Verbal Behavior Milestones Assessment and Placement Program (VB-MAPP)",
+    "Vineland Adaptive Behavior Scales (VABS-3)",
+    "ABLLS-R (Assessment of Basic Language and Learning Skills - Revised)",
+    "VB-MAPP (Verbal Behavior Milestones Assessment and Placement Program)",
+    "Direct observation across home and school settings",
+    "Parent and teacher interviews",
     "Functional Behavior Assessment (FBA)",
-    "Preference Assessment (Multiple Stimulus Without Replacement)",
   ],
-  assessmentDates: "October 15-22, 2024",
-  observationSettings: "Home environment, Pre-K classroom, Community setting",
+  assessmentDates: "November 15-22, 2024",
+  observationSettings:
+    "Home environment (4 hours), school classroom (3 hours), playground (1 hour), community setting - grocery store (1 hour)",
   domains: {
     communication: {
-      level: "Significant Deficit",
-      score: "Standard Score: 58 (Vineland-3)",
+      level: "Emerging",
       findings:
-        "Marcus primarily communicates using PECS at Phase 4. He has approximately 20 spoken words used inconsistently. Limited joint attention and social communication skills.",
+        "Marcus demonstrates a vocabulary of approximately 50-75 words. He uses 2-3 word phrases inconsistently. Shows strong receptive language skills - follows 2-step directions with visual supports. Needs significant prompting for expressive communication. Uses some functional communication via AAC device in school setting.",
     },
     social: {
-      level: "Significant Deficit",
-      score: "Standard Score: 61 (Vineland-3)",
+      level: "Limited",
       findings:
-        "Shows attachment to family but limited interest in peers. Play skills are significantly limited to sensory-motor and simple cause-effect activities.",
+        "Limited interest in peer interactions. Prefers parallel play over cooperative play. Shows emerging joint attention skills. Responds to adult-initiated social interactions but rarely initiates. Demonstrates appropriate eye contact with familiar adults but limited with peers. Beginning to show awareness of others' emotions.",
     },
     adaptive: {
-      level: "Moderate Deficit",
-      score: "Standard Score: 65 (Vineland-3)",
+      level: "Moderate Delays",
       findings:
-        "Requires significant support for self-care routines. Can feed himself with spoon at 50% accuracy. Toilet training not yet initiated.",
+        "Self-care skills are emerging. Independent with toileting during day (occasional nighttime accidents). Requires assistance with bathing, tooth brushing, and dressing. Can feed self with utensils but needs supervision. Follows simple household routines with visual supports.",
     },
     behavior: {
-      level: "Clinical Concern",
-      score: "Requires intervention",
+      level: "Concerns Present",
       findings:
-        "Target behaviors include physical aggression (8-12 episodes/day), SIB (3-5 episodes/day), elopement (2-3 attempts per outing), and property destruction (5-7 episodes/day).",
+        "Displays challenging behaviors including aggression (hitting, pushing) 3-5 times per week when frustrated or during transitions. Engages in vocal stereotypy (repetitive sounds) throughout day. Shows difficulty regulating emotions. Responds well to visual schedules and token economy systems.",
+    },
+    play: {
+      level: "Emerging Skills",
+      findings:
+        "Engages in parallel play for 5-10 minutes. Shows strong preference for cause-and-effect toys and tablets. Beginning to show imaginative play with adult modeling. Limited variety in play activities - tends to focus on same toys repeatedly. Can participate in structured games with support.",
+    },
+    motor: {
+      level: "Age-Appropriate",
+      findings:
+        "Gross motor skills within normal limits - runs, jumps, climbs appropriately. Fine motor skills slightly delayed - working on pencil grasp and handwriting. Some sensory seeking behaviors observed (spinning, jumping). Good balance and coordination for age.",
     },
   },
   abcObservations: [
     {
-      date: "10/15/2024",
-      time: "9:15 AM",
-      setting: "Home - Kitchen",
-      antecedent: "Mother presented non-preferred food and removed iPad",
-      behavior: "Marcus screamed, swept plate off table, hit mother's arm 3 times",
-      consequence: "Mother provided preferred cereal, returned iPad after 5 minutes",
-      function: "Escape / Access to tangibles",
-      duration: "4 minutes",
-      intensity: "Moderate",
+      antecedent: "Asked to transition from iPad to dinner table",
+      behavior: "Screamed, threw iPad, hit mother's arm",
+      consequence: "Guided to calm-down corner, used visual timer, provided preferred snack at table",
+      function: "Escape from non-preferred activity",
     },
     {
-      date: "10/15/2024",
-      time: "2:45 PM",
-      setting: "School - Classroom",
-      antecedent: "Teacher instructed transition from free play to circle time",
-      behavior: "Marcus dropped to floor, began head-hitting on carpet, cried loudly",
-      consequence: "Teacher aide provided 1:1 transition support with visual timer",
-      function: "Escape from demand",
-      duration: "2 minutes",
-      intensity: "Mild",
+      antecedent: "Peer approached during play at park",
+      behavior: "Turned away, walked to opposite side of playground",
+      consequence: "Mother encouraged interaction but allowed space",
+      function: "Escape from social demand",
+    },
+    {
+      antecedent: "Loud fire alarm during school",
+      behavior: "Covered ears, cried, ran to corner",
+      consequence: "Teacher provided noise-canceling headphones, calming activities",
+      function: "Sensory avoidance",
     },
   ],
   behaviors: [
     {
       name: "Physical Aggression",
-      definition:
-        "Any instance of forceful physical contact toward another person including hitting, kicking, scratching, biting, or pushing.",
-      frequency: "8-12 episodes per day",
-      duration: "30 seconds to 3 minutes per episode",
-      intensity: "Mild to moderate",
-      function: "Primarily escape-maintained with secondary tangible function",
-      baseline: "Average 10.2 episodes per day",
+      definition: "Hitting, pushing, or kicking others with force",
+      baseline: "3-5 incidents per week",
+      frequency: "Average 4 times per week",
+      intensity: "Moderate - leaves temporary red marks but no injuries",
+      function: "Escape from demands and attention-seeking",
     },
     {
-      name: "Self-Injurious Behavior (SIB)",
-      definition:
-        "Any instance of self-directed forceful contact including head-hitting, hand-biting, or face-slapping.",
-      frequency: "3-5 episodes per day",
-      duration: "10-30 seconds per episode",
-      intensity: "Mild",
-      function: "Automatic reinforcement and escape-maintained",
-      baseline: "Average 4.1 episodes per day",
+      name: "Vocal Stereotypy",
+      definition: "Repetitive vocalizations including humming, scripting from videos, repeating sounds",
+      baseline: "Occurs throughout day, approximately 30-40% of observed time",
+      frequency: "Multiple times per hour",
+      intensity: "Low to moderate volume",
+      function: "Automatic reinforcement (sensory)",
     },
   ],
   goals: [
     {
-      domain: "Communication",
-      lto: "Marcus will independently request preferred items and activities using a multi-modal communication system across all settings with 90% accuracy.",
-      stos: [
-        "Marcus will exchange a single picture card for a preferred item within 3 seconds of seeing the item, with 80% independence across 5 consecutive sessions.",
-        "Marcus will navigate to the correct page in his communication book and exchange the appropriate picture card with 80% accuracy.",
-        "Marcus will use 2-word combinations (I want + item) via PECS or speech approximations for at least 20 different requests with 80% accuracy.",
-      ],
-      timeline: "12 months",
-      measurementMethod: "Trial-by-trial data collection",
+      area: "Communication",
+      goal: "Marcus will independently use 3-4 word phrases to make requests in 80% of opportunities across 3 consecutive sessions",
+      targetDate: "March 2025",
+      priority: "High",
     },
     {
-      domain: "Social Skills",
-      lto: "Marcus will engage in reciprocal play interactions with peers for at least 5 minutes across 3 different play activities with minimal adult support.",
-      stos: [
-        "Marcus will tolerate a peer within 3 feet during parallel play for 5 minutes without moving away or aggression, across 80% of opportunities.",
-        "Marcus will respond to peer initiations (greetings, play bids) within 5 seconds, across 60% of opportunities.",
-        "Marcus will initiate a play interaction with a peer using words, gestures, or communication device, at least 2 times per 30-minute play session.",
-      ],
-      timeline: "12 months",
-      measurementMethod: "Interval recording during play sessions",
+      area: "Social Skills",
+      goal: "Marcus will initiate social interaction with peers using appropriate greetings in 4 out of 5 opportunities",
+      targetDate: "April 2025",
+      priority: "High",
     },
     {
-      domain: "Behavior Reduction",
-      lto: "Marcus will reduce physical aggression to fewer than 1 episode per day while developing and using appropriate replacement behaviors.",
-      stos: [
-        "Marcus will use a functional communication response (FCR) to request a break or preferred item instead of aggression across 60% of opportunities.",
-        "Marcus will reduce physical aggression to fewer than 5 episodes per day across all settings.",
-        "Marcus will reduce physical aggression to fewer than 2 episodes per day across all settings.",
-      ],
-      timeline: "12 months",
-      measurementMethod: "Frequency count with daily data collection",
+      area: "Behavior Reduction",
+      goal: "Marcus will demonstrate appropriate coping strategies instead of physical aggression in 90% of frustrating situations",
+      targetDate: "June 2025",
+      priority: "High",
+    },
+    {
+      area: "Adaptive Skills",
+      goal: "Marcus will independently complete morning routine (toileting, washing hands, getting dressed) with visual supports in 4 out of 5 opportunities",
+      targetDate: "May 2025",
+      priority: "Medium",
     },
   ],
   servicePlan: {
-    totalWeeklyHours: 25,
-    services: [
-      {
-        code: "97153",
-        description: "Adaptive behavior treatment by technician",
-        hours: 20,
-        frequency: "5 days per week, 4 hours per day",
-        setting: "Home and Community",
-      },
-      {
-        code: "97155",
-        description: "Adaptive behavior treatment by BCBA",
-        hours: 4,
-        frequency: "2 hours, 2x per week",
-        setting: "Home, School, Community",
-      },
-      {
-        code: "97156",
-        description: "Family adaptive behavior guidance",
-        hours: 1,
-        frequency: "1 hour per week",
-        setting: "Home or Clinic",
-      },
-    ],
-    justification:
-      "Based on the severity of Marcus's deficits across communication, social, adaptive, and behavioral domains, intensive ABA services are medically necessary. The recommended 25 hours per week aligns with research supporting intensive early intervention for children with ASD Level 2.",
+    recommendedHours: 25,
+    frequency: "5 days per week, 5 hours per day",
+    setting: "Home-based with community generalization",
+    duration: "6 months with quarterly reassessment",
+    rationale:
+      "Marcus demonstrates significant delays in communication and social skills, with challenging behaviors interfering with learning and family life. Intensive ABA services are medically necessary to address these core deficits and reduce problem behaviors. The recommended 25 hours per week will allow for comprehensive programming across all skill domains with sufficient opportunities for practice and generalization.",
   },
   medicalNecessity: {
-    statement:
-      "Applied Behavior Analysis (ABA) therapy is medically necessary for Marcus Johnson based on his diagnosis of Autism Spectrum Disorder Level 2 and the significant functional impairments documented across all developmental domains. Without intensive intervention, Marcus is at risk for further developmental delays and escalation of dangerous behaviors including aggression and self-injury.",
-    supportingFactors: [
-      "Documented diagnosis of ASD Level 2 requiring substantial support",
-      "Standardized assessment scores indicating significant deficits (Vineland-3 Composite: 62)",
-      "Presence of dangerous behaviors requiring behavioral intervention",
-      "Limited functional communication impacting all areas of life",
-      "Previous positive response to ABA therapy",
+    justification:
+      "ABA therapy is medically necessary for Marcus due to his ASD Level 2 diagnosis and significant functional impairments in communication, social interaction, and adaptive behavior. Without intensive intervention, Marcus is at risk for continued developmental delays, academic struggles, and social isolation. Evidence-based ABA intervention will address his core deficits and improve his quality of life and long-term outcomes.",
+    functionalImpairments: [
+      "Severe communication delays affecting ability to express needs and wants",
+      "Limited social reciprocity and peer relationships",
+      "Challenging behaviors interfering with learning and family functioning",
+      "Adaptive skill delays affecting independence in daily living activities",
+      "Sensory sensitivities impacting participation in typical activities",
     ],
+    previousInterventions:
+      "Marcus has received speech therapy and occupational therapy with limited progress in reducing core ASD symptoms. Previous ABA therapy (ages 3-5) resulted in significant gains, supporting the effectiveness of this approach for Marcus.",
+  },
+  riskAssessment: {
+    level: "Moderate",
+    factors: [
+      "Physical aggression toward family members and peers",
+      "Elopement risk in community settings (moderate - has run from parent 2 times in past 6 months)",
+      "Limited safety awareness (runs into street without looking, climbs on unsafe structures)",
+      "Self-injurious behavior has not been observed but should be monitored given frustration levels",
+    ],
+    safetyPlan:
+      "Visual supports for safety rules, close supervision in community, social stories about safe behavior, parent training on managing elopement risk, crisis intervention plan in place",
   },
 }
