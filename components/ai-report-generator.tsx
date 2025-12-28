@@ -313,6 +313,12 @@ Write this section in professional clinical language appropriate for insurance s
       for (const section of sections) {
         await generateSection(section.id)
       }
+
+      // Show completion toast
+      alert("Report generation complete! All sections have been generated.")
+    } catch (error) {
+      console.error("[v0] Error generating full report:", error)
+      alert("An error occurred while generating the report. Please try again.")
     } finally {
       setIsGenerating(false)
     }
@@ -603,14 +609,32 @@ Write this section in professional clinical language appropriate for insurance s
 
               {/* Action Buttons */}
               <div className="mt-6 pt-6 border-t border-slate-200">
+                {isGenerating && (
+                  <div className="mb-4 p-4 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border-2 border-teal-200">
+                    <div className="flex items-center justify-center gap-3">
+                      <Sparkles className="h-5 w-5 text-teal-600 animate-pulse" />
+                      <p className="text-teal-700 font-semibold text-lg">{MOTIVATIONAL_MESSAGES[motivationalIndex]}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <button
                     onClick={handleGenerateFullReport}
                     disabled={isGenerating}
                     className="flex-1 px-8 py-4 rounded-lg bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl"
                   >
-                    <Sparkles className="h-6 w-6" />
-                    {isGenerating ? "Generating Report..." : "Generate Full Report"}
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        Generating Report...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-6 w-6" />
+                        Generate Full Report
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => copyToClipboard(getAllContent())}
@@ -639,17 +663,8 @@ Write this section in professional clinical language appropriate for insurance s
                 </div>
               </div>
 
-              {/* Motivational Message */}
-              {isGenerating && (
-                <div className="mt-4 p-3 bg-teal-50 rounded-lg text-center">
-                  <p className="text-teal-700 font-medium">{MOTIVATIONAL_MESSAGES[motivationalIndex]}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Report Sections Grid */}
-            {demoMode && (
-              <div className="grid gap-4">
+              {/* Report Sections Grid */}
+              <div className="grid gap-4 mt-6">
                 {sections.map((section) => (
                   <div key={section.id} className="bg-white rounded-lg shadow border border-slate-200 overflow-hidden">
                     {/* Section Header */}
@@ -732,7 +747,7 @@ Write this section in professional clinical language appropriate for insurance s
                   </div>
                 ))}
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
