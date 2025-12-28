@@ -223,8 +223,10 @@ export function AIReportGenerator() {
 
   // Toggle demo mode
   const handleDemoMode = () => {
+    console.log("[v0] Demo Mode activated")
     setDemoMode(true)
     setAssessmentData(sampleAssessmentData)
+    console.log("[v0] Assessment data set:", sampleAssessmentData.clientInfo)
   }
 
   // Generate single section
@@ -318,6 +320,8 @@ Write this section in professional clinical language appropriate for insurance s
   // Calculate progress
   const completedCount = sections.filter((s) => s.status === "complete").length
   const progressPercent = Math.round((completedCount / sections.length) * 100)
+
+  console.log("[v0] Demo Mode:", demoMode, "Progress:", progressPercent, "Completed:", completedCount)
 
   // Copy to clipboard
   const copyToClipboard = async (text: string) => {
@@ -499,9 +503,9 @@ Write this section in professional clinical language appropriate for insurance s
       </div>
 
       {/* Progress Section */}
-      {demoMode && (
+      {demoMode && assessmentData && (
         <div className="max-w-6xl mx-auto px-6 py-8">
-          <div className="bg-white rounded-xl border border-teal-100 p-8">
+          <div className="bg-white rounded-xl border border-teal-100 p-8 shadow-sm">
             <div className="flex items-center gap-8">
               {/* Circular Progress */}
               <div className="flex-shrink-0">
@@ -571,15 +575,15 @@ Write this section in professional clinical language appropriate for insurance s
               <button
                 onClick={handleGenerateFullReport}
                 disabled={isGenerating}
-                className="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 disabled:opacity-50 font-semibold transition-all flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all flex items-center justify-center gap-2 shadow-sm"
               >
-                <FileText className="h-4 w-4" />
+                <FileText className="h-5 w-5" />
                 {isGenerating ? "Generating..." : "Generate Full Report"}
               </button>
               <button
                 onClick={() => copyToClipboard(getAllContent())}
                 disabled={completedCount === 0}
-                className="px-6 py-3 rounded-lg border border-teal-200 text-teal-600 hover:bg-teal-50 disabled:opacity-50 font-semibold transition-colors flex items-center gap-2"
+                className="px-6 py-3 rounded-lg border-2 border-teal-200 text-teal-600 hover:bg-teal-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors flex items-center gap-2"
               >
                 <Copy className="h-4 w-4" />
                 {copyFeedback ? "Copied!" : "Copy"}
@@ -587,7 +591,7 @@ Write this section in professional clinical language appropriate for insurance s
               <button
                 onClick={handlePrint}
                 disabled={completedCount === 0}
-                className="px-6 py-3 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 font-semibold transition-colors flex items-center gap-2"
+                className="px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors flex items-center gap-2"
               >
                 <Printer className="h-4 w-4" />
                 Print
@@ -595,7 +599,7 @@ Write this section in professional clinical language appropriate for insurance s
               <button
                 onClick={handleExportPDF}
                 disabled={completedCount === 0}
-                className="px-6 py-3 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 font-semibold transition-colors flex items-center gap-2"
+                className="px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors flex items-center gap-2"
               >
                 <FileDown className="h-4 w-4" />
                 PDF
@@ -606,94 +610,96 @@ Write this section in professional clinical language appropriate for insurance s
       )}
 
       {/* Report Sections Grid */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 gap-4">
-          {sections.map((section) => (
-            <div
-              key={section.id}
-              className="border border-slate-200 rounded-lg overflow-hidden hover:border-teal-300 transition-colors"
-            >
-              {/* Section Header */}
-              <button
-                onClick={() => setExpandedSectionId(expandedSectionId === section.id ? null : section.id)}
-                className="w-full px-6 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors text-left"
+      {demoMode && (
+        <div className="max-w-6xl mx-auto px-6 pb-8">
+          <div className="grid grid-cols-1 gap-4">
+            {sections.map((section) => (
+              <div
+                key={section.id}
+                className="border border-slate-200 rounded-lg overflow-hidden hover:border-teal-300 transition-colors"
               >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="text-teal-600">{section.icon}</div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-slate-900">{section.title}</h3>
-                    <p className="text-xs text-slate-500">{section.estimatedWords} words</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {/* Status Badge */}
-                  {section.status === "pending" && <Badge className="bg-slate-100 text-slate-700">Pending</Badge>}
-                  {section.status === "generating" && (
-                    <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Generating
-                    </Badge>
-                  )}
-                  {section.status === "complete" && (
-                    <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
-                      <Check className="h-3 w-3" />
-                      Complete
-                    </Badge>
-                  )}
-                  {section.status === "error" && <Badge className="bg-red-100 text-red-700">Error</Badge>}
-
-                  {/* Generate Button */}
-                  {section.status === "pending" && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        generateSection(section.id)
-                      }}
-                      className="px-3 py-1 rounded text-sm bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
-                    >
-                      Generate
-                    </button>
-                  )}
-
-                  <ChevronDown
-                    className={`h-5 w-5 text-slate-400 transition-transform ${
-                      expandedSectionId === section.id ? "rotate-180" : ""
-                    }`}
-                  />
-                </div>
-              </button>
-
-              {/* Section Content */}
-              {expandedSectionId === section.id && section.status === "complete" && (
-                <div className="px-6 py-4 border-t bg-slate-50">
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.content}</ReactMarkdown>
+                {/* Section Header */}
+                <button
+                  onClick={() => setExpandedSectionId(expandedSectionId === section.id ? null : section.id)}
+                  className="w-full px-6 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="text-teal-600">{section.icon}</div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-slate-900">{section.title}</h3>
+                      <p className="text-xs text-slate-500">{section.estimatedWords} words</p>
+                    </div>
                   </div>
 
-                  {/* Section Actions */}
-                  <div className="flex gap-2 mt-4 pt-4 border-t">
-                    <button
-                      onClick={() => copyToClipboard(section.content)}
-                      className="flex items-center gap-2 px-3 py-2 rounded text-sm bg-white border hover:bg-slate-50 transition-colors"
-                    >
-                      <Copy className="h-4 w-4" />
-                      Copy
-                    </button>
-                    <button
-                      onClick={handlePrint}
-                      className="flex items-center gap-2 px-3 py-2 rounded text-sm bg-white border hover:bg-slate-50 transition-colors"
-                    >
-                      <Printer className="h-4 w-4" />
-                      Print
-                    </button>
+                  <div className="flex items-center gap-3">
+                    {/* Status Badge */}
+                    {section.status === "pending" && <Badge className="bg-slate-100 text-slate-700">Pending</Badge>}
+                    {section.status === "generating" && (
+                      <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Generating
+                      </Badge>
+                    )}
+                    {section.status === "complete" && (
+                      <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
+                        <Check className="h-3 w-3" />
+                        Complete
+                      </Badge>
+                    )}
+                    {section.status === "error" && <Badge className="bg-red-100 text-red-700">Error</Badge>}
+
+                    {/* Generate Button */}
+                    {section.status === "pending" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          generateSection(section.id)
+                        }}
+                        className="px-3 py-1 rounded text-sm bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+                      >
+                        Generate
+                      </button>
+                    )}
+
+                    <ChevronDown
+                      className={`h-5 w-5 text-slate-400 transition-transform ${
+                        expandedSectionId === section.id ? "rotate-180" : ""
+                      }`}
+                    />
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                </button>
+
+                {/* Section Content */}
+                {expandedSectionId === section.id && section.status === "complete" && (
+                  <div className="px-6 py-4 border-t bg-slate-50">
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.content}</ReactMarkdown>
+                    </div>
+
+                    {/* Section Actions */}
+                    <div className="flex gap-2 mt-4 pt-4 border-t">
+                      <button
+                        onClick={() => copyToClipboard(section.content)}
+                        className="flex items-center gap-2 px-3 py-2 rounded text-sm bg-white border hover:bg-slate-50 transition-colors"
+                      >
+                        <Copy className="h-4 w-4" />
+                        Copy
+                      </button>
+                      <button
+                        onClick={handlePrint}
+                        className="flex items-center gap-2 px-3 py-2 rounded text-sm bg-white border hover:bg-slate-50 transition-colors"
+                      >
+                        <Printer className="h-4 w-4" />
+                        Print
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
