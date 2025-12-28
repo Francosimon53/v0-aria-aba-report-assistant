@@ -214,7 +214,14 @@ export function Dashboard() {
         )
       case "report":
         return (
-          <ReportPreviewTool clientData={clientData} assessmentData={assessmentData} selectedGoals={selectedGoals} />
+          <ReportPreviewTool
+            clientData={clientData}
+            assessmentData={assessmentData}
+            selectedGoals={selectedGoals}
+            agencyData={agencyData}
+            reassessmentData={reassessmentData}
+            onExport={() => console.log("Report exported")}
+          />
         )
       case "timesaved":
         return <TimeSavedTracker />
