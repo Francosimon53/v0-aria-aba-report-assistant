@@ -199,6 +199,7 @@ export function AIReportGenerator() {
   const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null)
   const [motivationalIndex, setMotivationalIndex] = useState(0)
   const [assessmentData, setAssessmentData] = useState<AssessmentData | null>(null)
+  const [copyFeedback, setCopyFeedback] = useState(false)
 
   // Initialize report sections
   useEffect(() => {
@@ -319,8 +320,14 @@ Write this section in professional clinical language appropriate for insurance s
   const progressPercent = Math.round((completedCount / sections.length) * 100)
 
   // Copy to clipboard
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopyFeedback(true)
+      setTimeout(() => setCopyFeedback(false), 2000)
+    } catch (error) {
+      console.error("[v0] Failed to copy to clipboard:", error)
+    }
   }
 
   // Get all report content
@@ -329,6 +336,143 @@ Write this section in professional clinical language appropriate for insurance s
       .filter((s) => s.status === "complete")
       .map((s) => `## ${s.title}\n\n${s.content}`)
       .join("\n\n---\n\n")
+  }
+
+  // Print function
+  const handlePrint = () => {
+    const printContent = getAllContent()
+    const printWindow = window.open("", "_blank")
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>ABA Assessment Report - ${assessmentData?.clientInfo?.firstName || "Client"} ${assessmentData?.clientInfo?.lastName || ""}</title>
+            <style>
+              body {
+                font-family: 'Times New Roman', Times, serif;
+                line-height: 1.6;
+                max-width: 8.5in;
+                margin: 0 auto;
+                padding: 1in;
+                color: #333;
+              }
+              h2 {
+                color: #0D9488;
+                border-bottom: 2px solid #0D9488;
+                padding-bottom: 0.5em;
+                margin-top: 2em;
+              }
+              h3 { margin-top: 1.5em; }
+              p { margin: 0.5em 0; }
+              @media print {
+                body { margin: 0; padding: 0.5in; }
+                h2 { page-break-after: avoid; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printContent
+              .split("\n")
+              .map((line) => {
+                if (line.startsWith("## ")) {
+                  return `<h2>${line.substring(3)}</h2>`
+                } else if (line.startsWith("### ")) {
+                  return `<h3>${line.substring(4)}</h3>`
+                } else if (line === "---") {
+                  return "<hr />"
+                } else if (line.trim()) {
+                  return `<p>${line}</p>`
+                }
+                return ""
+              })
+              .join("\n")}
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+      setTimeout(() => {
+        printWindow.print()
+      }, 250)
+    }
+  }
+
+  // PDF export function using jspdf
+  const handleExportPDF = async () => {
+    try {
+      // Dynamic import to avoid SSR issues
+      const { jsPDF } = await import("jspdf")
+
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "in",
+        format: "letter",
+      })
+
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const margin = 1
+      const maxWidth = pageWidth - 2 * margin
+      let yPosition = margin
+
+      // Add title
+      doc.setFontSize(20)
+      doc.setTextColor(13, 148, 136) // Teal color
+      doc.text("ABA Assessment Report", margin, yPosition)
+      yPosition += 0.3
+
+      // Add client info
+      if (assessmentData?.clientInfo) {
+        doc.setFontSize(12)
+        doc.setTextColor(0, 0, 0)
+        doc.text(`${assessmentData.clientInfo.firstName} ${assessmentData.clientInfo.lastName}`, margin, yPosition)
+        yPosition += 0.2
+        doc.setFontSize(10)
+        doc.setTextColor(100, 100, 100)
+        doc.text(`${assessmentData.clientInfo.diagnosis}`, margin, yPosition)
+        yPosition += 0.5
+      }
+
+      // Add each section
+      for (const section of sections) {
+        if (section.status === "complete" && section.content) {
+          // Check if we need a new page
+          if (yPosition > pageHeight - 1.5) {
+            doc.addPage()
+            yPosition = margin
+          }
+
+          // Section title
+          doc.setFontSize(14)
+          doc.setTextColor(13, 148, 136)
+          doc.text(section.title, margin, yPosition)
+          yPosition += 0.3
+
+          // Section content
+          doc.setFontSize(10)
+          doc.setTextColor(0, 0, 0)
+          const lines = doc.splitTextToSize(section.content, maxWidth)
+
+          for (const line of lines) {
+            if (yPosition > pageHeight - margin) {
+              doc.addPage()
+              yPosition = margin
+            }
+            doc.text(line, margin, yPosition)
+            yPosition += 0.2
+          }
+
+          yPosition += 0.3
+        }
+      }
+
+      // Save PDF
+      const fileName = `ABA_Report_${assessmentData?.clientInfo?.firstName || "Client"}_${new Date().toISOString().split("T")[0]}.pdf`
+      doc.save(fileName)
+    } catch (error) {
+      console.error("[v0] Failed to generate PDF:", error)
+      alert("Failed to generate PDF. Please try again.")
+    }
   }
 
   return (
@@ -405,9 +549,18 @@ Write this section in professional clinical language appropriate for insurance s
                 className="px-6 py-3 rounded-lg border border-teal-200 text-teal-600 hover:bg-teal-50 disabled:opacity-50 font-semibold transition-colors flex items-center gap-2"
               >
                 <Copy className="h-4 w-4" />
-                Copy
+                {copyFeedback ? "Copied!" : "Copy"}
               </button>
               <button
+                onClick={handlePrint}
+                disabled={completedCount === 0}
+                className="px-6 py-3 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 font-semibold transition-colors flex items-center gap-2"
+              >
+                <Printer className="h-4 w-4" />
+                Print
+              </button>
+              <button
+                onClick={handleExportPDF}
                 disabled={completedCount === 0}
                 className="px-6 py-3 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 font-semibold transition-colors flex items-center gap-2"
               >
@@ -494,7 +647,10 @@ Write this section in professional clinical language appropriate for insurance s
                       <Copy className="h-4 w-4" />
                       Copy
                     </button>
-                    <button className="flex items-center gap-2 px-3 py-2 rounded text-sm bg-white border hover:bg-slate-50 transition-colors">
+                    <button
+                      onClick={handlePrint}
+                      className="flex items-center gap-2 px-3 py-2 rounded text-sm bg-white border hover:bg-slate-50 transition-colors"
+                    >
                       <Printer className="h-4 w-4" />
                       Print
                     </button>
