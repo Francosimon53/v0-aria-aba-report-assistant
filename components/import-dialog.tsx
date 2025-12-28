@@ -31,7 +31,6 @@ export function ImportDialog({ title, description, acceptedFormats, onImport, pa
   const [preview, setPreview] = useState<any>(null)
   const [error, setError] = useState<string>("")
   const [loading, setLoading] = useState(false)
-  const [processingMessage, setProcessingMessage] = useState<string>("")
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -41,23 +40,12 @@ export function ImportDialog({ title, description, acceptedFormats, onImport, pa
     setError("")
     setLoading(true)
 
-    if (selectedFile.name.endsWith(".pdf")) {
-      setProcessingMessage("Extracting text from PDF using AI...")
-    } else {
-      setProcessingMessage("Processing file...")
-    }
-
     try {
-      console.log("[v0] Starting file parse:", selectedFile.name)
       const parsed = await parseFunction(selectedFile)
-      console.log("[v0] Parse successful:", parsed)
       setPreview(parsed)
-      setProcessingMessage("")
     } catch (err) {
-      console.error("[v0] Parse error:", err)
       setError(err instanceof Error ? err.message : "Failed to parse file")
       setPreview(null)
-      setProcessingMessage("")
     } finally {
       setLoading(false)
     }
@@ -120,9 +108,8 @@ export function ImportDialog({ title, description, acceptedFormats, onImport, pa
 
           {/* Loading State */}
           {loading && (
-            <div className="flex flex-col items-center justify-center p-8 gap-3">
+            <div className="flex items-center justify-center p-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              {processingMessage && <p className="text-sm text-muted-foreground">{processingMessage}</p>}
             </div>
           )}
 

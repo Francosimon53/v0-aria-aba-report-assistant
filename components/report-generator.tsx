@@ -16,12 +16,16 @@ import {
   RefreshCwIcon,
 } from "@/components/icons"
 import type { ClientData, AssessmentData, SelectedGoal } from "@/lib/types"
+import type { ABCObservation } from "@/lib/abc-report-generator"
+import { generateMedicalNecessitySection, type MedicalNecessityInput } from "@/lib/medical-necessity-generator"
+import { generateCPTAuthorizationRequest, type CPTAuthRequestInput } from "@/lib/cpt-auth-request-generator"
 import { goalBank } from "@/lib/data/goal-bank"
 import { assessmentTypes } from "@/lib/data/assessment-types"
 import { insuranceTemplates } from "@/lib/data/insurance-templates"
 import { useToast } from "@/hooks/use-toast"
 import { SkeletonReportList } from "@/components/skeleton-report-card"
 import { ReportReadyEmptyState } from "@/components/empty-states"
+import { safeGetJSON, safeSetItem } from "@/lib/safe-storage"
 
 interface ReportGeneratorProps {
   clientData: ClientData | null
@@ -35,6 +39,7 @@ export function ReportGenerator({ clientData, assessmentData, selectedGoals, onB
 
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedReport, setGeneratedReport] = useState<string | null>(null)
+  const [cptAuthRequest, setCPTAuthRequest] = useState<string | null>(null)
 
   const selectedAssessment = assessmentTypes.find((a) => a.id === assessmentData?.assessmentType)
   const insuranceTemplate = insuranceTemplates.find((t) => t.code === clientData?.insuranceProvider)
@@ -42,10 +47,10 @@ export function ReportGenerator({ clientData, assessmentData, selectedGoals, onB
   const completionChecks = [
     { label: "Client Information", completed: !!clientData },
     { label: "Assessment Data", completed: !!assessmentData },
-    { label: "Goals Selected", completed: (selectedGoals?.length ?? 0) > 0 },
+    { label: "Goals Selected", completed: selectedGoals.length > 0 },
   ]
 
-  const allComplete = (completionChecks ?? []).every((c) => c.completed)
+  const allComplete = completionChecks.every((c) => c.completed)
 
   const calculateAge = (dob: string) => {
     const birthDate = new Date(dob)
@@ -76,6 +81,186 @@ export function ReportGenerator({ clientData, assessmentData, selectedGoals, onB
       ...sg,
       goal: goalBank.find((g) => g.id === sg.goalId),
     }))
+
+    const storedABCData = safeGetJSON("aria_abc_observations", [])
+    const abcObservations: ABCObservation[] = storedABCData
+
+    const storedBackgroundData = safeGetJSON("aria_background_history", {})
+    const backgroundData = storedBackgroundData
+
+    const storedEvaluationData = safeGetJSON("aria_evaluation_data", {})
+    const evaluationData = storedEvaluationData
+
+    const storedRiskData = safeGetJSON("aria_risk_assessment", {})
+    const riskData = storedRiskData
+
+    const medicalNecessityInput: MedicalNecessityInput = {
+      client: {
+        name: `${clientData?.firstName || ""} ${clientData?.lastName || ""}`.trim(),
+        age: age,
+        gender: clientData?.gender,
+      },
+      diagnoses: {
+        primaryDiagnosisName: clientData?.diagnosis || "Autism Spectrum Disorder",
+        primaryDiagnosisCode: clientData?.diagnosisCode || "F84.0",
+        secondaryDiagnoses: clientData?.secondaryDiagnoses || [],
+      },
+      assessmentContext: {
+        datesOfEvaluation: assessmentData?.assessmentDate || new Date().toLocaleDateString(),
+        settings: assessmentData?.settings || ["clinic"],
+        toolsUsed: selectedAssessment ? [selectedAssessment.abbreviation] : [],
+      },
+      domains: {
+        communication: evaluationData.domains?.find((d: any) => d.name?.toLowerCase().includes("communication"))
+          ? {
+              severity:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("communication")).severity ||
+                "moderate",
+              keyDeficits:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("communication")).observations ||
+                "Limited functional communication skills observed.",
+              impact:
+                "These communication deficits interfere with the client's ability to express needs, engage in social interactions, and participate in educational activities.",
+            }
+          : undefined,
+        socialPlay: evaluationData.domains?.find((d: any) => d.name?.toLowerCase().includes("social"))
+          ? {
+              severity:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("social")).severity ||
+                "moderate",
+              keyDeficits:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("social")).observations ||
+                "Reduced peer interaction and limited play skills observed.",
+              impact: "These social deficits limit opportunities for peer relationships and community participation.",
+            }
+          : undefined,
+        adaptiveDailyLiving: evaluationData.domains?.find((d: any) => d.name?.toLowerCase().includes("adaptive"))
+          ? {
+              severity:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("adaptive")).severity ||
+                "moderate",
+              keyDeficits:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("adaptive")).observations ||
+                "Delays in self-care and daily living skills.",
+              impact: "These deficits increase dependence on caregivers for basic self-care tasks.",
+            }
+          : undefined,
+        maladaptiveBehaviors: backgroundData.behavioralConcerns
+          ? {
+              topographies: Array.isArray(backgroundData.behavioralConcerns)
+                ? backgroundData.behavioralConcerns
+                : [backgroundData.behavioralConcerns],
+              frequency: "occur regularly across settings",
+              settings: "home, school, and community",
+              impact: "These behaviors interfere with learning opportunities and social participation.",
+            }
+          : undefined,
+      },
+      abcObservations: abcObservations,
+      riskAssessment:
+        riskData.risks?.length > 0
+          ? {
+              safetyConcerns: riskData.risks || [],
+              supervisionLevel: riskData.supervisionLevel || "Moderate supervision is required.",
+              impactOnClient: riskData.impactOnClient || "interferes with skill acquisition and independence",
+              impactOnOthers: riskData.impactOnOthers || "requires significant caregiver monitoring",
+            }
+          : undefined,
+      goalsSummary: goalsWithDetails.map((g) => g.goal?.title).join(", "),
+      servicePlan: {
+        code97153Hours: assessmentData?.hoursRecommended ? Math.floor(assessmentData.hoursRecommended * 0.7) : 10,
+        code97155Hours: 2,
+        code97156Hours: 2,
+        totalHoursPerWeek: assessmentData?.hoursRecommended || 15,
+        expectedDuration: "6–12 months",
+      },
+    }
+
+    const medicalNecessityText = generateMedicalNecessitySection(medicalNecessityInput)
+
+    const cptAuthInput: CPTAuthRequestInput = {
+      clientName: `${clientData?.firstName || ""} ${clientData?.lastName || ""}`.trim(),
+      clientAge: age,
+      clientGender: clientData?.gender,
+      livingSituation: clientData?.livingSituation || `lives with ${clientData?.guardianRelationship || "family"}`,
+      primaryDiagnosisName: clientData?.diagnosis || "Autism Spectrum Disorder",
+      primaryDiagnosisCode: clientData?.diagnosisCode || "F84.0",
+      secondaryDiagnoses: clientData?.secondaryDiagnoses || [],
+      datesOfEvaluation: assessmentData?.assessmentDate || new Date().toLocaleDateString(),
+      settings: assessmentData?.settings || ["clinic"],
+      assessmentToolsUsed: selectedAssessment ? [selectedAssessment.abbreviation] : [],
+      domains: {
+        communication: evaluationData.domains?.find((d: any) => d.name?.toLowerCase().includes("communication"))
+          ? {
+              severity:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("communication")).severity ||
+                "moderate",
+              examples:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("communication")).observations ||
+                "Limited functional communication skills",
+              impact: "Limits ability to express needs and participate in social exchanges",
+            }
+          : undefined,
+        social: evaluationData.domains?.find((d: any) => d.name?.toLowerCase().includes("social"))
+          ? {
+              severity:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("social")).severity ||
+                "moderate",
+              examples:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("social")).observations ||
+                "Reduced peer interaction",
+              impact: "Limits peer relationships and social participation",
+            }
+          : undefined,
+        adaptive: evaluationData.domains?.find((d: any) => d.name?.toLowerCase().includes("adaptive"))
+          ? {
+              severity:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("adaptive")).severity ||
+                "moderate",
+              examples:
+                evaluationData.domains.find((d: any) => d.name?.toLowerCase().includes("adaptive")).observations ||
+                "Delays in self-care skills",
+              impact: "Increases dependence on caregivers",
+            }
+          : undefined,
+        maladaptive: backgroundData.behavioralConcerns
+          ? {
+              severity: "moderate to severe",
+              examples: Array.isArray(backgroundData.behavioralConcerns)
+                ? backgroundData.behavioralConcerns.join(", ")
+                : backgroundData.behavioralConcerns,
+              impact: "Interferes with learning and social participation",
+            }
+          : undefined,
+      },
+      abcObservations: abcObservations.map((obs: any) => ({
+        antecedent: obs.antecedent || "",
+        behavior: obs.behavior || "",
+        consequence: obs.consequence || "",
+        function: obs.function || "Unknown",
+      })),
+      riskAssessment: {
+        hasAggression: riskData.risks?.includes("aggression") || false,
+        hasSelfInjury: riskData.risks?.includes("self-injury") || false,
+        hasElopement: riskData.risks?.includes("elopement") || false,
+        hasTantrums: riskData.risks?.includes("tantrums") || false,
+        hasPropertyDestruction: riskData.risks?.includes("property destruction") || false,
+        riskLevel: riskData.risks?.length > 2 ? "high" : riskData.risks?.length > 0 ? "moderate" : "low",
+        riskDescription: riskData.supervisionLevel || "",
+      },
+      goalDomains: goalsWithDetails.map((g) => g.goal?.title || "").filter((t) => t),
+      servicePlan: {
+        cpt97153Hours: assessmentData?.hoursRecommended ? Math.floor(assessmentData.hoursRecommended * 0.7) : 10,
+        cpt97155Hours: 2,
+        cpt97156Hours: 2,
+        authorizationPeriodMonths: 6,
+      },
+    }
+
+    const cptAuthText = generateCPTAuthorizationRequest(cptAuthInput)
+
+    safeSetItem("aria_cpt_auth_request", cptAuthText)
+    setCPTAuthRequest(cptAuthText)
 
     const report = `
 APPLIED BEHAVIOR ANALYSIS COMPREHENSIVE ASSESSMENT REPORT
@@ -157,6 +342,13 @@ ${
 
 ═══════════════════════════════════════════════════════════════════════════════
 
+CPT AUTHORIZATION REQUEST
+──────────────────────────────────────────────────────────────────────────────
+
+${cptAuthText}
+
+═══════════════════════════════════════════════════════════════════════════════
+
 TREATMENT RECOMMENDATIONS
 ──────────────────────────────────────────────────────────────────────────────
 
@@ -191,18 +383,7 @@ Measurement Type: ${g.goal?.measurementType}
 
 ═══════════════════════════════════════════════════════════════════════════════
 
-MEDICAL NECESSITY STATEMENT
-──────────────────────────────────────────────────────────────────────────────
-${clientData?.firstName} ${clientData?.lastName} presents with ${clientData?.diagnosis}, which significantly impacts their ability to develop age-appropriate communication, social, and adaptive skills. Assessment results indicate significant skill deficits across multiple developmental domains, including ${assessmentData?.deficits?.slice(0, 3).join(", ") || "various areas"}.
-
-Without intensive ABA intervention, ${clientData?.firstName} will continue to fall behind same-age peers in critical developmental areas. The recommended ${assessmentData?.hoursRecommended} hours per week of ABA services are medically necessary to:
-
-1. Address identified skill deficits through systematic teaching procedures
-2. Reduce barriers to learning that impede skill acquisition
-3. Promote generalization of skills across settings and people
-4. Provide parent training to ensure maintenance of skills
-
-Applied Behavior Analysis is the evidence-based treatment of choice for individuals with Autism Spectrum Disorder, as supported by extensive research literature and endorsed by major medical and psychological organizations.
+${medicalNecessityText}
 
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -352,7 +533,7 @@ Report Generated: ${new Date().toLocaleDateString()}
 
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-2">Goals Selected</h4>
-                  <p className="font-medium">{selectedGoals?.length ?? 0} goals</p>
+                  <p className="font-medium">{selectedGoals.length} goals</p>
                 </div>
 
                 <div>
@@ -374,7 +555,7 @@ Report Generated: ${new Date().toLocaleDateString()}
                       Required Sections ({insuranceTemplate.code})
                     </h4>
                     <div className="space-y-1">
-                      {(insuranceTemplate.requiredSections ?? []).map((section) => (
+                      {insuranceTemplate.requiredSections.map((section) => (
                         <div key={section} className="flex items-center gap-2 text-sm">
                           <CheckCircle2Icon className="h-3 w-3 text-green-500" />
                           <span>{section}</span>

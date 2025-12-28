@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,9 +24,11 @@ import { useToast } from "@/hooks/use-toast"
 import { ImportDialog } from "./import-dialog"
 import { parseClientDataFile } from "@/lib/import-parsers"
 import { DailyScheduleTable } from "./daily-schedule-table"
+import { useAssessmentSession } from "@/components/assessment/AssessmentSessionProvider"
+import { EVALUATION_TYPES, normalizeEvaluationType, type EvaluationType } from "@/lib/evaluation-type"
 
 interface ExtendedClientData extends ClientData {
-  assessmentType?: "initial" | "reassessment"
+  assessmentType?: EvaluationType
   providerName?: string
   providerPhone?: string
   providerFax?: string
@@ -36,6 +38,7 @@ interface ExtendedClientData extends ClientData {
   icd10Code?: string
   secondaryDiagnoses?: string[]
   diagnosisDate?: string
+  diagnosingProvider?: string
   documentsReviewed?: {
     mdReferral: boolean
     diagnosticEval: boolean
@@ -50,12 +53,16 @@ interface ExtendedClientData extends ClientData {
   bcbaName?: string
   bcbaLicense?: string
   bcabaName?: string
+  bcabaLicense?: string
+  referralDate?: string
+  dailySchedule?: any // Adjust type as necessary
 }
 
 interface ClientFormProps {
-  clientData: ClientData | null
+  clientData?: ClientData | null
+  initialData?: ClientData | null
   onSave: (data: ClientData) => void
-  onNext: () => void
+  onNext?: () => void
 }
 
 const diagnosisToICD10: Record<string, string> = {
@@ -70,69 +77,67 @@ const diagnosisToICD10: Record<string, string> = {
   "Global Developmental Delay": "F88",
 }
 
-export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
+export function ClientForm({ clientData, initialData, onSave, onNext }: ClientFormProps) {
   const { toast } = useToast()
-
-  const getDefaultFormData = (): ExtendedClientData => ({
-    id: crypto.randomUUID(),
-    assessmentType: "initial",
-    firstName: "",
-    lastName: "",
-    dateOfBirth: "",
-    diagnosis: "Autism Spectrum Disorder (F84.0)",
-    insuranceProvider: "",
-    insuranceId: "",
-    guardianName: "",
-    guardianPhone: "",
-    guardianEmail: "",
-    referralSource: "",
-    referralDate: "",
-    assessmentDate: new Date().toISOString().split("T")[0],
-    assessor: "",
-    supervisingBCBA: "",
-    providerName: "",
-    providerPhone: "",
-    providerFax: "",
-    providerAddress: "",
-    providerSuite: "",
-    primaryDiagnosis: "Autism Spectrum Disorder (F84.0)",
-    icd10Code: "F84.0",
-    secondaryDiagnoses: [],
-    diagnosisDate: "",
-    documentsReviewed: {
-      mdReferral: false,
-      diagnosticEval: false,
-      iepReports: false,
-      previousABA: false,
-      otherAssessments: false,
-      other: false,
-      otherText: "",
-    },
-    evaluationStartDate: new Date().toISOString().split("T")[0],
-    evaluationEndDate: "",
-    bcbaName: "",
-    bcbaLicense: "",
-    bcabaName: "",
-  })
+  const { setEvaluationType } = useAssessmentSession()
 
   const [formData, setFormData] = useState<ExtendedClientData>(
-    clientData ? { ...getDefaultFormData(), ...clientData } : getDefaultFormData(),
+    clientData ||
+      initialData || {
+        id: crypto.randomUUID(),
+        assessmentType: EVALUATION_TYPES.INITIAL,
+        firstName: "",
+        lastName: "",
+        dateOfBirth: "",
+        diagnosis: "Autism Spectrum Disorder (F84.0)",
+        insuranceProvider: "",
+        insuranceId: "",
+        guardianName: "",
+        guardianPhone: "",
+        guardianEmail: "",
+        referralSource: "",
+        referralDate: "",
+        assessmentDate: new Date().toISOString().split("T")[0],
+        assessor: "",
+        supervisingBCBA: "",
+        providerName: "",
+        providerPhone: "",
+        providerFax: "",
+        providerAddress: "",
+        providerSuite: "",
+        primaryDiagnosis: "Autism Spectrum Disorder (F84.0)",
+        icd10Code: "F84.0",
+        secondaryDiagnoses: [],
+        diagnosisDate: "",
+        diagnosingProvider: "",
+        documentsReviewed: {
+          mdReferral: false,
+          diagnosticEval: false,
+          iepReports: false,
+          previousABA: false,
+          otherAssessments: false,
+          other: false,
+          otherText: "",
+        },
+        evaluationStartDate: new Date().toISOString().split("T")[0],
+        evaluationEndDate: "",
+        bcbaName: "",
+        bcbaLicense: "",
+        bcabaName: "",
+        bcabaLicense: "",
+        referralDate: "",
+      },
   )
-
-  useEffect(() => {
-    if (clientData) {
-      setFormData((prev) => ({
-        ...getDefaultFormData(),
-        ...prev,
-        ...clientData,
-      }))
-    }
-  }, [clientData])
 
   const [secondaryDiagnosisInput, setSecondaryDiagnosisInput] = useState("")
 
   const handleChange = (field: keyof ExtendedClientData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+
+    if (field === "assessmentType") {
+      const normalized = normalizeEvaluationType(value)
+      setEvaluationType(normalized)
+    }
   }
 
   const handleDiagnosisChange = (diagnosis: string) => {
@@ -183,21 +188,19 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
 
   const handleSaveAndNext = () => {
     handleSave()
-    onNext()
+    if (onNext) {
+      onNext()
+    }
   }
 
   const handleImportData = (importedData: Partial<ClientData>) => {
-    const newFormData = {
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       ...importedData,
-    }
-    setFormData(newFormData)
-
-    onSave(newFormData as ClientData)
-
+    }))
     toast({
-      title: "Data Imported",
-      description: "Client information has been imported and saved successfully",
+      title: "Success",
+      description: "Client data imported successfully. Please review and update as needed.",
     })
   }
 
@@ -233,10 +236,12 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
             <SaveIcon className="h-4 w-4 mr-2" />
             Save
           </Button>
-          <Button onClick={handleSaveAndNext}>
-            Continue
-            <ArrowRightIcon className="h-4 w-4 ml-2" />
-          </Button>
+          {onNext && (
+            <Button onClick={handleSaveAndNext}>
+              Continue
+              <ArrowRightIcon className="h-4 w-4 ml-2" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -255,8 +260,8 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
                       <input
                         type="radio"
                         name="assessmentType"
-                        value="initial"
-                        checked={formData.assessmentType === "initial"}
+                        value={EVALUATION_TYPES.INITIAL}
+                        checked={formData.assessmentType === EVALUATION_TYPES.INITIAL}
                         onChange={(e) => handleChange("assessmentType", e.target.value)}
                         className="w-4 h-4 text-[#0D9488] focus:ring-[#0D9488]"
                       />
@@ -266,8 +271,8 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
                       <input
                         type="radio"
                         name="assessmentType"
-                        value="reassessment"
-                        checked={formData.assessmentType === "reassessment"}
+                        value={EVALUATION_TYPES.REASSESSMENT}
+                        checked={formData.assessmentType === EVALUATION_TYPES.REASSESSMENT}
                         onChange={(e) => handleChange("assessmentType", e.target.value)}
                         className="w-4 h-4 text-[#0D9488] focus:ring-[#0D9488]"
                       />
@@ -467,6 +472,15 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
                         type="date"
                         value={formData.diagnosisDate}
                         onChange={(e) => handleChange("diagnosisDate", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="diagnosingProvider">Diagnosing Provider</Label>
+                      <Input
+                        id="diagnosingProvider"
+                        value={formData.diagnosingProvider || ""}
+                        onChange={(e) => handleChange("diagnosingProvider", e.target.value)}
+                        placeholder="e.g., Dr. Jane Smith, MD"
                       />
                     </div>
                   </div>
@@ -763,6 +777,15 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
                           placeholder="Enter BCaBA name"
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bcabaLicense">BCaBA License # (if applicable)</Label>
+                        <Input
+                          id="bcabaLicense"
+                          value={formData.bcabaLicense}
+                          onChange={(e) => handleChange("bcabaLicense", e.target.value)}
+                          placeholder="Enter BCaBA license number"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -798,7 +821,15 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
                   <CardDescription>Document the client's typical daily routine and activities</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <DailyScheduleTable onSave={(scheduleData) => console.log("Schedule saved:", scheduleData)} />
+                  <DailyScheduleTable
+                    onSave={(scheduleData) => {
+                      console.log("[v0] Saving schedule data:", scheduleData)
+                      setFormData((prev) => ({
+                        ...prev,
+                        dailySchedule: scheduleData,
+                      }))
+                    }}
+                  />
                 </CardContent>
               </Card>
             </div>

@@ -15,6 +15,8 @@ import {
   MessageCircleIcon,
   MailIcon,
   CheckCircleIcon,
+  XIcon,
+  SendIcon,
 } from "@/components/icons"
 import { useRouter } from "next/navigation"
 
@@ -56,6 +58,12 @@ export default function SupportPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" })
   const [submitted, setSubmitted] = useState(false)
+  const [showChat, setShowChat] = useState(false)
+  const [chatMessages, setChatMessages] = useState([
+    { role: "assistant", content: "Hi! I'm ARIA Support Assistant. How can I help you today?" },
+  ])
+  const [chatInput, setChatInput] = useState("")
+  const [chatLoading, setChatLoading] = useState(false)
 
   const filteredFaqs = faqs.filter(
     (faq) =>
@@ -67,6 +75,49 @@ export default function SupportPage() {
     e.preventDefault()
     setSubmitted(true)
     setTimeout(() => setSubmitted(false), 3000)
+  }
+
+  const handleChatSend = async () => {
+    if (!chatInput.trim() || chatLoading) return
+
+    const userMessage = chatInput.trim()
+    setChatInput("")
+
+    const updatedMessages = [...chatMessages, { role: "user", content: userMessage }]
+    setChatMessages(updatedMessages)
+    setChatLoading(true)
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+          context: "support",
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      const assistantMessage = data.message || "I'm here to help! Could you provide more details?"
+
+      setChatMessages((prev) => [...prev, { role: "assistant", content: assistantMessage }])
+    } catch (error) {
+      console.error("[v0] Chat error:", error)
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Sorry, I'm having trouble connecting. Please try again or email us at support@aria-aba.com",
+        },
+      ])
+    } finally {
+      setChatLoading(false)
+    }
   }
 
   return (
@@ -120,13 +171,16 @@ export default function SupportPage() {
                 <CardDescription>Guides and tutorials</CardDescription>
               </CardHeader>
             </Card>
-            <Card className="text-center hover:shadow-lg transition-shadow cursor-pointer">
+            <Card
+              className="text-center hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-[#0D9488]"
+              onClick={() => setShowChat(true)}
+            >
               <CardHeader>
                 <div className="w-12 h-12 bg-[#0D9488]/10 rounded-full flex items-center justify-center mx-auto mb-2">
                   <MessageCircleIcon className="h-6 w-6 text-[#0D9488]" />
                 </div>
                 <CardTitle className="text-lg">Live Chat</CardTitle>
-                <CardDescription>Chat with our team</CardDescription>
+                <CardDescription>Chat with our AI assistant</CardDescription>
               </CardHeader>
             </Card>
             <Card className="text-center hover:shadow-lg transition-shadow cursor-pointer">
@@ -227,6 +281,134 @@ export default function SupportPage() {
           )}
         </div>
       </section>
+
+      {/* Live Chat Modal */}
+      {showChat && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md h-[600px] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Chat Header */}
+            <div className="bg-gradient-to-r from-[#0D9488] to-[#0891B2] p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <SparklesIcon className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">ARIA Support</h3>
+                  <p className="text-xs text-white/80 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                    Online now
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowChat(false)}
+                className="text-white hover:bg-white/20"
+              >
+                <XIcon className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+              {chatMessages.map((msg, idx) => (
+                <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                      msg.role === "user"
+                        ? "bg-[#0D9488] text-white rounded-br-md"
+                        : "bg-white text-gray-800 shadow-sm border rounded-bl-md"
+                    }`}
+                  >
+                    <p className="text-sm">{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-sm border">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                      <span
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></span>
+                      <span
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="px-4 py-2 border-t bg-white">
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {["How do I start?", "Pricing plans", "HIPAA compliance", "Cancel subscription"].map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => {
+                      const newMessages = [...chatMessages, { role: "user", content: q }]
+                      setChatMessages(newMessages)
+                      setChatLoading(true)
+
+                      fetch("/api/chat", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+                          context: "support",
+                        }),
+                      })
+                        .then((res) => res.json())
+                        .then((data) => {
+                          setChatMessages((prev) => [
+                            ...prev,
+                            { role: "assistant", content: data.message || "How can I help you with that?" },
+                          ])
+                        })
+                        .catch(() => {
+                          setChatMessages((prev) => [
+                            ...prev,
+                            { role: "assistant", content: "Sorry, please try again." },
+                          ])
+                        })
+                        .finally(() => setChatLoading(false))
+                    }}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full whitespace-nowrap transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Chat Input */}
+            <div className="p-4 border-t bg-white">
+              <div className="flex gap-2">
+                <Input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleChatSend()}
+                  placeholder="Type your message..."
+                  className="flex-1"
+                  disabled={chatLoading}
+                />
+                <Button
+                  onClick={handleChatSend}
+                  disabled={!chatInput.trim() || chatLoading}
+                  className="bg-[#0D9488] hover:bg-[#0D9488]/90"
+                >
+                  <SendIcon className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="py-8 border-t bg-gray-50">

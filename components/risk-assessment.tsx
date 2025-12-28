@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangleIcon, PhoneIcon, DownloadIcon, PrinterIcon, PlusIcon, XIcon } from "@/components/icons"
 import { premiumToast } from "@/components/ui/premium-toast"
+import type { ClientData } from "@/lib/types"
+import { safeGetJSON, safeSetJSON } from "@/lib/safe-storage"
 
 interface RiskFactor {
   id: string
@@ -26,7 +28,12 @@ interface CrisisContact {
 
 type RiskLevel = "low" | "medium" | "high"
 
-export function RiskAssessment() {
+interface RiskAssessmentProps {
+  clientData?: ClientData | null
+  onSave?: () => void
+}
+
+export function RiskAssessment({ clientData, onSave }: RiskAssessmentProps) {
   const [riskFactors, setRiskFactors] = useState<RiskFactor[]>([
     { id: "self-injury", label: "Self-Injurious behavior", checked: false, severity: "high" },
     { id: "aggression", label: "Aggressive Behavior", checked: false, severity: "high" },
@@ -51,6 +58,31 @@ export function RiskAssessment() {
     { id: "1", name: "", phone: "", relationship: "" },
   ])
   const [riskLevel, setRiskLevel] = useState<RiskLevel>("low")
+
+  useEffect(() => {
+    const saved = safeGetJSON("aria_risk_assessment", null)
+    if (saved) {
+      if (saved.riskFactors) setRiskFactors(saved.riskFactors)
+      if (saved.otherRisk) setOtherRisk(saved.otherRisk)
+      if (saved.emergencyProcedures) setEmergencyProcedures(saved.emergencyProcedures)
+      if (saved.lastAssessmentDate) setLastAssessmentDate(saved.lastAssessmentDate)
+      if (saved.nextReviewDate) setNextReviewDate(saved.nextReviewDate)
+      if (saved.crisisContacts) setCrisisContacts(saved.crisisContacts)
+    }
+  }, [])
+
+  useEffect(() => {
+    const data = {
+      riskFactors,
+      otherRisk,
+      emergencyProcedures,
+      lastAssessmentDate,
+      nextReviewDate,
+      crisisContacts,
+      riskLevel,
+    }
+    safeSetJSON("aria_risk_assessment", data)
+  }, [riskFactors, otherRisk, emergencyProcedures, lastAssessmentDate, nextReviewDate, crisisContacts, riskLevel])
 
   // Calculate risk level based on checked items
   useEffect(() => {
@@ -93,6 +125,13 @@ export function RiskAssessment() {
     premiumToast.success("Crisis plan sent to printer")
   }
 
+  const handleSave = () => {
+    if (onSave) {
+      onSave()
+    }
+    premiumToast.success("Risk assessment saved")
+  }
+
   const getRiskLevelColor = (level: RiskLevel) => {
     switch (level) {
       case "high":
@@ -111,6 +150,8 @@ export function RiskAssessment() {
   const checkedCount = riskFactors.filter((f) => f.checked).length
   const totalCount = riskFactors.length
 
+  const clientName = clientData ? `${clientData.firstName || ""} ${clientData.lastName || ""}`.trim() : ""
+
   return (
     <div className="max-w-5xl mx-auto p-8 space-y-6">
       {/* Header */}
@@ -120,16 +161,23 @@ export function RiskAssessment() {
             <AlertTriangleIcon className="h-8 w-8 text-red-500" />
             Risk Assessment & Crisis Plan
           </h1>
-          <p className="text-muted-foreground">Comprehensive safety evaluation and emergency planning</p>
+          <p className="text-muted-foreground">
+            {clientName
+              ? `Safety evaluation for ${clientName}`
+              : "Comprehensive safety evaluation and emergency planning"}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={printCrisisPlan}>
             <PrinterIcon className="h-4 w-4 mr-2" />
             Print
           </Button>
-          <Button onClick={exportToPDF}>
+          <Button variant="outline" onClick={exportToPDF}>
             <DownloadIcon className="h-4 w-4 mr-2" />
             Export PDF
+          </Button>
+          <Button onClick={handleSave} className="bg-[#0D9488] hover:bg-[#0F766E]">
+            Save
           </Button>
         </div>
       </div>
@@ -217,7 +265,7 @@ export function RiskAssessment() {
           </Button>
         </div>
         <div className="space-y-4">
-          {crisisContacts.map((contact, index) => (
+          {crisisContacts.map((contact) => (
             <Card key={contact.id} className="p-4 bg-teal-50 border-teal-200">
               <div className="flex items-start gap-4">
                 <PhoneIcon className="h-5 w-5 text-[#0D9488] mt-2" />

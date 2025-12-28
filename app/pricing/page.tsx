@@ -15,7 +15,7 @@ export default function PricingPage() {
   const handleSelectPlan = (productId: string) => {
     setSelectedPlan(productId)
     setIsLoading(true)
-    router.push(`/checkout?plan=${productId}`)
+    router.push(`/assessment/new`)
   }
 
   return (
@@ -30,8 +30,8 @@ export default function PricingPage() {
               </div>
               <span className="text-xl font-bold text-gray-900">ARIA</span>
             </a>
-            <a href="/login" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-              Sign in
+            <a href="/assessment/new" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
+              Go to App
             </a>
           </div>
         </div>

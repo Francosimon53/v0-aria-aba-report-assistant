@@ -2,37 +2,6 @@ import type { ClientData, AssessmentData } from "./types"
 
 // Parse PDF text content
 async function extractTextFromPDF(file: File): Promise<string> {
-  // For PDF files, use the AI-powered extraction API
-  if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const response = await fetch("/api/parse-pdf", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to parse PDF")
-      }
-
-      const result = await response.json()
-
-      // Convert structured data back to text format for legacy regex parsing
-      if (result.data) {
-        return JSON.stringify(result.data, null, 2)
-      }
-
-      return ""
-    } catch (error) {
-      console.error("[v0] PDF extraction failed:", error)
-      throw error
-    }
-  }
-
-  // For text files, use the original method
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = async (e) => {
@@ -40,7 +9,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
         const text = e.target?.result as string
         resolve(text)
       } catch (error) {
-        reject(new Error("Failed to read file"))
+        reject(new Error("Failed to read PDF file"))
       }
     }
     reader.onerror = () => reject(new Error("Failed to read file"))
@@ -131,47 +100,7 @@ export async function parseClientDataFile(file: File): Promise<Partial<ClientDat
     }
   }
 
-  if (fileType === "pdf") {
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const response = await fetch("/api/parse-pdf", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to parse PDF")
-      }
-
-      const result = await response.json()
-
-      if (result.success && result.data) {
-        // Return the AI-extracted data directly
-        return {
-          firstName: result.data.firstName || "",
-          lastName: result.data.lastName || "",
-          dateOfBirth: result.data.dateOfBirth || "",
-          diagnosis: result.data.diagnosis || "",
-          insuranceProvider: result.data.insuranceProvider || "",
-          insuranceId: result.data.insuranceId || "",
-          guardianName: result.data.guardianName || "",
-          guardianPhone: result.data.guardianPhone || "",
-          guardianEmail: result.data.guardianEmail || "",
-        }
-      }
-
-      throw new Error("No data extracted from PDF")
-    } catch (error) {
-      console.error("[v0] PDF parsing failed:", error)
-      throw error
-    }
-  }
-
-  // For text files, use regex extraction
-  if (fileType === "txt") {
+  if (fileType === "txt" || fileType === "pdf") {
     const text = await extractTextFromPDF(file)
 
     // Use regex to extract common patterns

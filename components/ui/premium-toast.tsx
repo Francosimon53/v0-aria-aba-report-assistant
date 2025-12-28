@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CheckCircle2Icon, XCircleIcon, AlertCircleIcon, Loader2Icon, XIcon } from "@/components/icons"
+import { CheckCircle2, XCircle, AlertCircle, Loader2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // Toast types and data structures
@@ -34,7 +34,12 @@ const ToastContext = React.createContext<ToastContextType | undefined>(undefined
 export function useToastSystem() {
   const context = React.useContext(ToastContext)
   if (!context) {
-    throw new Error("useToastSystem must be used within ToastProvider")
+    return {
+      toasts: [],
+      addToast: () => "",
+      removeToast: () => {},
+      updateToast: () => {},
+    }
   }
   return context
 }
@@ -47,7 +52,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const id = Math.random().toString(36).substring(2, 9)
     setToasts((prev) => [...prev, { ...toast, id }])
 
-    // Auto-dismiss logic
     if (toast.type !== "loading" && toast.duration !== 0) {
       const duration = toast.duration || (toast.type === "error" ? 5000 : 3000)
       setTimeout(() => {
@@ -103,13 +107,13 @@ function Toast({ toast, onRemove }: { toast: ToastData; onRemove: () => void }) 
   const getIcon = () => {
     switch (toast.type) {
       case "success":
-        return <CheckCircle2Icon className="h-5 w-5 text-green-600" />
+        return <CheckCircle2 className="h-5 w-5 text-green-600" />
       case "error":
-        return <XCircleIcon className="h-5 w-5 text-red-600" />
+        return <XCircle className="h-5 w-5 text-red-600" />
       case "loading":
-        return <Loader2Icon className="h-5 w-5 text-blue-600 animate-spin" />
+        return <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
       case "info":
-        return <AlertCircleIcon className="h-5 w-5 text-blue-600" />
+        return <AlertCircle className="h-5 w-5 text-blue-600" />
     }
   }
 
@@ -140,37 +144,33 @@ function Toast({ toast, onRemove }: { toast: ToastData; onRemove: () => void }) 
   return (
     <div
       className={cn(
-        "toast-slide-in relative flex w-full max-w-[400px] items-start gap-3 rounded-lg border-l-4 bg-white p-4 shadow-lg transition-all duration-300 ease-out hover:shadow-xl",
+        "relative flex w-full max-w-[400px] items-start gap-3 rounded-lg border-l-4 bg-white p-4 shadow-lg transition-all duration-300 ease-out hover:shadow-xl",
         getAccentColor(),
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Icon */}
       <div className="flex-shrink-0 pt-0.5">{getIcon()}</div>
 
-      {/* Content */}
       <div className="flex-1 space-y-1">
         <p className="text-sm font-medium text-gray-900">{toast.message}</p>
         {toast.action && (
           <button
             onClick={toast.action.onClick}
-            className="text-sm font-medium text-[#0D9488] transition-colors hover:text-[#0D9488]/80"
+            className="text-sm font-medium text-teal-600 transition-colors hover:text-teal-700"
           >
             {toast.action.label}
           </button>
         )}
       </div>
 
-      {/* Close button */}
       <button
         onClick={onRemove}
         className="flex-shrink-0 rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
       >
-        <XIcon className="h-4 w-4" />
+        <X className="h-4 w-4" />
       </button>
 
-      {/* Progress bar */}
       {toast.type !== "loading" && toast.duration !== 0 && (
         <div className="absolute bottom-0 left-0 right-0 h-1 overflow-hidden rounded-b-lg bg-gray-200">
           <div
@@ -194,13 +194,7 @@ function ToastContainer({
   return (
     <div className="pointer-events-none fixed right-4 top-4 z-[100] flex max-h-screen flex-col gap-2">
       {toasts.map((toast, index) => (
-        <div
-          key={toast.id}
-          className="pointer-events-auto"
-          style={{
-            animationDelay: `${index * 100}ms`,
-          }}
-        >
+        <div key={toast.id} className="pointer-events-auto" style={{ animationDelay: `${index * 100}ms` }}>
           <Toast toast={toast} onRemove={() => removeToast(toast.id)} />
         </div>
       ))}
@@ -208,7 +202,22 @@ function ToastContainer({
   )
 }
 
-// Toast API
+let toastContextRef: ToastContextType | null = null
+
+function getToastContext(): ToastContextType {
+  // Return safe no-op if not initialized
+  if (!toastContextRef) {
+    return {
+      toasts: [],
+      addToast: () => "",
+      removeToast: () => {},
+      updateToast: () => {},
+    }
+  }
+  return toastContextRef
+}
+
+// Toast API - now safe to call even without provider
 export const premiumToast = {
   success: (message: string, options?: { duration?: number }) => {
     const context = getToastContext()
@@ -235,7 +244,7 @@ export const premiumToast = {
     messages: {
       loading: string
       success: string | ((data: T) => string)
-      error: string | ((error: any) => string)
+      error: string | ((error: unknown) => string)
     },
   ) => {
     const context = getToastContext()
@@ -265,21 +274,13 @@ export const premiumToast = {
   },
 }
 
-// Helper to get context outside of React components
-let toastContextRef: ToastContextType | null = null
-
-function getToastContext(): ToastContextType {
-  if (!toastContextRef) {
-    throw new Error("Toast system not initialized. Wrap your app with ToastProvider")
-  }
-  return toastContextRef
-}
-
 // Hook to expose context to the API
 export function useToastContextBridge() {
-  const context = useToastSystem()
+  const context = React.useContext(ToastContext)
   React.useEffect(() => {
-    toastContextRef = context
+    if (context) {
+      toastContextRef = context
+    }
     return () => {
       toastContextRef = null
     }

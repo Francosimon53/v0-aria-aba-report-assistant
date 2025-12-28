@@ -176,3 +176,50 @@ export interface BehaviorReduction {
   safetyConsiderations: string
   notes: string
 }
+
+export type StoLevel = 20 | 40 | 60 | 80 | 90
+export type StoStatus = "Not Started" | "In Progress" | "Completed"
+export type PlanStatus = "Not Started" | "In Progress" | "Mastered"
+export type InterventionCategory =
+  | "Communication"
+  | "Reinforcement"
+  | "Differential Reinforcement"
+  | "Teaching Techniques"
+  | "Behavior Reduction"
+  | "Programs & ADLs"
+
+export type TrainingSession = {
+  id: string
+  dateISO: string
+  fidelityScore: number // 0-100
+  notes?: string
+}
+
+export type PlanProtocolState = {
+  stepsChecked: Record<string, boolean> // key by step string or generated id
+  checklist: string[] // editable list
+}
+
+export type InterventionPlanItem = {
+  id: string
+  interventionId: string
+  name: string
+  category: InterventionCategory
+  targetFidelity: number
+  masterySessions: number
+  currentFidelity: number
+  status: PlanStatus
+  sto: { level: StoLevel; status: StoStatus }[]
+  protocolState: PlanProtocolState
+  sessions: TrainingSession[]
+}
+
+export interface Intervention {
+  id: string
+  name: string
+  description: string
+  selected: boolean
+  category?: InterventionCategory
+  steps?: string[]
+  implementationNotes?: string
+}

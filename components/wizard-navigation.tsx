@@ -16,25 +16,27 @@ interface WizardNavigationProps {
   previousLabel?: string
   nextLabel?: string
   className?: string
+  currentStep?: string
 }
 
 export function WizardNavigation({
   onPrevious,
   onNext,
   onSave,
-  hasPrevious = false,
-  hasNext = false,
+  hasPrevious,
+  hasNext,
   isLastStep = false,
   isSaving = false,
   canProceed = true,
   previousLabel = "Previous",
   nextLabel = "Next",
   className,
+  currentStep,
 }: WizardNavigationProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-6 py-4 mt-8 border-t border-border bg-card/80 backdrop-blur-sm rounded-lg",
+        "flex items-center justify-between px-6 py-4 border-t border-border bg-card/80 backdrop-blur-sm",
         className,
       )}
     >

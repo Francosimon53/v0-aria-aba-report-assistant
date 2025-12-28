@@ -31,36 +31,36 @@ An AI-powered assistant for creating comprehensive ABA assessment reports for BC
 ### Installation
 
 1. Clone the repository
-\`\`\`bash
+```bash
 git clone https://github.com/yourusername/aria-aba-assistant.git
 cd aria-aba-assistant
-\`\`\`
+```
 
 2. Install dependencies
-\`\`\`bash
+```bash
 npm install
-\`\`\`
+```
 
 3. Set up environment variables
-\`\`\`bash
+```bash
 cp .env.example .env.local
-\`\`\`
+```
 
 Add your Anthropic API key:
-\`\`\`
+```
 ANTHROPIC_API_KEY=your_api_key_here
-\`\`\`
+```
 
 4. Run the development server
-\`\`\`bash
+```bash
 npm run dev
-\`\`\`
+```
 
 5. Open [http://localhost:3000](http://localhost:3000)
 
 ## Project Structure
 
-\`\`\`
+```
 ├── app/
 │   ├── api/
 │   │   ├── chat/              # AI chat endpoint
@@ -82,7 +82,7 @@ npm run dev
 │   ├── aba-prompts.ts         # ABA-specific prompts
 │   └── types.ts               # TypeScript types
 └── public/                    # Static assets
-\`\`\`
+```
 
 ## Key Features
 

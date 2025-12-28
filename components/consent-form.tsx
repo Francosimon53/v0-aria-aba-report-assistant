@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { safeSetJSON } from "@/lib/safe-storage"
 import { useState, useRef, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,10 +15,9 @@ import type { ClientData } from "@/lib/types"
 interface ConsentFormProps {
   clientData: ClientData | null
   interventions?: string[]
-  onSave?: () => void
 }
 
-export function ConsentForm({ clientData, interventions = [], onSave }: ConsentFormProps) {
+export function ConsentForm({ clientData, interventions = [] }: ConsentFormProps) {
   const [understood, setUnderstood] = useState(false)
   const [caregiverName, setCaregiverName] = useState("")
   const [assistantName, setAssistantName] = useState("")
@@ -117,7 +116,7 @@ export function ConsentForm({ clientData, interventions = [], onSave }: ConsentF
       error: "Failed to generate PDF",
     })
 
-    // Save consent data to localStorage
+    // Save consent data to safeSetJSON
     const consentData = {
       version,
       clientData,
@@ -129,12 +128,7 @@ export function ConsentForm({ clientData, interventions = [], onSave }: ConsentF
       },
       timestamp: new Date().toISOString(),
     }
-    localStorage.setItem("aria_consent_form", JSON.stringify(consentData))
-
-    // Call onSave if provided
-    if (onSave) {
-      onSave()
-    }
+    safeSetJSON("aria_consent_form", consentData)
   }
 
   const handlePrint = () => {

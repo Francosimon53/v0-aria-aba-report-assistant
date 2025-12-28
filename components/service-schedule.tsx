@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PlusIcon, TrashIcon, DownloadIcon, PrinterIcon } from "@/components/icons"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { premiumToast } from "@/components/ui/premium-toast"
 
 type CPTCode = "97153" | "97155" | "97155HN" | "97156" | "97156HN"
 type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"
@@ -25,6 +26,10 @@ interface ServiceSchedule {
   [key: string]: {
     [key in CPTCode]?: TimeSlot[]
   }
+}
+
+interface ServiceScheduleProps {
+  onSave?: () => void
 }
 
 const DAYS: DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -52,7 +57,7 @@ const CPT_CODES: { code: CPTCode; label: string; color: string; bgColor: string 
   },
 ]
 
-export function ServiceSchedule() {
+export function ServiceSchedule({ onSave }: ServiceScheduleProps) {
   const [schedule, setSchedule] = useState<ServiceSchedule>({})
   const [comments, setComments] = useState("")
   const [selectedCell, setSelectedCell] = useState<{ day: DayOfWeek; code: CPTCode } | null>(null)
@@ -80,6 +85,11 @@ export function ServiceSchedule() {
 
     setNewSlot({ startTime: "", endTime: "", location: "Home" })
     setSelectedCell(null)
+
+    if (onSave) {
+      premiumToast.success("Session added", "Schedule updated successfully")
+      onSave()
+    }
   }
 
   const removeTimeSlot = (day: DayOfWeek, code: CPTCode, slotId: string) => {
