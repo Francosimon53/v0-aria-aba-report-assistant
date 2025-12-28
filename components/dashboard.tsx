@@ -27,7 +27,6 @@ import { AssessmentForm } from "./assessment-form"
 import { ReassessmentForm } from "./reassessment-form"
 import { DataIntegration } from "./data-integration"
 import { ComplianceSupport } from "./compliance-support"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -285,11 +284,11 @@ export function Dashboard() {
       {/* Modern Sidebar */}
       <aside
         className={cn(
-          "bg-white border-r border-gray-200 transition-all duration-300 flex flex-col",
+          "bg-white border-r border-gray-200 transition-all duration-300 flex flex-col overflow-y-auto",
           sidebarCollapsed ? "w-0 overflow-hidden" : "w-[280px]",
         )}
       >
-        <div className="p-4 border-b border-gray-100">
+        <div className="sticky top-0 z-10 bg-white p-4 border-b border-gray-100">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-teal-500/30">
               <SparklesIcon className="w-5 h-5 text-white" />
@@ -314,7 +313,7 @@ export function Dashboard() {
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 px-2 py-4">
+        <div className="flex-1 px-2 py-4">
           <div className="mb-4 px-2">
             <div className="text-xs font-medium text-gray-500 mb-2">Overall Progress</div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -509,7 +508,7 @@ export function Dashboard() {
               </AccordionContent>
             </AccordionItem>
           </Accordion>
-        </ScrollArea>
+        </div>
 
         <div className="p-3 border-t border-gray-100">
           <div className="flex items-center gap-2">
