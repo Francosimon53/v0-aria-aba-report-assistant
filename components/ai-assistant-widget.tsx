@@ -100,11 +100,14 @@ export function AIAssistantWidget({
       timestamp: new Date(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    const safeMessages = Array.isArray(messages) ? messages : []
+
+    setMessages((prev) => {
+      const safePrev = Array.isArray(prev) ? prev : []
+      return [...safePrev, userMessage]
+    })
     setInput("")
     setIsTyping(true)
-
-    const safeMessages = Array.isArray(messages) ? messages : []
 
     try {
       const response = await fetch("/api/chat", {
@@ -126,7 +129,6 @@ export function AIAssistantWidget({
 
       let responseContent = data.message || data.content || "Got it! Check the form on the left."
 
-      // Handle array format from AI SDK
       if (Array.isArray(responseContent)) {
         responseContent = responseContent
           .filter((item: any) => item.type === "text")
@@ -141,7 +143,10 @@ export function AIAssistantWidget({
         timestamp: new Date(),
       }
 
-      setMessages((prev) => [...prev, assistantMessage])
+      setMessages((prev) => {
+        const safePrev = Array.isArray(prev) ? prev : []
+        return [...safePrev, assistantMessage]
+      })
     } catch (error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -149,7 +154,10 @@ export function AIAssistantWidget({
         content: "Connection issue. Try again or check the form directly.",
         timestamp: new Date(),
       }
-      setMessages((prev) => [...prev, errorMessage])
+      setMessages((prev) => {
+        const safePrev = Array.isArray(prev) ? prev : []
+        return [...safePrev, errorMessage]
+      })
     } finally {
       setIsTyping(false)
     }
@@ -159,15 +167,18 @@ export function AIAssistantWidget({
     if (action.startsWith("navigate:") && onNavigate) {
       const target = action.replace("navigate:", "")
       onNavigate(target)
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          role: "assistant",
-          content: `Navigating to ${target}...`,
-          timestamp: new Date(),
-        },
-      ])
+      setMessages((prev) => {
+        const safePrev = Array.isArray(prev) ? prev : []
+        return [
+          ...safePrev,
+          {
+            id: Date.now().toString(),
+            role: "assistant",
+            content: `Navigating to ${target}...`,
+            timestamp: new Date(),
+          },
+        ]
+      })
     } else {
       handleSend(label)
     }
@@ -179,7 +190,6 @@ export function AIAssistantWidget({
     setIsMinimized(false)
   }
 
-  // Minimized bar
   if (isOpen && isMinimized) {
     return (
       <div className="fixed bottom-24 right-6 z-[9999]">
@@ -211,7 +221,6 @@ export function AIAssistantWidget({
 
   return (
     <>
-      {/* Floating Button */}
       {!isOpen && (
         <div className="fixed bottom-24 right-6 z-[9999] flex flex-col items-end gap-2">
           {showNotification && (
@@ -236,7 +245,6 @@ export function AIAssistantWidget({
         </div>
       )}
 
-      {/* Chat Window */}
       {isOpen && !isMinimized && (
         <>
           <div className="fixed inset-0 bg-black/10 z-[9998] md:hidden" onClick={toggleOpen} />
@@ -249,7 +257,6 @@ export function AIAssistantWidget({
                   : "bottom-24 right-6 w-[340px] h-[500px] max-h-[calc(100vh-160px)] rounded-2xl"
               }`}
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-[#0D9488] to-[#0F766E] text-white">
               <div className="flex items-center gap-2">
                 <div className="h-7 w-7 rounded-full bg-white/20 flex items-center justify-center">
@@ -288,9 +295,8 @@ export function AIAssistantWidget({
               </div>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
-              {(Array.isArray(messages) ? messages : []).map((message) => (
+              {messages.map((message) => (
                 <div key={message.id} className={`flex gap-2 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
                   <div
                     className={`h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -342,7 +348,6 @@ export function AIAssistantWidget({
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Actions - Always visible at bottom */}
             <div className="px-3 py-2 border-t bg-white">
               <div className="flex flex-wrap gap-1.5">
                 {getQuickActions(currentStep).map((item, i) => (
@@ -357,7 +362,6 @@ export function AIAssistantWidget({
               </div>
             </div>
 
-            {/* Input */}
             <div className="p-2.5 border-t bg-white">
               <form
                 onSubmit={(e) => {
