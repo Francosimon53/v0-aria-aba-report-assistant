@@ -114,7 +114,7 @@ export function AIAssistantWidget({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...safeMessages, userMessage].map((m) => ({
+          messages: [...(Array.isArray(messages) ? messages : []), userMessage].map((m) => ({
             role: m.role,
             content: m.content,
           })),
@@ -296,31 +296,30 @@ export function AIAssistantWidget({
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
-              {Array.isArray(messages) &&
-                messages.map((message) => (
-                  <div key={message.id} className={`flex gap-2 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
-                    <div
-                      className={`h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        message.role === "assistant" ? "bg-gradient-to-br from-[#0D9488] to-[#0F766E]" : "bg-gray-200"
-                      }`}
-                    >
-                      {message.role === "assistant" ? (
-                        <SparklesIcon className="h-3 w-3 text-white" />
-                      ) : (
-                        <UserIcon className="h-3 w-3 text-gray-600" />
-                      )}
-                    </div>
-                    <div
-                      className={`max-w-[80%] rounded-xl px-3 py-2 ${
-                        message.role === "assistant"
-                          ? "bg-white text-gray-700 shadow-sm border"
-                          : "bg-[#0D9488] text-white"
-                      }`}
-                    >
-                      <p className="text-sm leading-relaxed">{message.content}</p>
-                    </div>
+              {(Array.isArray(messages) ? messages : []).map((message) => (
+                <div key={message.id} className={`flex gap-2 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
+                  <div
+                    className={`h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      message.role === "assistant" ? "bg-gradient-to-br from-[#0D9488] to-[#0F766E]" : "bg-gray-200"
+                    }`}
+                  >
+                    {message.role === "assistant" ? (
+                      <SparklesIcon className="h-3 w-3 text-white" />
+                    ) : (
+                      <UserIcon className="h-3 w-3 text-gray-600" />
+                    )}
                   </div>
-                ))}
+                  <div
+                    className={`max-w-[80%] rounded-xl px-3 py-2 ${
+                      message.role === "assistant"
+                        ? "bg-white text-gray-700 shadow-sm border"
+                        : "bg-[#0D9488] text-white"
+                    }`}
+                  >
+                    <p className="text-sm leading-relaxed">{message.content}</p>
+                  </div>
+                </div>
+              ))}
 
               {isTyping && (
                 <div className="flex gap-2">
