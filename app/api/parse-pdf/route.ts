@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { generateObject } from "ai"
 import { z } from "zod"
 
-// Schema for client data extraction
 const ClientDataSchema = z.object({
   firstName: z.string().describe("Client's first name"),
   lastName: z.string().describe("Client's last name"),
@@ -28,14 +27,12 @@ export async function POST(req: NextRequest) {
 
     console.log("[v0] PDF parsing started:", file.name, file.type)
 
-    // Read file as base64
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     const base64 = buffer.toString("base64")
 
     console.log("[v0] File converted to base64, size:", base64.length)
 
-    // Use AI to extract text and parse structure
     const result = await generateObject({
       model: "anthropic/claude-sonnet-4",
       messages: [
@@ -58,9 +55,8 @@ Look for:
 If you cannot find a field, leave it empty. Do not make up information.`,
             },
             {
-              type: "file",
-              data: base64,
-              mimeType: file.type || "application/pdf",
+              type: "image",
+              image: `data:${file.type || "application/pdf"};base64,${base64}`,
             },
           ],
         },
