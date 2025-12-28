@@ -221,12 +221,12 @@ export function AIReportGenerator() {
     }
   }, [isGenerating])
 
-  // Toggle demo mode
   const handleDemoMode = () => {
     console.log("[v0] Demo Mode activated")
     setDemoMode(true)
     setAssessmentData(sampleAssessmentData)
     console.log("[v0] Assessment data set:", sampleAssessmentData.clientInfo)
+    console.log("[v0] Demo Mode state after activation:", true)
   }
 
   // Generate single section
@@ -615,28 +615,27 @@ Write this section in professional clinical language appropriate for insurance s
               </div>
             )}
 
-            {/* Action Buttons */}
             <div className="mt-6 flex gap-3">
               <button
                 onClick={handleGenerateFullReport}
                 disabled={isGenerating}
-                className="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all flex items-center justify-center gap-2 shadow-sm"
+                className="flex-1 px-8 py-4 rounded-lg bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl"
               >
-                <FileText className="h-5 w-5" />
-                {isGenerating ? "Generating..." : "Generate Full Report"}
+                <Sparkles className="h-6 w-6" />
+                {isGenerating ? "Generating Report..." : "Generate Full Report"}
               </button>
               <button
                 onClick={() => copyToClipboard(getAllContent())}
                 disabled={completedCount === 0}
-                className="px-6 py-3 rounded-lg border-2 border-teal-200 text-teal-600 hover:bg-teal-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors flex items-center gap-2"
+                className="px-6 py-4 rounded-lg border-2 border-teal-200 text-teal-600 hover:bg-teal-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors flex items-center gap-2"
               >
-                <Copy className="h-4 w-4" />
+                <Copy className="h-5 w-5" />
                 {copyFeedback ? "Copied!" : "Copy"}
               </button>
               <button
                 onClick={handlePrint}
                 disabled={completedCount === 0}
-                className="px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors flex items-center gap-2"
+                className="px-6 py-4 rounded-lg border-2 border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors flex items-center gap-2"
               >
                 <Printer className="h-4 w-4" />
                 Print
@@ -644,7 +643,7 @@ Write this section in professional clinical language appropriate for insurance s
               <button
                 onClick={handleExportPDF}
                 disabled={completedCount === 0}
-                className="px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors flex items-center gap-2"
+                className="px-6 py-4 rounded-lg border-2 border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors flex items-center gap-2"
               >
                 <FileDown className="h-4 w-4" />
                 PDF
