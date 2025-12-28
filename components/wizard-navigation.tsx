@@ -22,8 +22,8 @@ export function WizardNavigation({
   onPrevious,
   onNext,
   onSave,
-  hasPrevious,
-  hasNext,
+  hasPrevious = false,
+  hasNext = false,
   isLastStep = false,
   isSaving = false,
   canProceed = true,
@@ -34,7 +34,7 @@ export function WizardNavigation({
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-6 py-4 border-t border-border bg-card/80 backdrop-blur-sm",
+        "flex items-center justify-between px-6 py-4 mt-8 border-t border-border bg-card/80 backdrop-blur-sm rounded-lg",
         className,
       )}
     >
