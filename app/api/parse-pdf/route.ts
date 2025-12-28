@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateText } from "ai"
-import * as pdfParse from "pdf-parse"
+import pdfParse from "pdf-parse/lib/pdf.js"
 
 const extractClientData = (text: string) => {
   // Extract fields from PDF text using common patterns
