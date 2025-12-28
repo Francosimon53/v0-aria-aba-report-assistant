@@ -15,9 +15,10 @@ import type { ClientData } from "@/lib/types"
 interface ConsentFormProps {
   clientData: ClientData | null
   interventions?: string[]
+  onSave?: () => void
 }
 
-export function ConsentForm({ clientData, interventions = [] }: ConsentFormProps) {
+export function ConsentForm({ clientData, interventions = [], onSave }: ConsentFormProps) {
   const [understood, setUnderstood] = useState(false)
   const [caregiverName, setCaregiverName] = useState("")
   const [assistantName, setAssistantName] = useState("")
@@ -101,7 +102,7 @@ export function ConsentForm({ clientData, interventions = [] }: ConsentFormProps
 
   const handleGeneratePDF = () => {
     if (!understood) {
-      premiumToast.error("Please confirm you have read and understand the consent form")
+      premiumToast.error("Please confirm you have read and understood the consent form")
       return
     }
 
@@ -129,6 +130,11 @@ export function ConsentForm({ clientData, interventions = [] }: ConsentFormProps
       timestamp: new Date().toISOString(),
     }
     localStorage.setItem("aria_consent_form", JSON.stringify(consentData))
+
+    // Call onSave if provided
+    if (onSave) {
+      onSave()
+    }
   }
 
   const handlePrint = () => {

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { WizardNavigation } from "./wizard-navigation"
 import { ClientForm } from "./client-form"
 import { GoalBankBrowser } from "./goal-bank-browser"
-import { ReportPreviewTool } from "./report-preview-tool"
+import { AIReportGenerator } from "./ai-report-generator"
 import { CPTAuthorizationRequest } from "./cpt-authorization-request"
 import type { ClientData, AssessmentData, SelectedGoal, ReassessmentData, AgencyData } from "@/lib/types"
 import { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog"
@@ -216,16 +216,7 @@ export function Dashboard() {
           />
         )
       case "report":
-        return (
-          <ReportPreviewTool
-            clientData={clientData}
-            assessmentData={assessmentData}
-            selectedGoals={selectedGoals}
-            agencyData={agencyData}
-            reassessmentData={reassessmentData}
-            onExport={() => console.log("Report exported")}
-          />
-        )
+        return <AIReportGenerator />
       case "timesaved":
         return <TimeSavedTracker />
       case "support":

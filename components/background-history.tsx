@@ -55,7 +55,12 @@ interface BackgroundHistoryData {
   weaknesses: string
 }
 
-export function BackgroundHistory() {
+interface BackgroundHistoryProps {
+  clientData?: any
+  onSave?: () => void
+}
+
+export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps) {
   const { toast } = useToast()
   const [data, setData] = useState<BackgroundHistoryData>({
     reasonForReferral: "",
@@ -142,6 +147,9 @@ export function BackgroundHistory() {
       title: "Draft Saved",
       description: "Background & history has been saved successfully",
     })
+    if (onSave) {
+      onSave()
+    }
   }
 
   const handleImport = () => {
