@@ -71,6 +71,7 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium")
   const [targetDate, setTargetDate] = useState("")
   const [isSuggestingDate, setIsSuggestingDate] = useState(false)
+  const [targetDateReasoning, setTargetDateReasoning] = useState("") // Added state to store AI reasoning for target date
   const [baseline, setBaseline] = useState<BaselineData>({
     measurementType: "",
     promptLevel: "Independent",
@@ -306,9 +307,10 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
 
       if (data.targetDate) {
         setTargetDate(data.targetDate)
+        setTargetDateReasoning(data.reasoning || "")
         toast({
           title: "Target Date Suggested",
-          description: data.reasoning || "AI-calculated target date based on goal complexity.",
+          description: "AI has calculated a realistic target date.",
         })
       }
     } catch (error) {
@@ -549,7 +551,21 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
                     )}
                   </Button>
                 </div>
-                <Input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
+                <Input
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => {
+                    setTargetDate(e.target.value)
+                    setTargetDateReasoning("")
+                  }}
+                />
+
+                {targetDateReasoning && (
+                  <div className="flex items-start gap-2 p-3 bg-teal-50 border border-teal-200 rounded-lg text-sm">
+                    <Sparkles className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-teal-800">{targetDateReasoning}</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between mb-2">
