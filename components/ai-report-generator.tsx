@@ -30,6 +30,7 @@ import {
   ChevronDown,
   Edit3,
   FileDown,
+  TrendingUp,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -280,6 +281,13 @@ const REPORT_SECTIONS = [
     order: 16,
     icon: <FileCheck className="h-4 w-4" />,
     estimatedWords: "600-800",
+  },
+  {
+    id: "progress_notes", // Added section for Progress Notes
+    title: "Progress Notes",
+    order: 17,
+    icon: <TrendingUp className="h-4 w-4" />,
+    estimatedWords: "500-800",
   },
 ] as const
 
@@ -1224,6 +1232,40 @@ Caregiver Signature                 Date
 _________________________________    ______________
 ${data.providerInfo?.bcbaName || "BCBA Name"}, ${data.providerInfo?.bcbaLicense || "BCBA License #"}    Date
 Board Certified Behavior Analyst`,
+
+      // </CHANGE> for progress_notes prompt
+      progress_notes: `Write the PROGRESS NOTES section for a professional ABA assessment report.
+
+Client: ${clientName}
+Dates of Service: ${data.assessmentDates || "[Dates]"}
+
+Create progress notes for the past 4 weeks, detailing client progress, challenges, and adjustments to the treatment plan. Each note should include:
+
+- Date of Service
+- Session Duration
+- Target Behaviors Addressed
+- Skills Targeted
+- Interventions Implemented
+- Client Response/Progress
+- Challenges Encountered
+- Recommendations/Plan for Next Session
+
+Format each weekly summary as follows:
+
+**Week of [Date]**
+
+**[Day of Week], [Date] - [Session Duration, e.g., 2 hours]**
+- Target Behaviors: [List behaviors]
+- Skills Targeted: [List skills]
+- Interventions: [Describe interventions]
+- Client Response: [Describe progress, e.g., "Client independently requested a break 3 times today with 80% accuracy."]
+- Challenges: [Describe challenges, e.g., "Client displayed increased aggression when demands were presented."]
+- Plan: [Describe next steps, e.g., "Continue FCT for break requests. Implement DRA for appropriate requests."]
+
+**Week of [Date]**
+... and so on for 4 weeks.
+
+Ensure notes reflect data-driven decision-making and client-centered care. Use clinical language and maintain a professional tone.`,
     }
 
     return prompts[sectionId] || `Write the "${sectionId}" section for an ABA assessment report.`
@@ -1648,8 +1690,9 @@ Board Certified Behavior Analyst`,
           `${assessmentData.clientInfo?.firstName || ""} ${assessmentData.clientInfo?.lastName || ""}`.trim() ||
           "Client"
         const subject = encodeURIComponent(`ABA Assessment Report - ${clientName}`)
-        const summary = `ABA Assessment Report for ${clientName}\n\nDate: ${new Date().toLocaleDateString()}\nSections Completed: ${completedCount}\n\nSections:\n${completedSections.map((s) => `- ${s.title}`).join("\n")}\n\n---\nPlease see the attached full report or contact us for more details.`
-        const body = encodeURIComponent(summary)
+        const body = encodeURIComponent(
+          `ABA Assessment Report for ${clientName}\n\nDate: ${new Date().toLocaleDateString()}\nSections Completed: ${completedCount}\n\nSections:\n${completedSections.map((s) => `- ${s.title}`).join("\n")}\n\n---\nPlease see the attached full report or contact us for more details.`,
+        )
         window.location.href = `mailto:?subject=${subject}&body=${body}`
       } else if (format === "pdf") {
         try {
