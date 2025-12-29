@@ -70,6 +70,7 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
   const [selectedGoalForAdd, setSelectedGoalForAdd] = useState<string | null>(null)
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium")
   const [targetDate, setTargetDate] = useState("")
+  const [isSuggestingDate, setIsSuggestingDate] = useState(false)
   const [baseline, setBaseline] = useState<BaselineData>({
     measurementType: "",
     promptLevel: "Independent",
@@ -279,6 +280,49 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
     }
   }
 
+  const handleSuggestTargetDate = async () => {
+    if (!selectedGoalForAdd) return
+
+    setIsSuggestingDate(true)
+
+    const goal = goalBank.find((g) => g.id === selectedGoalForAdd)
+
+    try {
+      const response = await fetch("/api/suggest-target-date", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          goalTitle: goal?.title,
+          goalDescription: goal?.description,
+          domain: goal?.domain,
+          measurementType: goal?.measurementType,
+          targetPercentage: goal?.targetPercentage,
+          ageRange: goal?.ageRange,
+          baselineData: baseline,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.targetDate) {
+        setTargetDate(data.targetDate)
+        toast({
+          title: "Target Date Suggested",
+          description: data.reasoning || "AI-calculated target date based on goal complexity.",
+        })
+      }
+    } catch (error) {
+      console.error("Error suggesting target date:", error)
+      toast({
+        title: "Suggestion failed",
+        description: "Could not calculate target date.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSuggestingDate(false)
+    }
+  }
+
   const normalizeDropdownValue = (value: string | undefined, validOptions: string[], fallback: string): string => {
     if (!value) return fallback
 
@@ -485,7 +529,26 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Target Date</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Target Date</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSuggestTargetDate}
+                    disabled={isSuggestingDate || !selectedGoalForAdd}
+                    className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                  >
+                    {isSuggestingDate ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        AI Suggest
+                      </>
+                    )}
+                  </Button>
+                </div>
                 <Input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
               </div>
 
