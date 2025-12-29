@@ -207,17 +207,48 @@ export function InterventionsLibrary() {
     setIsSuggesting(true)
 
     try {
-      const goalsData = JSON.parse(localStorage.getItem("goalsTrackerData") || "[]")
+      console.log("[v0] All localStorage keys:", Object.keys(localStorage))
 
-      if (!goalsData || goalsData.length === 0) {
+      let goalsData = null
+      const possibleKeys = [
+        "goals",
+        "goalsData",
+        "goalsTrackerData",
+        "trackerGoals",
+        "aria-goals",
+        "ltos",
+        "longTermObjectives",
+      ]
+
+      for (const key of possibleKeys) {
+        const data = localStorage.getItem(key)
+        if (data) {
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed && (Array.isArray(parsed) ? parsed.length > 0 : Object.keys(parsed).length > 0)) {
+              goalsData = parsed
+              console.log("[v0] Found goals in key:", key, goalsData)
+              break
+            }
+          } catch (e) {
+            console.log("[v0] Failed to parse data from key:", key)
+            continue
+          }
+        }
+      }
+
+      if (!goalsData || (Array.isArray(goalsData) && goalsData.length === 0)) {
         toast({
           title: "No Goals Found",
-          description: "Please add goals in the Goals Tracker first.",
+          description:
+            "Please add and save goals in the Goals Tracker first. Goals must be saved to localStorage to generate suggestions.",
           variant: "destructive",
         })
         setIsSuggesting(false)
         return
       }
+
+      console.log("[v0] Sending goals to API:", goalsData)
 
       const response = await fetch("/api/suggest-interventions", {
         method: "POST",
@@ -230,15 +261,24 @@ export function InterventionsLibrary() {
       }
 
       const data = await response.json()
-      setSuggestedInterventions(data.suggestions)
-      setShowSuggestions(true)
 
-      toast({
-        title: "Interventions Suggested",
-        description: `AI recommended ${data.suggestions.length} interventions based on your goals.`,
-      })
+      if (data.suggestions && data.suggestions.length > 0) {
+        setSuggestedInterventions(data.suggestions)
+        setShowSuggestions(true)
+
+        toast({
+          title: "Interventions Suggested",
+          description: `AI recommended ${data.suggestions.length} interventions based on your goals.`,
+        })
+      } else {
+        toast({
+          title: "No Suggestions",
+          description: "Could not generate intervention suggestions for the current goals.",
+          variant: "destructive",
+        })
+      }
     } catch (error) {
-      console.error("Error suggesting interventions:", error)
+      console.error("[v0] Error suggesting interventions:", error)
       toast({
         title: "Suggestion failed",
         description: "Could not analyze goals. Please try again.",
