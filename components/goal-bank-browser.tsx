@@ -219,38 +219,56 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
 
       const data = await response.json()
 
-      // Auto-fill the form fields
-      setBaseline({
-        ...baseline,
-        ...(data.currentRate && { currentRate: data.currentRate }),
-        ...(data.ratePer && { ratePer: data.ratePer }),
-        ...(data.percentCorrect && { percentCorrect: data.percentCorrect }),
-        ...(data.totalTrials && { totalTrials: data.totalTrials }),
-        ...(data.averageDuration && { averageDuration: data.averageDuration }),
-        ...(data.durationUnit && { durationUnit: data.durationUnit }),
-        ...(data.minDuration && { minDuration: data.minDuration }),
-        ...(data.maxDuration && { maxDuration: data.maxDuration }),
-        ...(data.stepsCompleted && { stepsCompleted: data.stepsCompleted }),
-        ...(data.totalSteps && { totalSteps: data.totalSteps }),
-        ...(data.percentOfIntervals && {
-          percentOfIntervals: data.percentOfIntervals,
-        }),
-        ...(data.observationDuration && {
-          observationDuration: data.observationDuration,
-        }),
-        promptLevel: data.promptLevel || baseline.promptLevel,
-        setting: data.setting || baseline.setting,
-        dataSource: data.dataSource || baseline.dataSource,
-        collectionPeriod: data.collectionPeriod || baseline.collectionPeriod,
-        ...(data.notes && { notes: data.notes }),
-      })
+      console.log("[v0] AI Generated Baseline Data:", data)
+
+      const newBaseline: BaselineData = {
+        measurementType: goal?.measurementType || baseline.measurementType,
+        // Frequency fields
+        currentRate: data.currentRate?.toString() || baseline.currentRate,
+        ratePer: data.ratePer || data.rateUnit || baseline.ratePer,
+        // Accuracy/Discrete Trial fields
+        percentCorrect: data.percentCorrect?.toString() || baseline.percentCorrect,
+        totalTrials: data.totalTrials?.toString() || baseline.totalTrials,
+        // Duration fields
+        averageDuration: data.averageDuration?.toString() || baseline.averageDuration,
+        durationUnit: data.durationUnit || baseline.durationUnit,
+        minDuration: data.minDuration?.toString() || baseline.minDuration,
+        maxDuration: data.maxDuration?.toString() || baseline.maxDuration,
+        // Task Analysis fields
+        stepsCompleted: data.stepsCompleted?.toString() || baseline.stepsCompleted,
+        totalSteps: data.totalSteps?.toString() || baseline.totalSteps,
+        // Interval fields
+        percentOfIntervals: data.percentOfIntervals?.toString() || baseline.percentOfIntervals,
+        observationDuration: data.observationDuration?.toString() || baseline.observationDuration,
+        // Common fields - normalize values to match dropdown options
+        promptLevel: normalizeDropdownValue(
+          data.promptLevel,
+          ["Independent", "Gestural", "Verbal", "Model", "Partial Physical", "Full Physical"],
+          baseline.promptLevel,
+        ),
+        setting: normalizeDropdownValue(
+          data.setting,
+          ["Home", "Clinic", "School", "Community", "Multiple"],
+          baseline.setting,
+        ),
+        dataSource: normalizeDropdownValue(
+          data.dataSource,
+          ["Direct Observation", "Parent Report", "Teacher Report", "Formal Assessment", "Probe Data"],
+          baseline.dataSource,
+        ),
+        collectionPeriod: data.collectionPeriod?.toString() || baseline.collectionPeriod,
+        notes: data.notes || baseline.notes,
+      }
+
+      console.log("[v0] Normalized Baseline Data:", newBaseline)
+      setBaseline(newBaseline)
 
       toast({
         title: "Baseline data generated",
         description: "AI has generated realistic baseline data for this goal.",
       })
     } catch (error) {
-      console.error("Error generating baseline:", error)
+      console.error("[v0] Error generating baseline:", error)
       toast({
         title: "Generation failed",
         description: "Could not generate baseline data. Please try again.",
@@ -259,6 +277,22 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  const normalizeDropdownValue = (value: string | undefined, validOptions: string[], fallback: string): string => {
+    if (!value) return fallback
+
+    // Convert to title case and find exact match
+    const normalized = value
+      .split(/[_\s]+/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ")
+
+    // Find case-insensitive match in valid options
+    const match = validOptions.find((option) => option.toLowerCase() === normalized.toLowerCase())
+
+    console.log(`[v0] Normalizing "${value}" -> "${normalized}" -> "${match || fallback}"`)
+    return match || fallback
   }
 
   const openAddDialog = (goalId: string) => {
