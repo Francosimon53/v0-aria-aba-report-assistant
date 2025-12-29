@@ -133,12 +133,12 @@ export default function Home() {
               <Button
                 variant="ghost"
                 className="hidden sm:inline-flex font-medium"
-                onClick={() => router.push("/assessment/new")}
+                onClick={() => router.push("/login")}
               >
                 Log in
               </Button>
               <Button
-                onClick={() => router.push("/assessment/new")}
+                onClick={() => router.push("/register")}
                 className="bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold px-6 shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30 transition-all duration-300 hover:-translate-y-0.5"
               >
                 Start Free Trial
@@ -194,7 +194,7 @@ export default function Home() {
             {/* CTA buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
               <Button
-                onClick={() => router.push("/assessment/new")}
+                onClick={() => router.push("/register")}
                 size="lg"
                 className="bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold px-8 py-7 text-lg shadow-xl shadow-teal-500/25 hover:shadow-2xl hover:shadow-teal-500/30 transition-all duration-300 hover:-translate-y-1 group"
               >
@@ -462,33 +462,11 @@ export default function Home() {
                   required
                 />
                 <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="h-14 px-8 bg-white text-[#0D9488] hover:bg-gray-100 font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-70"
+                  onClick={() => router.push("/register")}
+                  type="button"
+                  className="h-14 px-8 bg-white text-[#0D9488] hover:bg-gray-100 font-semibold shadow-xl hover:shadow-2xl transition-all duration-300"
                 >
-                  {isSubmitting ? (
-                    <span className="flex items-center gap-2">
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                        />
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : (
-                    "Get Started Free"
-                  )}
+                  Get Started Free
                 </Button>
               </form>
             )}
