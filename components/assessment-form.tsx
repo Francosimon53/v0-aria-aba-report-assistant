@@ -92,6 +92,8 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
   const [suggestedBehaviors, setSuggestedBehaviors] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
 
+  const [generatingBehaviorField, setGeneratingBehaviorField] = useState<string | null>(null)
+
   const filteredBehaviors = behaviorLibrary.filter((behavior) => {
     const matchesSearch =
       behaviorSearchQuery === "" ||
@@ -537,6 +539,50 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
         title: "Behavior Added",
         description: `${template.name} has been added from AI suggestions`,
       })
+    }
+  }
+
+  const handleGenerateBehaviorField = async (behaviorId: string, fieldName: string, behaviorName: string) => {
+    const behavior = behaviorReductions.find((b) => b.id === behaviorId)
+    if (!behavior) return
+
+    const fieldKey = `${behaviorId}-${fieldName}`
+    setGeneratingBehaviorField(fieldKey)
+
+    try {
+      const response = await fetch("/api/generate-behavior-field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          behaviorName: behaviorName || "target behavior",
+          fieldName,
+          behaviorFunction: behavior.function || "unknown",
+          existingData: behavior,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to generate")
+      }
+
+      const data = await response.json()
+
+      if (data.value) {
+        updateBehavior(behaviorId, { [fieldName]: data.value })
+        toast({
+          title: "Generated Successfully",
+          description: `${fieldName.replace(/([A-Z])/g, " $1").trim()} has been generated.`,
+        })
+      }
+    } catch (error) {
+      console.error("Error generating behavior field:", error)
+      toast({
+        title: "Generation failed",
+        description: "Unable to generate content. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setGeneratingBehaviorField(null)
     }
   }
 
@@ -1135,7 +1181,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                         >
                           {isSuggestingBehaviors ? (
                             <>
-                              <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                              <Loader2Icon className="h-4 w-4 animate-spin" />
                               Analyzing...
                             </>
                           ) : (
@@ -1274,15 +1320,39 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
                                 {/* Operational Definition */}
                                 <div className="space-y-2">
-                                  <Label>Operational Definition *</Label>
-                                  <AITextarea
+                                  <div className="flex items-center justify-between">
+                                    <Label>Operational Definition *</Label>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleGenerateBehaviorField(
+                                          behavior.id,
+                                          "operationalDefinition",
+                                          behavior.behaviorName,
+                                        )
+                                      }
+                                      disabled={generatingBehaviorField === `${behavior.id}-operationalDefinition`}
+                                      className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                                    >
+                                      {generatingBehaviorField === `${behavior.id}-operationalDefinition` ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Sparkles className="h-3 w-3 mr-1" />
+                                          <span className="text-xs">AI Generate</span>
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
+                                  <Textarea
                                     value={behavior.operationalDefinition}
                                     onChange={(e) =>
                                       updateBehavior(behavior.id, { operationalDefinition: e.target.value })
                                     }
                                     placeholder="Clearly define the behavior in observable and measurable terms..."
                                     rows={3}
-                                    fieldName="Operational Definition"
                                   />
                                 </div>
 
@@ -1334,7 +1404,32 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                     </Select>
                                   </div>
                                   <div className="space-y-2">
-                                    <Label>Data Collection Method</Label>
+                                    <div className="flex items-center justify-between">
+                                      <Label>Data Collection Method</Label>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleGenerateBehaviorField(
+                                            behavior.id,
+                                            "dataCollectionMethod",
+                                            behavior.behaviorName,
+                                          )
+                                        }
+                                        disabled={generatingBehaviorField === `${behavior.id}-dataCollectionMethod`}
+                                        className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                                      >
+                                        {generatingBehaviorField === `${behavior.id}-dataCollectionMethod` ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <Sparkles className="h-3 w-3 mr-1" />
+                                            <span className="text-xs">AI Generate</span>
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
                                     <Input
                                       value={behavior.dataCollectionMethod}
                                       onChange={(e) =>
@@ -1348,7 +1443,28 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                 {/* Current Data */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                   <div className="space-y-2">
-                                    <Label>Frequency</Label>
+                                    <div className="flex items-center justify-between">
+                                      <Label>Frequency</Label>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleGenerateBehaviorField(behavior.id, "frequency", behavior.behaviorName)
+                                        }
+                                        disabled={generatingBehaviorField === `${behavior.id}-frequency`}
+                                        className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                                      >
+                                        {generatingBehaviorField === `${behavior.id}-frequency` ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <Sparkles className="h-3 w-3 mr-1" />
+                                            <span className="text-xs">AI Generate</span>
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
                                     <Input
                                       value={behavior.frequency}
                                       onChange={(e) => updateBehavior(behavior.id, { frequency: e.target.value })}
@@ -1356,7 +1472,28 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                     />
                                   </div>
                                   <div className="space-y-2">
-                                    <Label>Duration</Label>
+                                    <div className="flex items-center justify-between">
+                                      <Label>Duration</Label>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleGenerateBehaviorField(behavior.id, "duration", behavior.behaviorName)
+                                        }
+                                        disabled={generatingBehaviorField === `${behavior.id}-duration`}
+                                        className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                                      >
+                                        {generatingBehaviorField === `${behavior.id}-duration` ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <Sparkles className="h-3 w-3 mr-1" />
+                                            <span className="text-xs">AI Generate</span>
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
                                     <Input
                                       value={behavior.duration}
                                       onChange={(e) => updateBehavior(behavior.id, { duration: e.target.value })}
@@ -1364,7 +1501,28 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                     />
                                   </div>
                                   <div className="space-y-2">
-                                    <Label>Intensity</Label>
+                                    <div className="flex items-center justify-between">
+                                      <Label>Intensity</Label>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleGenerateBehaviorField(behavior.id, "intensity", behavior.behaviorName)
+                                        }
+                                        disabled={generatingBehaviorField === `${behavior.id}-intensity`}
+                                        className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                                      >
+                                        {generatingBehaviorField === `${behavior.id}-intensity` ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <Sparkles className="h-3 w-3 mr-1" />
+                                            <span className="text-xs">AI Generate</span>
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
                                     <Input
                                       value={behavior.intensity}
                                       onChange={(e) => updateBehavior(behavior.id, { intensity: e.target.value })}
@@ -1406,7 +1564,28 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
                                 {/* Consequences */}
                                 <div className="space-y-3">
-                                  <Label>Current Consequences</Label>
+                                  <div className="flex items-center justify-between">
+                                    <Label>Current Consequences</Label>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleGenerateBehaviorField(behavior.id, "consequences", behavior.behaviorName)
+                                      }
+                                      disabled={generatingBehaviorField === `${behavior.id}-consequences`}
+                                      className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                                    >
+                                      {generatingBehaviorField === `${behavior.id}-consequences` ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Sparkles className="h-3 w-3 mr-1" />
+                                          <span className="text-xs">AI Generate</span>
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
                                   {behavior.consequences.map((consequence, idx) => (
                                     <div key={idx} className="flex gap-2">
                                       <Input
@@ -1437,7 +1616,32 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
                                 {/* Replacement Behavior */}
                                 <div className="space-y-2">
-                                  <Label>Replacement/Alternative Behavior *</Label>
+                                  <div className="flex items-center justify-between">
+                                    <Label>Replacement/Alternative Behavior *</Label>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleGenerateBehaviorField(
+                                          behavior.id,
+                                          "replacementBehavior",
+                                          behavior.behaviorName,
+                                        )
+                                      }
+                                      disabled={generatingBehaviorField === `${behavior.id}-replacementBehavior`}
+                                      className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                                    >
+                                      {generatingBehaviorField === `${behavior.id}-replacementBehavior` ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Sparkles className="h-3 w-3 mr-1" />
+                                          <span className="text-xs">AI Generate</span>
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
                                   <Textarea
                                     value={behavior.replacementBehavior}
                                     onChange={(e) =>
@@ -1482,7 +1686,32 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                 {/* Baseline & Target */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="space-y-2">
-                                    <Label>Baseline Data</Label>
+                                    <div className="flex items-center justify-between">
+                                      <Label>Baseline Data</Label>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleGenerateBehaviorField(
+                                            behavior.id,
+                                            "baselineData",
+                                            behavior.behaviorName,
+                                          )
+                                        }
+                                        disabled={generatingBehaviorField === `${behavior.id}-baselineData`}
+                                        className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                                      >
+                                        {generatingBehaviorField === `${behavior.id}-baselineData` ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <Sparkles className="h-3 w-3 mr-1" />
+                                            <span className="text-xs">AI Generate</span>
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
                                     <Textarea
                                       value={behavior.baselineData}
                                       onChange={(e) => updateBehavior(behavior.id, { baselineData: e.target.value })}
@@ -1491,7 +1720,32 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                     />
                                   </div>
                                   <div className="space-y-2">
-                                    <Label>Target Criteria</Label>
+                                    <div className="flex items-center justify-between">
+                                      <Label>Target Criteria</Label>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleGenerateBehaviorField(
+                                            behavior.id,
+                                            "targetCriteria",
+                                            behavior.behaviorName,
+                                          )
+                                        }
+                                        disabled={generatingBehaviorField === `${behavior.id}-targetCriteria`}
+                                        className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                                      >
+                                        {generatingBehaviorField === `${behavior.id}-targetCriteria` ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <Sparkles className="h-3 w-3 mr-1" />
+                                            <span className="text-xs">AI Generate</span>
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
                                     <Textarea
                                       value={behavior.targetCriteria}
                                       onChange={(e) => updateBehavior(behavior.id, { targetCriteria: e.target.value })}
@@ -1503,7 +1757,32 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
                                 {/* Safety & Notes */}
                                 <div className="space-y-2">
-                                  <Label>Safety Considerations</Label>
+                                  <div className="flex items-center justify-between">
+                                    <Label>Safety Considerations</Label>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleGenerateBehaviorField(
+                                          behavior.id,
+                                          "safetyConsiderations",
+                                          behavior.behaviorName,
+                                        )
+                                      }
+                                      disabled={generatingBehaviorField === `${behavior.id}-safetyConsiderations`}
+                                      className="text-teal-600 hover:text-teal-700 h-6 px-2"
+                                    >
+                                      {generatingBehaviorField === `${behavior.id}-safetyConsiderations` ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Sparkles className="h-3 w-3 mr-1" />
+                                          <span className="text-xs">AI Generate</span>
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
                                   <Textarea
                                     value={behavior.safetyConsiderations}
                                     onChange={(e) =>
