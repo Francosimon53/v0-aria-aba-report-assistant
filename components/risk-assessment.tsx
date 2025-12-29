@@ -7,8 +7,26 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { AlertTriangleIcon, PhoneIcon, DownloadIcon, PrinterIcon, PlusIcon, XIcon } from "@/components/icons"
+import {
+  AlertTriangleIcon,
+  PhoneIcon,
+  DownloadIcon,
+  PrinterIcon,
+  PlusIcon,
+  XIcon,
+  Sparkles,
+  Loader2,
+  Shield,
+  Eye,
+  ArrowDownCircle,
+  AlertCircle,
+  ClipboardCheck,
+  ShieldCheck,
+  CheckCircle2,
+  Copy,
+} from "@/components/icons"
 import { premiumToast } from "@/components/ui/premium-toast"
+import { useToast } from "@/hooks/use-toast"
 
 interface RiskFactor {
   id: string
@@ -51,8 +69,10 @@ export function RiskAssessment() {
     { id: "1", name: "", phone: "", relationship: "" },
   ])
   const [riskLevel, setRiskLevel] = useState<RiskLevel>("low")
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false)
+  const [crisisPlan, setCrisisPlan] = useState<any>(null)
+  const { toast } = useToast()
 
-  // Calculate risk level based on checked items
   useEffect(() => {
     const checkedFactors = riskFactors.filter((f) => f.checked)
     const highRiskCount = checkedFactors.filter((f) => f.severity === "high").length
@@ -91,6 +111,101 @@ export function RiskAssessment() {
   const printCrisisPlan = () => {
     window.print()
     premiumToast.success("Crisis plan sent to printer")
+  }
+
+  const handleGenerateCrisisPlan = async () => {
+    const selectedRiskFactors = riskFactors.filter((f) => f.checked).map((f) => f.label)
+
+    if (selectedRiskFactors.length === 0) {
+      toast({
+        title: "No risk factors selected",
+        description: "Please select at least one risk factor",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsGeneratingPlan(true)
+
+    try {
+      const response = await fetch("/api/generate-crisis-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          riskFactors: selectedRiskFactors,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Generation failed")
+      }
+
+      setCrisisPlan(data)
+
+      const aiRiskLevel = data.riskProfile.level.toLowerCase()
+      if (aiRiskLevel === "critical" || aiRiskLevel === "high") {
+        setRiskLevel("high")
+      } else if (aiRiskLevel === "medium") {
+        setRiskLevel("medium")
+      } else {
+        setRiskLevel("low")
+      }
+
+      toast({
+        title: "Crisis Plan Generated",
+        description: `Risk Level: ${data.riskProfile.level}`,
+      })
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Could not generate crisis plan",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGeneratingPlan(false)
+    }
+  }
+
+  const copyFullPlan = (plan: any) => {
+    const text = `
+CRISIS PLAN
+
+RISK LEVEL: ${plan.riskProfile.level}
+${plan.riskProfile.summary}
+
+WARNING SIGNS OF ESCALATION:
+${plan.warningSignsEscalation.map((s: string) => `• ${s}`).join("\n")}
+
+DE-ESCALATION STRATEGIES:
+${plan.deEscalationStrategies.map((s: any) => `${s.step}. ${s.action}: ${s.details}`).join("\n")}
+
+EMERGENCY PROCEDURES:
+Immediate Actions:
+${plan.emergencyProcedures.immediateActions.map((a: string) => `• ${a}`).join("\n")}
+
+Safety Measures:
+${plan.emergencyProcedures.safetyMeasures.map((m: string) => `• ${m}`).join("\n")}
+
+WHEN TO CALL 911:
+${plan.when911.criteria.map((c: string) => `• ${c}`).join("\n")}
+
+What to tell dispatcher: "${plan.when911.whatToSay}"
+
+POST-CRISIS PROTOCOL:
+${plan.postCrisisProtocol.map((s: string, i: number) => `${i + 1}. ${s}`).join("\n")}
+
+PREVENTION STRATEGIES:
+${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
+  `.trim()
+
+    navigator.clipboard.writeText(text)
+    toast({
+      title: "Copied!",
+      description: "Full crisis plan copied to clipboard",
+    })
   }
 
   const getRiskLevelColor = (level: RiskLevel) => {
@@ -205,7 +320,215 @@ export function RiskAssessment() {
             />
           </div>
         </div>
+
+        {/* AI Generate Crisis Plan button */}
+        <div className="flex flex-col items-end mt-6 gap-2">
+          <Button
+            onClick={handleGenerateCrisisPlan}
+            disabled={isGeneratingPlan || checkedCount === 0}
+            className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white gap-2"
+          >
+            {isGeneratingPlan ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating Crisis Plan...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                AI Generate Crisis Plan
+              </>
+            )}
+          </Button>
+          {checkedCount === 0 && (
+            <p className="text-sm text-muted-foreground">Select at least one risk factor to generate a crisis plan</p>
+          )}
+        </div>
       </Card>
+
+      {crisisPlan && (
+        <div className="space-y-6">
+          {/* Risk Profile Summary */}
+          <div
+            className={`p-4 rounded-xl border-2 ${
+              crisisPlan.riskProfile.level === "Critical"
+                ? "bg-red-50 border-red-500"
+                : crisisPlan.riskProfile.level === "High"
+                  ? "bg-orange-50 border-orange-500"
+                  : crisisPlan.riskProfile.level === "Medium"
+                    ? "bg-amber-50 border-amber-500"
+                    : "bg-green-50 border-green-500"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Risk Profile Analysis
+              </h4>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-bold ${
+                  crisisPlan.riskProfile.level === "Critical"
+                    ? "bg-red-500 text-white"
+                    : crisisPlan.riskProfile.level === "High"
+                      ? "bg-orange-500 text-white"
+                      : crisisPlan.riskProfile.level === "Medium"
+                        ? "bg-amber-500 text-white"
+                        : "bg-green-500 text-white"
+                }`}
+              >
+                {crisisPlan.riskProfile.level} Risk
+              </span>
+            </div>
+            <p className="text-gray-700">{crisisPlan.riskProfile.summary}</p>
+          </div>
+
+          {/* Warning Signs */}
+          <Card className="bg-amber-50 border border-amber-200 p-4">
+            <h4 className="font-semibold mb-3 flex items-center gap-2 text-amber-800">
+              <AlertTriangleIcon className="h-5 w-5" />
+              Warning Signs of Escalation
+            </h4>
+            <ul className="space-y-2">
+              {crisisPlan.warningSignsEscalation.map((sign: string, i: number) => (
+                <li key={i} className="flex items-start gap-2 text-amber-900">
+                  <Eye className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>{sign}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          {/* De-escalation Steps */}
+          <Card className="bg-blue-50 border border-blue-200 p-4">
+            <h4 className="font-semibold mb-3 flex items-center gap-2 text-blue-800">
+              <ArrowDownCircle className="h-5 w-5" />
+              De-escalation Strategies
+            </h4>
+            <div className="space-y-3">
+              {crisisPlan.deEscalationStrategies.map((strategy: any) => (
+                <div key={strategy.step} className="flex gap-3 bg-white p-3 rounded-lg border border-blue-100">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
+                    {strategy.step}
+                  </div>
+                  <div>
+                    <div className="font-medium text-blue-900">{strategy.action}</div>
+                    <div className="text-sm text-blue-700">{strategy.details}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Emergency Procedures */}
+          <Card className="bg-red-50 border border-red-200 p-4">
+            <h4 className="font-semibold mb-3 flex items-center gap-2 text-red-800">
+              <AlertCircle className="h-5 w-5" />
+              Emergency Procedures
+            </h4>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-white p-3 rounded-lg border border-red-100">
+                <h5 className="font-medium text-red-900 mb-2">Immediate Actions</h5>
+                <ul className="text-sm space-y-1">
+                  {crisisPlan.emergencyProcedures.immediateActions.map((action: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-red-500">•</span>
+                      <span>{action}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="bg-white p-3 rounded-lg border border-red-100">
+                <h5 className="font-medium text-red-900 mb-2">Safety Measures</h5>
+                <ul className="text-sm space-y-1">
+                  {crisisPlan.emergencyProcedures.safetyMeasures.map((measure: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-red-500">•</span>
+                      <span>{measure}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {crisisPlan.emergencyProcedures.restrictedItems?.length > 0 && (
+              <div className="mt-3 bg-white p-3 rounded-lg border border-red-100">
+                <h5 className="font-medium text-red-900 mb-2">⚠️ Items to Secure/Remove</h5>
+                <div className="flex flex-wrap gap-2">
+                  {crisisPlan.emergencyProcedures.restrictedItems.map((item: string, i: number) => (
+                    <span key={i} className="px-2 py-1 bg-red-100 text-red-800 rounded text-sm">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {/* When to Call 911 */}
+          <Card className="bg-red-600 text-white p-4">
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <PhoneIcon className="h-5 w-5" />
+              When to Call 911
+            </h4>
+            <ul className="space-y-2 mb-4">
+              {crisisPlan.when911.criteria.map((criterion: string, i: number) => (
+                <li key={i} className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>{criterion}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="bg-red-700 p-3 rounded-lg">
+              <div className="text-sm font-medium mb-1">📞 What to Tell Dispatcher:</div>
+              <p className="text-red-100 text-sm italic">&quot;{crisisPlan.when911.whatToSay}&quot;</p>
+            </div>
+          </Card>
+
+          {/* Post-Crisis Protocol */}
+          <Card className="bg-purple-50 border border-purple-200 p-4">
+            <h4 className="font-semibold mb-3 flex items-center gap-2 text-purple-800">
+              <ClipboardCheck className="h-5 w-5" />
+              Post-Crisis Protocol
+            </h4>
+            <ol className="space-y-2">
+              {crisisPlan.postCrisisProtocol.map((step: string, i: number) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">
+                    {i + 1}
+                  </span>
+                  <span className="text-purple-900">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </Card>
+
+          {/* Prevention Strategies */}
+          <Card className="bg-green-50 border border-green-200 p-4">
+            <h4 className="font-semibold mb-3 flex items-center gap-2 text-green-800">
+              <ShieldCheck className="h-5 w-5" />
+              Prevention Strategies
+            </h4>
+            <ul className="space-y-2">
+              {crisisPlan.preventionStrategies.map((strategy: string, i: number) => (
+                <li key={i} className="flex items-start gap-2 text-green-900">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
+                  <span>{strategy}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          {/* Copy Button */}
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={() => copyFullPlan(crisisPlan)} className="gap-2">
+              <Copy className="h-4 w-4" />
+              Copy Full Plan
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Crisis Contacts */}
       <Card className="p-6">
