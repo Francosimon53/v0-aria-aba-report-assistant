@@ -1,4 +1,25 @@
 import { NextResponse } from "next/server"
+import { anthropic } from "@ai-sdk/anthropic"
+import { generateObject } from "ai"
+import { z } from "zod"
+
+const baselineSchema = z.object({
+  currentRate: z.number().optional(),
+  rateUnit: z.enum(["hour", "day", "session", "week"]).optional(),
+  percentCorrect: z.number().optional(),
+  totalTrials: z.number().optional(),
+  averageDuration: z.number().optional(),
+  durationUnit: z.enum(["seconds", "minutes", "hours"]).optional(),
+  stepsCompleted: z.number().optional(),
+  totalSteps: z.number().optional(),
+  percentIntervals: z.number().optional(),
+  observationDuration: z.number().optional(),
+  promptLevel: z.enum(["independent", "gesture", "verbal", "model", "partial_physical", "full_physical"]),
+  setting: z.enum(["home", "clinic", "school", "community", "multiple"]),
+  dataSource: z.enum(["direct_observation", "parent_report", "teacher_report", "assessment", "probe"]),
+  collectionPeriod: z.number(),
+  notes: z.string().optional(),
+})
 
 export async function POST(request: Request) {
   const anthropicKey = process.env.ANTHROPIC_API_KEY
@@ -8,78 +29,38 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json()
-    const { goalTitle, goalDescription, measurementType, criteria, ageRange } = body
+    const { goalTitle, goalDescription, measurementType, criteria, ageRange } = await request.json()
 
-    const prompt = `Generate realistic baseline data for the following ABA goal:
+    const { object } = await generateObject({
+      model: anthropic("claude-sonnet-4-20250514"),
+      schema: baselineSchema,
+      prompt: `You are an expert BCBA generating realistic baseline data for an ABA therapy goal.
 
 Goal: ${goalTitle}
 Description: ${goalDescription}
 Measurement Type: ${measurementType}
-Criteria: ${criteria}
+Mastery Criteria: ${criteria}
 Age Range: ${ageRange}
 
-Based on the measurement type (${measurementType}), generate appropriate baseline data. Return ONLY a valid JSON object with these fields (include only relevant fields for the measurement type):
+Generate realistic BASELINE data that represents a client BEFORE intervention begins. The baseline should:
+1. Be significantly below the mastery criteria (this is PRE-intervention)
+2. Use appropriate values for the measurement type
+3. Reflect typical starting points for clients working on this skill
+4. Be clinically realistic
 
-{
-  "currentRate": "number as string (for Frequency)",
-  "ratePer": "hour|day|session|week (for Frequency)",
-  "percentCorrect": "number 0-100 as string (for Accuracy/Discrete Trial/Opportunity)",
-  "totalTrials": "number as string (for Accuracy/Discrete Trial/Opportunity)",
-  "averageDuration": "number as string (for Duration)",
-  "durationUnit": "seconds|minutes (for Duration)",
-  "minDuration": "number as string (for Duration, optional)",
-  "maxDuration": "number as string (for Duration, optional)",
-  "stepsCompleted": "number as string (for Task Analysis)",
-  "totalSteps": "number as string (for Task Analysis)",
-  "percentOfIntervals": "number 0-100 as string (for Interval)",
-  "observationDuration": "number as string (for Interval)",
-  "promptLevel": "Independent|Gestural|Verbal|Model|Partial Physical|Full Physical",
-  "setting": "Home|Clinic|School|Community|Multiple",
-  "dataSource": "Direct Observation|Parent Report|Teacher Report|Formal Assessment|Probe Data",
-  "collectionPeriod": "number as string (days, typically 3-7)",
-  "notes": "brief clinical note about baseline context"
-}
+For ${measurementType} measurement:
+${measurementType === "Frequency" ? "- Provide currentRate (low number) and rateUnit" : ""}
+${measurementType === "Accuracy" || measurementType === "Discrete Trial" || measurementType === "Opportunity" ? "- Provide percentCorrect (low, like 10-30%) and totalTrials" : ""}
+${measurementType === "Duration" ? "- Provide averageDuration and durationUnit" : ""}
+${measurementType === "Task Analysis" ? "- Provide stepsCompleted (low) and totalSteps" : ""}
+${measurementType === "Interval" ? "- Provide percentIntervals (high for problem behavior, low for desired behavior) and observationDuration" : ""}
 
-Generate realistic, clinically appropriate values that reflect a child who needs intervention in this area.`
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 1024,
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      }),
+Always include: promptLevel, setting, dataSource, and collectionPeriod (typically 3-5 days).`,
     })
 
-    if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    const content = data.content?.[0]?.text || ""
-
-    // Parse the JSON response
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      throw new Error("Failed to parse AI response")
-    }
-
-    const baselineData = JSON.parse(jsonMatch[0])
-
-    return NextResponse.json(baselineData)
+    return NextResponse.json(object)
   } catch (error) {
     console.error("Error generating baseline:", error)
-    return NextResponse.json({ error: "Failed to generate baseline data" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to generate baseline" }, { status: 500 })
   }
 }
