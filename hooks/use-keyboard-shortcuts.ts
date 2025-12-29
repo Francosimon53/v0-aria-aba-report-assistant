@@ -1,73 +1,78 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 
-interface ShortcutHandler {
+interface KeyboardShortcut {
   key: string
-  ctrl?: boolean
-  shift?: boolean
-  alt?: boolean
-  handler: () => void
+  ctrlKey?: boolean
+  altKey?: boolean
+  shiftKey?: boolean
+  metaKey?: boolean
+  action: () => void
 }
 
-interface ShortcutsOptions {
+interface ShortcutOptions {
+  shortcuts?: KeyboardShortcut[]
   onSave?: () => void
   onNext?: () => void
   onPrevious?: () => void
   onShowShortcuts?: () => void
-  shortcuts?: ShortcutHandler[]
 }
 
-export function useKeyboardShortcuts(input: ShortcutHandler[] | ShortcutsOptions) {
-  useEffect(() => {
-    let shortcuts: ShortcutHandler[] = []
+export function useKeyboardShortcuts(input?: KeyboardShortcut[] | ShortcutOptions | null) {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (!input) return
 
-    if (Array.isArray(input)) {
-      shortcuts = input
-    } else if (input && typeof input === "object") {
-      // Build shortcuts from callback options
-      const options = input as ShortcutsOptions
+      let shortcuts: KeyboardShortcut[] = []
 
-      if (options.shortcuts) {
-        shortcuts = [...options.shortcuts]
+      if (Array.isArray(input)) {
+        shortcuts = input
+      } else if (typeof input === "object") {
+        const options = input as ShortcutOptions
+
+        if (Array.isArray(options.shortcuts)) {
+          shortcuts = [...options.shortcuts]
+        }
+
+        if (typeof options.onSave === "function") {
+          shortcuts.push({ key: "s", ctrlKey: true, action: options.onSave })
+        }
+        if (typeof options.onNext === "function") {
+          shortcuts.push({ key: "ArrowRight", altKey: true, action: options.onNext })
+        }
+        if (typeof options.onPrevious === "function") {
+          shortcuts.push({ key: "ArrowLeft", altKey: true, action: options.onPrevious })
+        }
+        if (typeof options.onShowShortcuts === "function") {
+          shortcuts.push({ key: "?", shiftKey: true, action: options.onShowShortcuts })
+        }
       }
 
-      if (options.onSave) {
-        shortcuts.push({ key: "s", ctrl: true, handler: options.onSave })
-      }
-      if (options.onNext) {
-        shortcuts.push({ key: "ArrowRight", alt: true, handler: options.onNext })
-      }
-      if (options.onPrevious) {
-        shortcuts.push({ key: "ArrowLeft", alt: true, handler: options.onPrevious })
-      }
-      if (options.onShowShortcuts) {
-        shortcuts.push({ key: "?", shift: true, handler: options.onShowShortcuts })
-      }
-    } else {
-      console.warn("[v0] useKeyboardShortcuts: invalid input type", input)
-      return
-    }
+      if (shortcuts.length === 0) return
 
-    if (shortcuts.length === 0) {
-      return
-    }
+      shortcuts.forEach(({ key, ctrlKey, altKey, shiftKey, metaKey, action }) => {
+        const keyMatch = event.key.toLowerCase() === key.toLowerCase()
+        const ctrlMatch = !!event.ctrlKey === !!ctrlKey
+        const altMatch = !!event.altKey === !!altKey
+        const shiftMatch = !!event.shiftKey === !!shiftKey
+        const metaMatch = !!event.metaKey === !!metaKey
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      shortcuts.forEach((shortcut) => {
-        const keyMatches = event.key.toLowerCase() === shortcut.key.toLowerCase()
-        const ctrlMatches = shortcut.ctrl ? event.ctrlKey || event.metaKey : !event.ctrlKey && !event.metaKey
-        const shiftMatches = shortcut.shift ? event.shiftKey : !event.shiftKey
-        const altMatches = shortcut.alt ? event.altKey : !event.altKey
-
-        if (keyMatches && ctrlMatches && shiftMatches && altMatches) {
+        if (keyMatch && ctrlMatch && altMatch && shiftMatch && metaMatch) {
           event.preventDefault()
-          shortcut.handler()
+          if (typeof action === "function") {
+            action()
+          }
         }
       })
-    }
+    },
+    [input],
+  )
 
+  useEffect(() => {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [input])
+  }, [handleKeyDown])
 }
+
+export default useKeyboardShortcuts
