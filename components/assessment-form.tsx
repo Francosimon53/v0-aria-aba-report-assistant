@@ -86,6 +86,8 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
   const [isAutoFilling, setIsAutoFilling] = useState(false)
 
+  const [isGeneratingJustification, setIsGeneratingJustification] = useState(false)
+
   const filteredBehaviors = behaviorLibrary.filter((behavior) => {
     const matchesSearch =
       behaviorSearchQuery === "" ||
@@ -415,6 +417,52 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
     })
   }
 
+  // Function to generate hours justification using AI
+  const handleGenerateHoursJustification = async () => {
+    setIsGeneratingJustification(true)
+
+    try {
+      const response = await fetch("/api/generate-hours-justification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assessmentType: formData.assessmentType,
+          // Pass relevant data like domains, strengths, deficits, etc.
+          domains: formData.domains,
+          strengths: formData.strengths,
+          deficits: formData.deficits,
+          barriers: formData.barriers,
+          recommendations: formData.recommendations,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.justification) {
+        setFormData((prev) => ({ ...prev, hoursJustification: data.justification }))
+        toast({
+          title: "Justification Generated",
+          description: "Clinical justification for recommended hours has been generated.",
+        })
+      } else {
+        throw new Error("No justification returned from API")
+      }
+    } catch (error) {
+      console.error("Error generating justification:", error)
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Could not generate justification. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGeneratingJustification(false)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* Header */}
@@ -738,8 +786,27 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Hours Justification</Label>
-                        <AITextarea
+                        <div className="flex items-center justify-between">
+                          <Label>Hours Justification</Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleGenerateHoursJustification}
+                            disabled={isGeneratingJustification}
+                            className="text-teal-600 hover:text-teal-700"
+                          >
+                            {isGeneratingJustification ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4 mr-1" />
+                                <span className="text-xs">AI Generate</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        <Textarea
                           value={formData.hoursJustification}
                           onChange={(e) =>
                             setFormData((prev) => ({
@@ -749,7 +816,6 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                           }
                           placeholder="Provide clinical justification for the recommended service hours..."
                           rows={4}
-                          fieldName="Hours Justification"
                         />
                       </div>
                     </CardContent>
