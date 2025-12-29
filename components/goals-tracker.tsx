@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "./ui/card"
 import { Button } from "./ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
@@ -58,68 +58,7 @@ const statusConfig = {
 }
 
 export function GoalsTracker() {
-  const [ltos, setLtos] = useState<LongTermObjective[]>([
-    {
-      id: "lto-1",
-      type: "behavior-reduction",
-      description: "Reduce physical aggression towards peers from 5x/day to 1x/week",
-      startDate: "2024-01-15",
-      targetDate: "2024-07-15",
-      status: "in-progress",
-      progress: 65,
-      expanded: true,
-      stos: [
-        {
-          id: "sto-1-1",
-          description: "Use functional communication when frustrated instead of hitting",
-          baseline: "0% of opportunities",
-          current: "45% of opportunities",
-          masteryCriteria: "80% over 3 consecutive sessions",
-          status: "in-progress",
-          progress: 45,
-        },
-        {
-          id: "sto-1-2",
-          description: "Request break using break card when overwhelmed",
-          baseline: "0% of opportunities",
-          current: "70% of opportunities",
-          masteryCriteria: "90% over 5 consecutive sessions",
-          status: "in-progress",
-          progress: 70,
-        },
-      ],
-    },
-    {
-      id: "lto-2",
-      type: "skill-acquisition",
-      description: "Independently complete 10-step tooth brushing routine",
-      startDate: "2024-01-20",
-      targetDate: "2024-06-20",
-      status: "in-progress",
-      progress: 40,
-      expanded: false,
-      stos: [
-        {
-          id: "sto-2-1",
-          description: "Complete steps 1-3 (wet brush, apply toothpaste, start brushing)",
-          baseline: "0/3 steps",
-          current: "3/3 steps",
-          masteryCriteria: "3/3 steps for 5 consecutive days",
-          status: "mastery",
-          progress: 100,
-        },
-        {
-          id: "sto-2-2",
-          description: "Complete steps 4-7 (brush all quadrants systematically)",
-          baseline: "0/4 steps",
-          current: "2/4 steps",
-          masteryCriteria: "4/4 steps for 5 consecutive days",
-          status: "in-progress",
-          progress: 50,
-        },
-      ],
-    },
-  ])
+  const [ltos, setLtos] = useState<LongTermObjective[]>([])
 
   const [filterType, setFilterType] = useState<GoalType | "all">("all")
   const [filterStatus, setFilterStatus] = useState<GoalStatus | "all">("all")
@@ -132,6 +71,99 @@ export function GoalsTracker() {
 
   const [isGeneratingSTOs, setIsGeneratingSTOs] = useState(false)
   const [generatingForLTO, setGeneratingForLTO] = useState<string | null>(null)
+
+  useEffect(() => {
+    const savedGoals = localStorage.getItem("aria-goals")
+    if (savedGoals) {
+      try {
+        const parsed = JSON.parse(savedGoals)
+        if (parsed && parsed.length > 0) {
+          setLtos(parsed)
+          console.log("[v0] Goals loaded from localStorage:", parsed.length, "goals")
+        } else {
+          loadDemoData()
+        }
+      } catch (e) {
+        console.error("[v0] Error loading goals from localStorage:", e)
+        loadDemoData()
+      }
+    } else {
+      loadDemoData()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (ltos && ltos.length > 0) {
+      localStorage.setItem("aria-goals", JSON.stringify(ltos))
+      console.log("[v0] Goals saved to localStorage:", ltos.length, "goals")
+    }
+  }, [ltos])
+
+  const loadDemoData = () => {
+    const demoData: LongTermObjective[] = [
+      {
+        id: "lto-1",
+        type: "behavior-reduction",
+        description: "Reduce physical aggression towards peers from 5x/day to 1x/week",
+        startDate: "2024-01-15",
+        targetDate: "2024-07-15",
+        status: "in-progress",
+        progress: 65,
+        expanded: true,
+        stos: [
+          {
+            id: "sto-1-1",
+            description: "Use functional communication when frustrated instead of hitting",
+            baseline: "0% of opportunities",
+            current: "45% of opportunities",
+            masteryCriteria: "80% over 3 consecutive sessions",
+            status: "in-progress",
+            progress: 45,
+          },
+          {
+            id: "sto-1-2",
+            description: "Request break using break card when overwhelmed",
+            baseline: "0% of opportunities",
+            current: "70% of opportunities",
+            masteryCriteria: "90% over 5 consecutive sessions",
+            status: "in-progress",
+            progress: 70,
+          },
+        ],
+      },
+      {
+        id: "lto-2",
+        type: "skill-acquisition",
+        description: "Independently complete 10-step tooth brushing routine",
+        startDate: "2024-01-20",
+        targetDate: "2024-06-20",
+        status: "in-progress",
+        progress: 40,
+        expanded: false,
+        stos: [
+          {
+            id: "sto-2-1",
+            description: "Complete steps 1-3 (wet brush, apply toothpaste, start brushing)",
+            baseline: "0/3 steps",
+            current: "3/3 steps",
+            masteryCriteria: "3/3 steps for 5 consecutive days",
+            status: "mastery",
+            progress: 100,
+          },
+          {
+            id: "sto-2-2",
+            description: "Complete steps 4-7 (brush all quadrants systematically)",
+            baseline: "0/4 steps",
+            current: "2/4 steps",
+            masteryCriteria: "4/4 steps for 5 consecutive days",
+            status: "in-progress",
+            progress: 50,
+          },
+        ],
+      },
+    ]
+    setLtos(demoData)
+  }
 
   const toggleLTOExpanded = (ltoId: string) => {
     setLtos(ltos.map((lto) => (lto.id === ltoId ? { ...lto, expanded: !lto.expanded } : lto)))
@@ -174,14 +206,13 @@ export function GoalsTracker() {
       const data = await response.json()
 
       if (data.stos && data.stos.length > 0) {
-        // Add generated STOs to the goal
         setLtos(
           ltos.map((l) =>
             l.id === lto.id
               ? {
                   ...l,
                   stos: [...l.stos, ...data.stos],
-                  expanded: true, // Expand to show new STOs
+                  expanded: true,
                 }
               : l,
           ),
