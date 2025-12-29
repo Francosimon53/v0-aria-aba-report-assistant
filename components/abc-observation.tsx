@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { AITextarea } from "@/components/ui/ai-textarea"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -43,6 +43,7 @@ export function ABCObservation() {
   ])
 
   const [isAnalyzingFunction, setIsAnalyzingFunction] = useState<string | null>(null)
+  const [generatingField, setGeneratingField] = useState<{ id: string; field: string } | null>(null)
 
   const addObservation = () => {
     const newObservation: ABCObservation = {
@@ -120,7 +121,6 @@ export function ABCObservation() {
         throw new Error(data.error || "Analysis failed")
       }
 
-      // Update observation with AI-suggested function and reasoning
       setObservations(
         observations.map((obs) =>
           obs.id === observationId
@@ -141,6 +141,45 @@ export function ABCObservation() {
       premiumToast.error(error instanceof Error ? error.message : "Could not analyze behavior function")
     } finally {
       setIsAnalyzingFunction(null)
+    }
+  }
+
+  const handleGenerateField = async (observationId: string, field: "antecedent" | "behavior" | "consequence") => {
+    setGeneratingField({ id: observationId, field })
+
+    try {
+      const observation = observations.find((obs) => obs.id === observationId)
+      if (!observation) return
+
+      const response = await fetch("/api/generate-abc-field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          field,
+          existingData: {
+            antecedent: observation.antecedent,
+            behavior: observation.behavior,
+            consequence: observation.consequence,
+          },
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Generation failed")
+      }
+
+      setObservations(observations.map((obs) => (obs.id === observationId ? { ...obs, [field]: data.text } : obs)))
+
+      premiumToast.success("Generated!", {
+        description: `${field.charAt(0).toUpperCase() + field.slice(1)} has been filled with AI-generated content`,
+      })
+    } catch (error) {
+      console.error("Error:", error)
+      premiumToast.error(error instanceof Error ? error.message : "Could not generate content")
+    } finally {
+      setGeneratingField(null)
     }
   }
 
@@ -218,14 +257,30 @@ export function ABCObservation() {
                       Antecedent
                     </Label>
                     <p className="text-xs text-muted-foreground mb-2">What happened before the behavior?</p>
-                    <AITextarea
-                      id={`antecedent-${observation.id}`}
-                      value={observation.antecedent}
-                      onChange={(e) => updateObservation(observation.id, "antecedent", e.target.value)}
-                      placeholder="Describe the situation, context, or trigger that occurred immediately before the behavior..."
-                      className="min-h-[120px] resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
-                      fieldName="Antecedent"
-                    />
+                    <div className="relative">
+                      <Textarea
+                        id={`antecedent-${observation.id}`}
+                        value={observation.antecedent}
+                        onChange={(e) => updateObservation(observation.id, "antecedent", e.target.value)}
+                        placeholder="Describe the situation, context, or trigger that occurred immediately before the behavior..."
+                        className="min-h-[120px] pr-10 resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleGenerateField(observation.id, "antecedent")}
+                        disabled={generatingField?.id === observation.id && generatingField?.field === "antecedent"}
+                        className="absolute bottom-2 right-2 h-7 w-7 text-gray-400 hover:text-teal-600 hover:bg-teal-50"
+                        title="AI Generate Example"
+                      >
+                        {generatingField?.id === observation.id && generatingField?.field === "antecedent" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -239,14 +294,30 @@ export function ABCObservation() {
                       Behavior
                     </Label>
                     <p className="text-xs text-muted-foreground mb-2">What did the person do?</p>
-                    <AITextarea
-                      id={`behavior-${observation.id}`}
-                      value={observation.behavior}
-                      onChange={(e) => updateObservation(observation.id, "behavior", e.target.value)}
-                      placeholder="Describe the specific, observable behavior in objective terms..."
-                      className="min-h-[120px] resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
-                      fieldName="Behavior"
-                    />
+                    <div className="relative">
+                      <Textarea
+                        id={`behavior-${observation.id}`}
+                        value={observation.behavior}
+                        onChange={(e) => updateObservation(observation.id, "behavior", e.target.value)}
+                        placeholder="Describe the specific, observable behavior in objective terms..."
+                        className="min-h-[120px] pr-10 resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleGenerateField(observation.id, "behavior")}
+                        disabled={generatingField?.id === observation.id && generatingField?.field === "behavior"}
+                        className="absolute bottom-2 right-2 h-7 w-7 text-gray-400 hover:text-teal-600 hover:bg-teal-50"
+                        title="AI Generate Example"
+                      >
+                        {generatingField?.id === observation.id && generatingField?.field === "behavior" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -260,14 +331,30 @@ export function ABCObservation() {
                       Consequence
                     </Label>
                     <p className="text-xs text-muted-foreground mb-2">What happened after the behavior?</p>
-                    <AITextarea
-                      id={`consequence-${observation.id}`}
-                      value={observation.consequence}
-                      onChange={(e) => updateObservation(observation.id, "consequence", e.target.value)}
-                      placeholder="Describe the response or outcome that followed the behavior..."
-                      className="min-h-[120px] resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
-                      fieldName="Consequence"
-                    />
+                    <div className="relative">
+                      <Textarea
+                        id={`consequence-${observation.id}`}
+                        value={observation.consequence}
+                        onChange={(e) => updateObservation(observation.id, "consequence", e.target.value)}
+                        placeholder="Describe the response or outcome that followed the behavior..."
+                        className="min-h-[120px] pr-10 resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleGenerateField(observation.id, "consequence")}
+                        disabled={generatingField?.id === observation.id && generatingField?.field === "consequence"}
+                        className="absolute bottom-2 right-2 h-7 w-7 text-gray-400 hover:text-teal-600 hover:bg-teal-50"
+                        title="AI Generate Example"
+                      >
+                        {generatingField?.id === observation.id && generatingField?.field === "consequence" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
