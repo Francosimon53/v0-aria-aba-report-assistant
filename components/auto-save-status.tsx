@@ -1,7 +1,7 @@
 "use client"
 
 import { useAutoSaveContext } from "@/contexts/auto-save-context"
-import { Loader2, CheckCircle2, Cloud, CloudOff, Save } from "lucide-react"
+import { Loader2, CheckCircle2, Cloud, CloudOff, Save } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 
 export function AutoSaveStatus() {

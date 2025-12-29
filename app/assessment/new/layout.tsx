@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react"
 import { AutoSaveProvider } from "@/contexts/auto-save-context"
 import { AutoSaveStatus } from "@/components/auto-save-status"

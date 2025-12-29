@@ -182,7 +182,9 @@ export function CheckCircle2Icon({ className }: { className?: string }) {
   )
 }
 
-export function CheckCircleIcon({ className }: { className?: string }) {
+export const CheckCircle2 = CheckCircle2Icon
+
+export function CloudIcon({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -194,13 +196,14 @@ export function CheckCircleIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      <circle cx="12" cy="12" r="10" />
-      <path d="m9 12 2 2 4-4" />
+      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
     </svg>
   )
 }
 
-export function CheckIcon({ className }: { className?: string }) {
+export const Cloud = CloudIcon
+
+export function CloudOffIcon({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -212,10 +215,14 @@ export function CheckIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      <path d="M20 6 9 17l-5-5" />
+      <path d="m2 2 20 20" />
+      <path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193" />
+      <path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07" />
     </svg>
   )
 }
+
+export const CloudOff = CloudOffIcon
 
 export function SendIcon({ className }: { className?: string }) {
   return (
@@ -370,6 +377,8 @@ export function SaveIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+
+export const Save = SaveIcon
 
 export function RefreshCwIcon({ className }: { className?: string }) {
   return (
@@ -887,9 +896,10 @@ export function DownloadIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="8 10 12 14 16 10" />
-      <line x1="12" y1="14" x2="12" y2="3" />
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="M12 18v-6" />
+      <path d="m9 15 3 3 3-3" />
     </svg>
   )
 }
@@ -1078,23 +1088,6 @@ export function XIcon({ className }: { className?: string }) {
 
 export const X = XIcon
 
-export function ChevronUpIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m18 15-6-6-6 6" />
-    </svg>
-  )
-}
-
 export function StarIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -1162,7 +1155,7 @@ export function EditIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
   )
@@ -1257,6 +1250,58 @@ export function ArrowDownIcon({ className }: { className?: string }) {
     >
       <path d="M12 5v14" />
       <path d="m19 12-7 7-7-7" />
+    </svg>
+  )
+}
+
+export function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  )
+}
+
+export function CheckCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  )
+}
+
+export function ChevronUpIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="m18 15-6-6-6 6" />
     </svg>
   )
 }
