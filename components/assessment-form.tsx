@@ -473,21 +473,46 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
     setIsSuggestingBehaviors(true)
 
     try {
-      // Get assessment data from formData
       const deficits = formData.deficits || []
-      const domainScores = formData.domains.map((d) => ({ name: d.domain, score: d.score })) // Corrected to use domain property
+      const domainScores = formData.domains.map((d) => ({ name: d.domain, score: d.score }))
+      const strengths = formData.strengths || []
+      const barriers = formData.barriers || []
+
+      if (deficits.length === 0 && domainScores.length === 0) {
+        toast({
+          title: "No Assessment Data",
+          description: "Please fill in the Assessment & Domains tab first, then try again.",
+          variant: "destructive",
+        })
+        setIsSuggestingBehaviors(false)
+        return
+      }
+
+      console.log("[v0] Suggesting behaviors with data:", {
+        deficits,
+        domainScores,
+        strengths,
+        barriers,
+      })
 
       const response = await fetch("/api/suggest-behaviors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.JSONstringify({
+        body: JSON.stringify({
           deficits,
           domainScores,
+          strengths,
+          barriers,
           availableBehaviors: behaviorLibrary.map((b) => b.name),
         }),
       })
 
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
       const data = await response.json()
+      console.log("[v0] Received suggestions:", data)
 
       if (data.suggestions && data.suggestions.length > 0) {
         setSuggestedBehaviors(data.suggestions)
@@ -504,10 +529,10 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
         })
       }
     } catch (error) {
-      console.error("Error:", error)
+      console.error("[v0] Error suggesting behaviors:", error)
       toast({
         title: "Suggestion failed",
-        description: "Could not analyze assessment data.",
+        description: "Could not analyze assessment data. Please try again.",
         variant: "destructive",
       })
     } finally {
