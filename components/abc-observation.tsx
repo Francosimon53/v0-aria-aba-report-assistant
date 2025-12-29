@@ -96,7 +96,7 @@ export function ABCObservation() {
 
     if (!observation) return
 
-    if (!observation.antecedent || !observation.behavior || !observation.consequence) {
+    if (!observation.antecedent?.trim() || !observation.behavior?.trim() || !observation.consequence?.trim()) {
       premiumToast.error("Please fill in Antecedent, Behavior, and Consequence first")
       return
     }
@@ -114,21 +114,31 @@ export function ABCObservation() {
         }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to analyze function")
-      }
-
       const data = await response.json()
 
-      if (data.function) {
-        updateObservation(observationId, "function", data.function.toLowerCase())
-        updateObservation(observationId, "functionReasoning", data.reasoning)
-
-        premiumToast.success(`AI suggests: ${data.function} function`)
+      if (!response.ok) {
+        throw new Error(data.error || "Analysis failed")
       }
+
+      // Update observation with AI-suggested function and reasoning
+      setObservations(
+        observations.map((obs) =>
+          obs.id === observationId
+            ? {
+                ...obs,
+                function: data.function.toLowerCase() as ABCObservation["function"],
+                functionReasoning: `${data.reasoning} (${data.confidence || "medium"} confidence)`,
+              }
+            : obs,
+        ),
+      )
+
+      premiumToast.success(`AI suggests: ${data.function} function`, {
+        description: data.reasoning,
+      })
     } catch (error) {
       console.error("Error:", error)
-      premiumToast.error("Could not analyze behavior function")
+      premiumToast.error(error instanceof Error ? error.message : "Could not analyze behavior function")
     } finally {
       setIsAnalyzingFunction(null)
     }

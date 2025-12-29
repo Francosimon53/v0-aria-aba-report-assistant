@@ -4,9 +4,8 @@ export async function POST(request: Request) {
   try {
     const { antecedent, behavior, consequence } = await request.json()
 
-    // Validate input
-    if (!antecedent || !behavior || !consequence) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    if (!antecedent?.trim() || !behavior?.trim() || !consequence?.trim()) {
+      return NextResponse.json({ error: "Please fill in Antecedent, Behavior, and Consequence first" }, { status: 400 })
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -44,22 +43,30 @@ Return a JSON object with:
   "reasoning": "Brief explanation (1-2 sentences) of why this function is most likely based on the ABC data"
 }
 
-Return ONLY the JSON object, no other text.`,
+Return ONLY the JSON object, no markdown or extra text.`,
           },
         ],
       }),
     })
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status}`)
+      const errorData = await response.json().catch(() => ({}))
+      console.error("Anthropic API error:", errorData)
+      return NextResponse.json({ error: "AI analysis failed" }, { status: 500 })
     }
 
     const data = await response.json()
     const content = data.content[0].text
 
-    // Extract JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    // Extract JSON from response - handle markdown code blocks
+    let jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/)
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[1])
+      return NextResponse.json(result)
+    }
 
+    // Try without markdown
+    jsonMatch = content.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       console.error("Failed to parse response:", content)
       return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 })
@@ -67,7 +74,6 @@ Return ONLY the JSON object, no other text.`,
 
     const result = JSON.parse(jsonMatch[0])
 
-    // Validate the result has required fields
     if (!result.function || !result.reasoning) {
       return NextResponse.json({ error: "Invalid response format" }, { status: 500 })
     }
@@ -75,6 +81,9 @@ Return ONLY the JSON object, no other text.`,
     return NextResponse.json(result)
   } catch (error) {
     console.error("Error analyzing behavior function:", error)
-    return NextResponse.json({ error: "Failed to analyze behavior function" }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to analyze behavior function" },
+      { status: 500 },
+    )
   }
 }
