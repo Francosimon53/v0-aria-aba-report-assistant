@@ -7,13 +7,22 @@ import { Button } from "@/components/ui/button"
 export function AutoSaveStatus() {
   const { isSaving, lastSaved, hasUnsavedChanges, saveAllSections } = useAutoSaveContext()
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (date: Date | null) => {
+    if (!date || isNaN(date.getTime())) return ""
+
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000)
+
+    // Handle future dates
+    if (seconds < 0) return "just now"
     if (seconds < 60) return "just now"
+
     const minutes = Math.floor(seconds / 60)
     if (minutes < 60) return `${minutes}m ago`
+
     const hours = Math.floor(minutes / 60)
-    return `${hours}h ago`
+    if (hours < 24) return `${hours}h ago`
+
+    return "earlier"
   }
 
   return (
@@ -30,7 +39,7 @@ export function AutoSaveStatus() {
             <CloudOff className="h-3.5 w-3.5" />
             <span className="text-xs font-medium">Unsaved changes</span>
           </div>
-        ) : lastSaved ? (
+        ) : lastSaved && !isNaN(lastSaved.getTime()) ? (
           <div className="flex items-center gap-1.5 text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
             <CheckCircle2 className="h-3.5 w-3.5" />
             <span className="text-xs font-medium">Saved {formatTimeAgo(lastSaved)}</span>

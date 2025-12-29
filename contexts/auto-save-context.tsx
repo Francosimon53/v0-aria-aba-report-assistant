@@ -23,6 +23,36 @@ export function AutoSaveProvider({ children }: { children: React.ReactNode }) {
   const [pendingChanges, setPendingChanges] = useState<Record<string, any>>({})
   const { toast } = useToast()
 
+  useEffect(() => {
+    const keysToCheck = [
+      "aria-assessment-client-info",
+      "aria-assessment-abc-observations",
+      "aria-assessment-selected-goals",
+      "aria-assessment-assessment-data",
+      "aria-assessment-behaviors",
+      "aria-assessment-background",
+    ]
+
+    keysToCheck.forEach((key) => {
+      const saved = localStorage.getItem(key)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          if (parsed.timestamp) {
+            const date = new Date(parsed.timestamp)
+            if (isNaN(date.getTime())) {
+              localStorage.removeItem(key)
+              console.log(`[v0] Cleaned corrupted data for ${key}`)
+            }
+          }
+        } catch {
+          localStorage.removeItem(key)
+          console.log(`[v0] Removed invalid JSON for ${key}`)
+        }
+      }
+    })
+  }, [])
+
   // Mark that there are unsaved changes
   const markAsChanged = useCallback(() => {
     setHasUnsavedChanges(true)
@@ -51,9 +81,21 @@ export function AutoSaveProvider({ children }: { children: React.ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
+
+        // Validate timestamp if present
+        if (parsed.timestamp) {
+          const date = new Date(parsed.timestamp)
+          if (isNaN(date.getTime())) {
+            console.warn(`[v0] Invalid timestamp in ${key}, ignoring`)
+            localStorage.removeItem(storageKey)
+            return null
+          }
+        }
+
         return parsed.data
       } catch (e) {
-        console.error(`Failed to load ${key}:`, e)
+        console.error(`[v0] Failed to load ${key}:`, e)
+        localStorage.removeItem(storageKey)
         return null
       }
     }
