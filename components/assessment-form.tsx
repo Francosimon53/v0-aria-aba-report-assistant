@@ -473,13 +473,12 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                 step={5}
                                 className="w-full"
                               />
-                              <AITextarea
+                              <Textarea
                                 placeholder={`Notes for ${domain}...`}
                                 value={domainData?.notes || ""}
                                 onChange={(e) => handleDomainChange(domain, domainData?.score || 0, e.target.value)}
                                 className="text-sm"
                                 rows={2}
-                                fieldName={`${domain} Notes`}
                               />
                               <Button
                                 type="button"
