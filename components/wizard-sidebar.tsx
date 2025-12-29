@@ -125,7 +125,7 @@ const WIZARD_STEPS: WizardStep[] = [
   // Phase 4: Data & Goals
   {
     id: "integration",
-    label: "Data Integration",
+    label: "Data Integration (Optional)", // Added "(Optional)" text
     icon: DatabaseIcon,
     description: "Import & visualize data",
     phase: 4,

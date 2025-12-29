@@ -185,10 +185,13 @@ export function Dashboard() {
       case "progressdashboard":
         return <ProgressDashboard clientData={clientData} assessmentData={assessmentData} />
       case "integration":
-        return <DataIntegration onDataImported={(data) => setAgencyData(data)} />
+        return (
+          <DataIntegration clientData={clientData} onDataImport={(data) => setAgencyData(data)} onSkip={handleNext} />
+        )
       case "goals":
         return (
           <GoalBankBrowser
+            clientData={clientData}
             onGoalSelect={(goal) => setSelectedGoals((prev) => [...prev, goal])}
             selectedGoals={selectedGoals}
           />

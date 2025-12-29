@@ -11,7 +11,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { UploadIcon, LinkIcon, BarChart3Icon, TrendingUpIcon, CheckIcon, RefreshCwIcon } from "@/components/icons"
+import {
+  UploadIcon,
+  LinkIcon,
+  BarChart3Icon,
+  TrendingUpIcon,
+  CheckIcon,
+  RefreshCwIcon,
+  ChevronRightIcon,
+} from "@/components/icons"
 import type { ClientData, AgencyData, APIIntegration } from "@/lib/types"
 import { LineChart } from "./charts/line-chart"
 import { BarChart } from "./charts/bar-chart"
@@ -19,9 +27,10 @@ import { BarChart } from "./charts/bar-chart"
 interface DataIntegrationProps {
   clientData: ClientData | null
   onDataImport: (data: AgencyData) => void
+  onSkip?: () => void // Added optional onSkip prop
 }
 
-export function DataIntegration({ clientData, onDataImport }: DataIntegrationProps) {
+export function DataIntegration({ clientData, onDataImport, onSkip }: DataIntegrationProps) {
   const [activeTab, setActiveTab] = useState("import")
   const [integrations, setIntegrations] = useState<APIIntegration[]>([
     {
@@ -113,9 +122,18 @@ export function DataIntegration({ clientData, onDataImport }: DataIntegrationPro
     <div className="flex flex-col h-full">
       {/* Header section - fixed at top */}
       <div className="shrink-0 p-6 pb-4 border-b border-border">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Data Integration</h1>
-        <p className="text-muted-foreground">
-          Import data from agency software, connect APIs, and visualize client progress
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-3xl font-bold text-foreground">Data Integration</h1>
+          {onSkip && (
+            <Button variant="outline" onClick={onSkip} className="gap-2 bg-transparent">
+              Skip this step
+              <ChevronRightIcon className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <p className="text-muted-foreground max-w-3xl">
+          Import existing client data from your practice management system, or skip this step if you prefer to enter
+          information manually.
         </p>
       </div>
 
