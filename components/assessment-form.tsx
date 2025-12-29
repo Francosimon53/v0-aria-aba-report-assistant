@@ -88,6 +88,10 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
   const [isGeneratingJustification, setIsGeneratingJustification] = useState(false)
 
+  const [isSuggestingBehaviors, setIsSuggestingBehaviors] = useState(false)
+  const [suggestedBehaviors, setSuggestedBehaviors] = useState<any[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
   const filteredBehaviors = behaviorLibrary.filter((behavior) => {
     const matchesSearch =
       behaviorSearchQuery === "" ||
@@ -463,6 +467,79 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
     }
   }
 
+  const handleSuggestBehaviors = async () => {
+    setIsSuggestingBehaviors(true)
+
+    try {
+      // Get assessment data from formData
+      const deficits = formData.deficits || []
+      const domainScores = formData.domains.map((d) => ({ name: d.domain, score: d.score })) // Corrected to use domain property
+
+      const response = await fetch("/api/suggest-behaviors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deficits,
+          domainScores,
+          availableBehaviors: behaviorLibrary.map((b) => b.name),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.suggestions && data.suggestions.length > 0) {
+        setSuggestedBehaviors(data.suggestions)
+        setShowSuggestions(true)
+        toast({
+          title: "Behaviors Suggested",
+          description: `AI identified ${data.suggestions.length} likely problem behaviors based on assessment.`,
+        })
+      } else {
+        toast({
+          title: "No Suggestions",
+          description: "Could not generate behavior suggestions. Try adding assessment data first.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Suggestion failed",
+        description: "Could not analyze assessment data.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSuggestingBehaviors(false)
+    }
+  }
+
+  const addBehaviorFromSuggestion = (suggestion: any) => {
+    const template = behaviorLibrary.find((b) => b.name === suggestion.name)
+    if (template) {
+      const newBehavior: BehaviorReduction = {
+        id: `behavior-${Date.now()}`,
+        behaviorName: template.name,
+        operationalDefinition: template.operationalDefinition,
+        function: suggestion.function || template.commonFunctions[0],
+        antecedents: template.commonAntecedents.length > 0 ? template.commonAntecedents : [""],
+        consequences: [""],
+        replacementBehavior: template.replacementBehaviors[0] || "",
+        interventionStrategies: template.typicalInterventions.length > 0 ? template.typicalInterventions : [""],
+        dataCollectionMethod: "",
+        measurementType: "frequency",
+        baselineData: "",
+        targetCriteria: "",
+        safetyConsiderations: template.safetyRisk === "high" ? "High safety risk - requires safety plan" : "",
+        notes: `${template.description}\n\nAI Suggestion: ${suggestion.reason}`,
+      }
+      setBehaviorReductions((prev) => [...prev, newBehavior])
+      toast({
+        title: "Behavior Added",
+        description: `${template.name} has been added from AI suggestions`,
+      })
+    }
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* Header */}
@@ -635,7 +712,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                   value={domain}
                                   onChange={(e) => handleUpdateCustomDomainName(domain, e.target.value)}
                                   placeholder="Domain name..."
-                                  className="flex-1 font-medium"
+                                  className="flex-1"
                                 />
                                 <Button
                                   variant="ghost"
@@ -1045,15 +1122,88 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                     <>
                       {/* Action Buttons */}
                       <div className="flex gap-3">
-                        <Button onClick={() => setShowBehaviorLibrary(true)} variant="default" className="flex-1">
+                        <Button onClick={() => setShowBehaviorLibrary(true)} className="bg-teal-600 hover:bg-teal-700">
                           <SearchIcon className="h-4 w-4 mr-2" />
                           Browse Behavior Library ({behaviorLibrary.length} templates)
                         </Button>
+
+                        <Button
+                          variant="outline"
+                          onClick={handleSuggestBehaviors}
+                          disabled={isSuggestingBehaviors || !formData.deficits || formData.deficits.length === 0}
+                          className="border-teal-600 text-teal-600 hover:bg-teal-50 bg-transparent"
+                        >
+                          {isSuggestingBehaviors ? (
+                            <>
+                              <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                              Analyzing...
+                            </>
+                          ) : (
+                            <>
+                              <SparklesIcon className="h-4 w-4 mr-2" />
+                              AI Suggest Behaviors
+                            </>
+                          )}
+                        </Button>
+
                         <Button onClick={addNewBehavior} variant="outline">
                           <PlusIcon className="h-4 w-4 mr-2" />
                           Add Custom Behavior
                         </Button>
                       </div>
+
+                      {showSuggestions && suggestedBehaviors.length > 0 && (
+                        <Card className="mb-4 border-teal-200 bg-teal-50">
+                          <CardHeader className="pb-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <SparklesIcon className="h-5 w-5 text-teal-600" />
+                                <CardTitle className="text-lg text-teal-800">AI Suggested Behaviors</CardTitle>
+                              </div>
+                              <Button variant="ghost" size="sm" onClick={() => setShowSuggestions(false)}>
+                                <XIcon className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <p className="text-sm text-teal-700">Based on identified deficits and assessment scores</p>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {suggestedBehaviors.map((behavior, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center justify-between p-3 bg-white rounded-lg border border-teal-100"
+                                >
+                                  <div className="flex-1 mr-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <p className="font-medium">{behavior.name}</p>
+                                      <Badge
+                                        variant={
+                                          behavior.risk === "high"
+                                            ? "destructive"
+                                            : behavior.risk === "medium"
+                                              ? "default"
+                                              : "secondary"
+                                        }
+                                      >
+                                        {behavior.risk} risk
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm text-gray-600">{behavior.reason}</p>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => addBehaviorFromSuggestion(behavior)}
+                                  >
+                                    <PlusIcon className="h-4 w-4 mr-1" />
+                                    Add
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
 
                       {/* Existing Behaviors List */}
                       {behaviorReductions.length === 0 ? (
