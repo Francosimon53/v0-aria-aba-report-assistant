@@ -480,7 +480,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
       const response = await fetch("/api/suggest-behaviors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.JSONstringify({
           deficits,
           domainScores,
           availableBehaviors: behaviorLibrary.map((b) => b.name),
@@ -562,12 +562,48 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
       })
 
       if (!response.ok) {
-        throw new Error("Failed to generate")
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errorData.error || "Failed to generate")
       }
 
       const data = await response.json()
 
-      if (data.value) {
+      if (!data.value) {
+        throw new Error("No value returned from API")
+      }
+
+      // Define which fields are arrays
+      const arrayFields = ["antecedents", "consequences", "interventionStrategies"]
+
+      if (arrayFields.includes(fieldName)) {
+        // Parse the generated text into array items (split by newlines)
+        const items = data.value
+          .split("\n")
+          .map((item: string) => item.trim())
+          .filter((item: string) => item.length > 0)
+
+        if (items.length === 0) {
+          throw new Error("No valid items generated")
+        }
+
+        // Get current array and add new items
+        const currentArray = behavior[fieldName as keyof BehaviorReduction] as string[]
+        const filteredCurrentArray = currentArray.filter((item) => item.trim().length > 0)
+
+        // Update with combined array
+        updateBehavior(behaviorId, {
+          [fieldName]: [...filteredCurrentArray, ...items],
+        })
+
+        toast({
+          title: "Generated Successfully",
+          description: `Added ${items.length} ${fieldName
+            .replace(/([A-Z])/g, " $1")
+            .trim()
+            .toLowerCase()}.`,
+        })
+      } else {
+        // For regular text fields
         updateBehavior(behaviorId, { [fieldName]: data.value })
         toast({
           title: "Generated Successfully",
@@ -577,8 +613,8 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
     } catch (error) {
       console.error("Error generating behavior field:", error)
       toast({
-        title: "Generation failed",
-        description: "Unable to generate content. Please try again.",
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Unable to generate content. Please try again.",
         variant: "destructive",
       })
     } finally {

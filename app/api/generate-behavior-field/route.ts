@@ -19,7 +19,11 @@ export async function POST(request: Request) {
 
       intensity: `Rate the typical intensity level for "${behaviorName}" and provide a brief clinical description. Use format: "Moderate - briefly describe impact" or "High - describe severity and risk". One sentence maximum.`,
 
-      consequences: `List 2-3 common maintaining consequences for "${behaviorName}" with the function "${behaviorFunction}". These should be specific environmental events that occur AFTER the behavior and likely reinforce it. Format as a brief bulleted or comma-separated list.`,
+      consequences: `List 2-3 common maintaining consequences for "${behaviorName}" with the function "${behaviorFunction}". These should be specific environmental events that occur AFTER the behavior and likely reinforce it. Return each consequence on a new line with NO numbering, bullets, or dashes. Just plain text, one consequence per line.`,
+
+      antecedents: `List 2-3 common antecedents (triggers) that precede "${behaviorName}". These should be specific environmental events, demands, or contexts that occur BEFORE the behavior. Return each antecedent on a new line with NO numbering, bullets, or dashes. Just plain text, one antecedent per line.`,
+
+      interventionStrategies: `List 2-3 evidence-based intervention strategies for "${behaviorName}" with function "${behaviorFunction}". Include specific ABA techniques like DRA, FCT, antecedent modifications, etc. Return each strategy on a new line with NO numbering, bullets, or dashes. Just plain text, one strategy per line.`,
 
       replacementBehavior: `Suggest an appropriate, functionally equivalent replacement behavior for "${behaviorName}" with function "${behaviorFunction}". The replacement must serve the same function but be socially appropriate. Provide a 1-2 sentence description of the replacement behavior.`,
 
@@ -62,15 +66,6 @@ export async function POST(request: Request) {
 
     if (!value) {
       throw new Error("No content generated")
-    }
-
-    // Special handling for consequences - if AI returns a list, convert to the first item for the array
-    if (fieldName === "consequences" && value.includes("\n")) {
-      const firstItem = value
-        .split("\n")[0]
-        .replace(/^[-•*]\s*/, "")
-        .trim()
-      return NextResponse.json({ value: firstItem })
     }
 
     return NextResponse.json({ value })
