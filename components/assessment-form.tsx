@@ -461,9 +461,32 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                         {selectedAssessment.domains.slice(0, 8).map((domain) => {
                           const domainData = formData.domains?.find((d) => d.domain === domain)
                           return (
-                            <div key={domain} className="space-y-3 p-4 border rounded-lg relative">
-                              <div className="flex items-center justify-between">
-                                <Label className="font-medium">{domain}</Label>
+                            <div key={domain} className="space-y-3 p-4 border rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Label className="font-medium">{domain}</Label>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleGenerateDomainNotes(domain, domainData?.score || 0)}
+                                    disabled={isGeneratingNotes === domain}
+                                    className="h-6 px-2 text-teal-600 hover:text-teal-700 hover:bg-teal-50 transition-colors"
+                                    title="Generate clinical notes with AI"
+                                  >
+                                    {isGeneratingNotes === domain ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                        <span className="text-xs">Generating...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Sparkles className="h-3 w-3 mr-1" />
+                                        <span className="text-xs">AI Generate</span>
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
                                 <span className="text-sm text-muted-foreground">Score: {domainData?.score || 0}%</span>
                               </div>
                               <Slider
@@ -480,21 +503,6 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                 className="text-sm"
                                 rows={2}
                               />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleGenerateDomainNotes(domain, domainData?.score || 0)}
-                                disabled={isGeneratingNotes === domain}
-                                className="absolute bottom-2 right-2"
-                                title="Generate clinical notes with AI"
-                              >
-                                {isGeneratingNotes === domain ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Sparkles className="h-4 w-4 text-gray-400 hover:text-teal-600" />
-                                )}
-                              </Button>
                             </div>
                           )
                         })}
