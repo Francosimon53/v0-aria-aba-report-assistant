@@ -1,5 +1,7 @@
 import type { NextRequest } from "next/server"
 import { ASSESSMENT_INSTRUMENTS_KNOWLEDGE } from "@/lib/aba-prompts"
+import { createClient } from "@/lib/supabase/server"
+import OpenAI from "openai"
 
 export const maxDuration = 60
 
@@ -52,6 +54,49 @@ SECTION-SPECIFIC GUIDELINES:
 
 Remember: Write as if this is a final report ready for insurance submission. Use complete, professional clinical language.`
 
+async function getRAGContext(query: string): Promise<string> {
+  try {
+    const openaiKey = process.env.OPENAI_API_KEY
+    if (!openaiKey) {
+      console.log("[v0] OpenAI API key not configured, skipping RAG")
+      return ""
+    }
+
+    const openai = new OpenAI({ apiKey: openaiKey })
+
+    // Create embedding for the query
+    const embeddingResponse = await openai.embeddings.create({
+      model: "text-embedding-ada-002",
+      input: query,
+    })
+    const queryEmbedding = embeddingResponse.data[0].embedding
+
+    // Search Supabase for similar content
+    const supabase = await createClient()
+    const { data: matches, error } = await supabase.rpc("match_rag_embeddings", {
+      query_embedding: queryEmbedding,
+      match_threshold: 0.5,
+      match_count: 5,
+    })
+
+    if (error) {
+      console.error("[v0] RAG query error:", error)
+      return ""
+    }
+
+    if (!matches || matches.length === 0) {
+      console.log("[v0] No RAG matches found")
+      return ""
+    }
+
+    console.log(`[v0] Found ${matches.length} RAG matches`)
+    return matches.map((m: any) => m.content).join("\n\n---\n\n")
+  } catch (error) {
+    console.error("[v0] RAG query error:", error)
+    return ""
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const anthropicKey = process.env.ANTHROPIC_API_KEY
@@ -89,6 +134,12 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "No message content provided" }, { status: 400 })
     }
 
+    let ragContext = ""
+    if (isReportSection && sectionType) {
+      console.log(`[v0] Fetching RAG context for section: ${sectionType}`)
+      ragContext = await getRAGContext(`${sectionType} ABA assessment report insurance documentation`)
+    }
+
     // Build context for the AI
     let contextInfo = ""
     if (clientDiagnosis) {
@@ -119,6 +170,10 @@ export async function POST(req: NextRequest) {
     // Determine max tokens based on section type
     const maxTokens = isReportSection ? 1500 : 500
 
+    const systemPromptWithRAG = ragContext
+      ? `${REPORT_SECTION_PROMPT}\n\n--- KNOWLEDGE BASE CONTEXT ---\n${ragContext}\n--- END CONTEXT ---`
+      : REPORT_SECTION_PROMPT
+
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -129,7 +184,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: maxTokens,
-        system: REPORT_SECTION_PROMPT,
+        system: systemPromptWithRAG, // Using enhanced system prompt with RAG
         messages: [
           {
             role: "user",
