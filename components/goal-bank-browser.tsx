@@ -31,6 +31,33 @@ interface GoalBankBrowserProps {
   selectedGoals?: SelectedGoal[]
 }
 
+interface BaselineData {
+  measurementType: string
+  // Frequency fields
+  currentRate?: string
+  ratePer?: string
+  // Accuracy/Discrete Trial fields
+  percentCorrect?: string
+  totalTrials?: string
+  // Duration fields
+  averageDuration?: string
+  durationUnit?: string
+  minDuration?: string
+  maxDuration?: string
+  // Task Analysis fields
+  stepsCompleted?: string
+  totalSteps?: string
+  // Interval fields
+  percentOfIntervals?: string
+  observationDuration?: string
+  // Common fields
+  promptLevel: string
+  setting: string
+  dataSource: string
+  collectionPeriod: string
+  notes?: string
+}
+
 export function GoalBankBrowser({ onGoalSelect, selectedGoals = [] }: GoalBankBrowserProps) {
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
@@ -40,7 +67,13 @@ export function GoalBankBrowser({ onGoalSelect, selectedGoals = [] }: GoalBankBr
   const [selectedGoalForAdd, setSelectedGoalForAdd] = useState<string | null>(null)
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium")
   const [targetDate, setTargetDate] = useState("")
-  const [baselineData, setBaselineData] = useState("")
+  const [baseline, setBaseline] = useState<BaselineData>({
+    measurementType: "",
+    promptLevel: "Independent",
+    setting: "Clinic",
+    dataSource: "Direct Observation",
+    collectionPeriod: "5",
+  })
   const [customizations, setCustomizations] = useState("")
 
   const filteredGoals = goalBank.filter((goal) => {
@@ -73,14 +106,66 @@ export function GoalBankBrowser({ onGoalSelect, selectedGoals = [] }: GoalBankBr
     return (selectedGoals ?? []).some((g) => g.goalId === goalId)
   }
 
+  const generateBaselineStatement = (): string => {
+    const { measurementType, promptLevel, setting, dataSource, collectionPeriod } = baseline
+
+    if (!measurementType) return "Please fill in baseline data fields to see preview."
+
+    let performanceText = ""
+
+    switch (measurementType.toLowerCase()) {
+      case "frequency":
+        if (baseline.currentRate && baseline.ratePer) {
+          performanceText = `${baseline.currentRate} occurrences per ${baseline.ratePer}`
+        }
+        break
+      case "accuracy":
+      case "discrete trial":
+      case "opportunity":
+        if (baseline.percentCorrect && baseline.totalTrials) {
+          performanceText = `${baseline.percentCorrect}% accuracy across ${baseline.totalTrials} trials`
+        }
+        break
+      case "duration":
+        if (baseline.averageDuration && baseline.durationUnit) {
+          performanceText = `${baseline.averageDuration} ${baseline.durationUnit} average duration`
+          if (baseline.minDuration || baseline.maxDuration) {
+            performanceText += ` (range: ${baseline.minDuration || "?"}-${baseline.maxDuration || "?"} ${baseline.durationUnit})`
+          }
+        }
+        break
+      case "task analysis":
+        if (baseline.stepsCompleted && baseline.totalSteps) {
+          const percent = Math.round((Number(baseline.stepsCompleted) / Number(baseline.totalSteps)) * 100)
+          performanceText = `${baseline.stepsCompleted}/${baseline.totalSteps} steps completed (${percent}%)`
+        }
+        break
+      case "interval":
+        if (baseline.percentOfIntervals && baseline.observationDuration) {
+          performanceText = `${baseline.percentOfIntervals}% of intervals during ${baseline.observationDuration} minute observations`
+        }
+        break
+    }
+
+    if (!performanceText) return "Please complete all required fields for a baseline preview."
+
+    const promptText = promptLevel !== "Independent" ? ` with ${promptLevel.toLowerCase()} prompt` : ""
+    const settingText = ` in the ${setting.toLowerCase()} setting`
+    const dataText = `, based on ${collectionPeriod} days of ${dataSource.toLowerCase()}`
+
+    return `Client currently demonstrates ${performanceText}${promptText}${settingText}${dataText}.`
+  }
+
   const handleAddGoal = () => {
     if (!selectedGoalForAdd) return
+
+    const baselineStatement = generateBaselineStatement()
 
     const newGoal: SelectedGoal = {
       goalId: selectedGoalForAdd,
       priority,
       targetDate,
-      baselineData,
+      baselineData: baselineStatement,
       customizations,
     }
 
@@ -89,7 +174,13 @@ export function GoalBankBrowser({ onGoalSelect, selectedGoals = [] }: GoalBankBr
     setSelectedGoalForAdd(null)
     setPriority("medium")
     setTargetDate("")
-    setBaselineData("")
+    setBaseline({
+      measurementType: "",
+      promptLevel: "Independent",
+      setting: "Clinic",
+      dataSource: "Direct Observation",
+      collectionPeriod: "5",
+    })
     setCustomizations("")
 
     toast({
@@ -100,6 +191,13 @@ export function GoalBankBrowser({ onGoalSelect, selectedGoals = [] }: GoalBankBr
 
   const openAddDialog = (goalId: string) => {
     setSelectedGoalForAdd(goalId)
+    const goal = goalBank.find((g) => g.id === goalId)
+    if (goal) {
+      setBaseline((prev) => ({
+        ...prev,
+        measurementType: goal.measurementType,
+      }))
+    }
     setShowAddDialog(true)
   }
 
@@ -282,16 +380,290 @@ export function GoalBankBrowser({ onGoalSelect, selectedGoals = [] }: GoalBankBr
               <Label>Target Date</Label>
               <Input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Baseline Data</Label>
-              <Textarea
-                placeholder="Enter current baseline data..."
-                value={baselineData}
-                onChange={(e) => setBaselineData(e.target.value)}
-                rows={2}
-              />
+
+            <div className="space-y-4 border-t pt-4">
+              <div className="flex items-center gap-2">
+                <Label className="text-base font-semibold">Baseline Data</Label>
+                <Badge variant="outline" className="text-xs">
+                  {baseline.measurementType || "Select type"}
+                </Badge>
+              </div>
+
+              {/* Measurement Type */}
+              <div className="space-y-2">
+                <Label>Measurement Type</Label>
+                <Select
+                  value={baseline.measurementType}
+                  onValueChange={(v) => setBaseline({ ...baseline, measurementType: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select measurement type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Frequency">Frequency</SelectItem>
+                    <SelectItem value="Accuracy">Accuracy</SelectItem>
+                    <SelectItem value="Duration">Duration</SelectItem>
+                    <SelectItem value="Task Analysis">Task Analysis</SelectItem>
+                    <SelectItem value="Interval">Interval</SelectItem>
+                    <SelectItem value="Discrete Trial">Discrete Trial</SelectItem>
+                    <SelectItem value="Opportunity">Opportunity</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Dynamic Fields Based on Measurement Type */}
+              {baseline.measurementType === "Frequency" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Current Rate</Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g., 2"
+                      value={baseline.currentRate || ""}
+                      onChange={(e) => setBaseline({ ...baseline, currentRate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Per</Label>
+                    <Select
+                      value={baseline.ratePer || ""}
+                      onValueChange={(v) => setBaseline({ ...baseline, ratePer: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select unit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hour">Hour</SelectItem>
+                        <SelectItem value="day">Day</SelectItem>
+                        <SelectItem value="session">Session</SelectItem>
+                        <SelectItem value="week">Week</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {(baseline.measurementType === "Accuracy" ||
+                baseline.measurementType === "Discrete Trial" ||
+                baseline.measurementType === "Opportunity") && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Percent Correct</Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g., 45"
+                      min="0"
+                      max="100"
+                      value={baseline.percentCorrect || ""}
+                      onChange={(e) => setBaseline({ ...baseline, percentCorrect: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Total Trials</Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g., 20"
+                      value={baseline.totalTrials || ""}
+                      onChange={(e) => setBaseline({ ...baseline, totalTrials: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {baseline.measurementType === "Duration" && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Average Duration</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g., 15"
+                        value={baseline.averageDuration || ""}
+                        onChange={(e) => setBaseline({ ...baseline, averageDuration: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Unit</Label>
+                      <Select
+                        value={baseline.durationUnit || ""}
+                        onValueChange={(v) => setBaseline({ ...baseline, durationUnit: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="seconds">Seconds</SelectItem>
+                          <SelectItem value="minutes">Minutes</SelectItem>
+                          <SelectItem value="hours">Hours</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Min Duration (Optional)</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g., 5"
+                        value={baseline.minDuration || ""}
+                        onChange={(e) => setBaseline({ ...baseline, minDuration: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Max Duration (Optional)</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g., 30"
+                        value={baseline.maxDuration || ""}
+                        onChange={(e) => setBaseline({ ...baseline, maxDuration: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {baseline.measurementType === "Task Analysis" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Steps Completed</Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g., 3"
+                      value={baseline.stepsCompleted || ""}
+                      onChange={(e) => setBaseline({ ...baseline, stepsCompleted: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Total Steps</Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g., 8"
+                      value={baseline.totalSteps || ""}
+                      onChange={(e) => setBaseline({ ...baseline, totalSteps: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {baseline.measurementType === "Interval" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Percent of Intervals</Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g., 60"
+                      min="0"
+                      max="100"
+                      value={baseline.percentOfIntervals || ""}
+                      onChange={(e) => setBaseline({ ...baseline, percentOfIntervals: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Observation Duration (min)</Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g., 30"
+                      value={baseline.observationDuration || ""}
+                      onChange={(e) => setBaseline({ ...baseline, observationDuration: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Common Fields */}
+              {baseline.measurementType && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Prompt Level</Label>
+                      <Select
+                        value={baseline.promptLevel}
+                        onValueChange={(v) => setBaseline({ ...baseline, promptLevel: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Independent">Independent</SelectItem>
+                          <SelectItem value="Gestural">Gestural</SelectItem>
+                          <SelectItem value="Verbal">Verbal</SelectItem>
+                          <SelectItem value="Model">Model</SelectItem>
+                          <SelectItem value="Partial Physical">Partial Physical</SelectItem>
+                          <SelectItem value="Full Physical">Full Physical</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Setting</Label>
+                      <Select value={baseline.setting} onValueChange={(v) => setBaseline({ ...baseline, setting: v })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Home">Home</SelectItem>
+                          <SelectItem value="Clinic">Clinic</SelectItem>
+                          <SelectItem value="School">School</SelectItem>
+                          <SelectItem value="Community">Community</SelectItem>
+                          <SelectItem value="Multiple">Multiple</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Data Source</Label>
+                      <Select
+                        value={baseline.dataSource}
+                        onValueChange={(v) => setBaseline({ ...baseline, dataSource: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Direct Observation">Direct Observation</SelectItem>
+                          <SelectItem value="Parent Report">Parent Report</SelectItem>
+                          <SelectItem value="Teacher Report">Teacher Report</SelectItem>
+                          <SelectItem value="Formal Assessment">Formal Assessment</SelectItem>
+                          <SelectItem value="Probe Data">Probe Data</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Collection Period (days)</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g., 5"
+                        value={baseline.collectionPeriod}
+                        onChange={(e) => setBaseline({ ...baseline, collectionPeriod: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Notes (Optional)</Label>
+                    <Textarea
+                      placeholder="Any additional context about baseline data..."
+                      value={baseline.notes || ""}
+                      onChange={(e) => setBaseline({ ...baseline, notes: e.target.value })}
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* Live Preview */}
+                  <div className="border-t pt-4">
+                    <Label className="text-sm font-medium mb-2 block">Baseline Statement Preview</Label>
+                    <Card className="bg-green-50 border-green-200">
+                      <CardContent className="p-4">
+                        <p className="text-sm text-gray-700 leading-relaxed">{generateBaselineStatement()}</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="space-y-2">
+
+            <div className="space-y-2 border-t pt-4">
               <Label>Customizations (Optional)</Label>
               <Textarea
                 placeholder="Any modifications to the standard goal..."
@@ -300,6 +672,7 @@ export function GoalBankBrowser({ onGoalSelect, selectedGoals = [] }: GoalBankBr
                 rows={2}
               />
             </div>
+
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowAddDialog(false)} className="flex-1">
                 Cancel
