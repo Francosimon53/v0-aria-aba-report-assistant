@@ -168,12 +168,13 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
     })
   }
 
-  // Function to generate AI clinical notes for a domain
   const handleGenerateDomainNotes = async (domainName: string, score: number) => {
     setIsGeneratingNotes(domainName)
 
     try {
       const selectedAssessmentType = assessmentTypes.find((a) => a.id === formData.assessmentType)
+
+      console.log("[v0] Generating notes for:", domainName, "Score:", score)
 
       const response = await fetch("/api/generate-domain-notes", {
         method: "POST",
@@ -186,7 +187,16 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
         }),
       })
 
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`)
+      }
+
       const data = await response.json()
+      console.log("[v0] API Response:", data)
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
 
       if (data.notes) {
         // Update the notes for this domain
@@ -196,12 +206,14 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
           title: "Notes Generated",
           description: `Clinical notes for ${domainName} have been generated.`,
         })
+      } else {
+        throw new Error("No notes returned from API")
       }
     } catch (error) {
-      console.error("Error generating notes:", error)
+      console.error("[v0] Error generating notes:", error)
       toast({
         title: "Generation failed",
-        description: "Could not generate notes. Please try again.",
+        description: error instanceof Error ? error.message : "Could not generate notes. Please try again.",
         variant: "destructive",
       })
     } finally {
