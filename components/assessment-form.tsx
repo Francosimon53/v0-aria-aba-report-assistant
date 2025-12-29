@@ -21,6 +21,8 @@ import {
   AlertTriangleIcon,
   SearchIcon,
   CheckIcon,
+  Sparkles, // Added for AI generation
+  Loader2, // Added for AI generation
 } from "@/components/icons"
 import type { AssessmentData, DomainScore, BehaviorReduction } from "@/lib/types"
 import { assessmentTypes } from "@/lib/data/assessment-types"
@@ -31,19 +33,22 @@ import { parseAssessmentDataFile } from "@/lib/import-parsers"
 import { AITextarea } from "@/components/ui/ai-textarea"
 
 interface AssessmentFormProps {
-  clientId: string
+  clientId?: string
   assessmentData: AssessmentData | null
   onSave: (data: AssessmentData) => void
-  onNext: () => void
-  onBack: () => void
+  onNext?: () => void
+  onBack?: () => void
 }
 
 export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBack }: AssessmentFormProps) {
   const { toast } = useToast()
 
+  // State for tracking the active tab
+  const [activeTab, setActiveTab] = useState("assessment")
+
   const [formData, setFormData] = useState<Partial<AssessmentData>>(
     assessmentData || {
-      clientId,
+      clientId: clientId || "", // Ensure clientId is not undefined
       assessmentType: "vbmapp",
       assessmentDate: new Date().toISOString().split("T")[0],
       domains: [],
@@ -73,6 +78,9 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
     function: "unknown" as const,
     severity: "moderate" as const,
   })
+
+  // State for tracking which domain is generating notes
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState<string | null>(null)
 
   const filteredBehaviors = behaviorLibrary.filter((behavior) => {
     const matchesSearch =
@@ -158,6 +166,47 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
       return { ...prev, domains }
     })
+  }
+
+  // Function to generate AI clinical notes for a domain
+  const handleGenerateDomainNotes = async (domainName: string, score: number) => {
+    setIsGeneratingNotes(domainName)
+
+    try {
+      const selectedAssessmentType = assessmentTypes.find((a) => a.id === formData.assessmentType)
+
+      const response = await fetch("/api/generate-domain-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assessmentType: selectedAssessmentType?.name || formData.assessmentType,
+          domainName: domainName,
+          score: score,
+          maxScore: 100,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.notes) {
+        // Update the notes for this domain
+        handleDomainChange(domainName, score, data.notes)
+
+        toast({
+          title: "Notes Generated",
+          description: `Clinical notes for ${domainName} have been generated.`,
+        })
+      }
+    } catch (error) {
+      console.error("Error generating notes:", error)
+      toast({
+        title: "Generation failed",
+        description: "Could not generate notes. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGeneratingNotes(null)
+    }
   }
 
   const handleAddCustomDomain = () => {
@@ -249,7 +298,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
   const handleSaveAndNext = () => {
     handleSave()
-    onNext()
+    onNext?.() // Use optional chaining for safety
   }
 
   const handleImportAssessmentData = (importedData: Partial<AssessmentData>) => {
@@ -321,7 +370,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
             onImport={handleImportAssessmentData}
             parseFunction={parseAssessmentDataFile}
           />
-          <Button variant="outline" onClick={onBack}>
+          <Button variant="outline" onClick={onBack} disabled={!onBack}>
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Back
           </Button>
@@ -329,7 +378,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
             <SaveIcon className="h-4 w-4 mr-2" />
             Save
           </Button>
-          <Button onClick={handleSaveAndNext}>
+          <Button onClick={handleSaveAndNext} disabled={!onNext}>
             Continue
             <ArrowRightIcon className="h-4 w-4 ml-2" />
           </Button>
@@ -340,7 +389,8 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
         <ScrollArea className="h-full">
           <div className="p-6">
             <div className="max-w-4xl mx-auto space-y-6">
-              <Tabs defaultValue="assessment" className="w-full">
+              {/* Use activeTab state and Tabs component */}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="assessment">Assessment & Domains</TabsTrigger>
                   <TabsTrigger value="behaviors" className="flex items-center gap-2">
@@ -399,7 +449,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                         {selectedAssessment.domains.slice(0, 8).map((domain) => {
                           const domainData = formData.domains?.find((d) => d.domain === domain)
                           return (
-                            <div key={domain} className="space-y-3 p-4 border rounded-lg">
+                            <div key={domain} className="space-y-3 p-4 border rounded-lg relative">
                               <div className="flex items-center justify-between">
                                 <Label className="font-medium">{domain}</Label>
                                 <span className="text-sm text-muted-foreground">Score: {domainData?.score || 0}%</span>
@@ -419,6 +469,21 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
                                 rows={2}
                                 fieldName={`${domain} Notes`}
                               />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleGenerateDomainNotes(domain, domainData?.score || 0)}
+                                disabled={isGeneratingNotes === domain}
+                                className="absolute bottom-2 right-2"
+                                title="Generate clinical notes with AI"
+                              >
+                                {isGeneratingNotes === domain ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Sparkles className="h-4 w-4 text-gray-400 hover:text-teal-600" />
+                                )}
+                              </Button>
                             </div>
                           )
                         })}
