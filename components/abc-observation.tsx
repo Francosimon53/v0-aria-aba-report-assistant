@@ -6,7 +6,16 @@ import { Button } from "@/components/ui/button"
 import { AITextarea } from "@/components/ui/ai-textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusIcon, XIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, SaveIcon } from "@/components/icons"
+import {
+  PlusIcon,
+  XIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  SaveIcon,
+  Sparkles,
+  Loader2,
+} from "@/components/icons"
 import { premiumToast } from "@/components/ui/premium-toast"
 
 interface ABCObservation {
@@ -16,6 +25,7 @@ interface ABCObservation {
   behavior: string
   consequence: string
   function: "attention" | "escape" | "tangible" | "automatic" | ""
+  functionReasoning?: string
   collapsed: boolean
 }
 
@@ -31,6 +41,8 @@ export function ABCObservation() {
       collapsed: false,
     },
   ])
+
+  const [isAnalyzingFunction, setIsAnalyzingFunction] = useState<string | null>(null)
 
   const addObservation = () => {
     const newObservation: ABCObservation = {
@@ -64,7 +76,6 @@ export function ABCObservation() {
   }
 
   const handleSave = () => {
-    // Save to localStorage or backend
     localStorage.setItem("aria_abc_observations", JSON.stringify(observations))
     premiumToast.success("ABC observations saved successfully")
   }
@@ -80,9 +91,51 @@ export function ABCObservation() {
     }).format(date)
   }
 
+  const handleAnalyzeFunction = async (observationId: string) => {
+    const observation = observations.find((obs) => obs.id === observationId)
+
+    if (!observation) return
+
+    if (!observation.antecedent || !observation.behavior || !observation.consequence) {
+      premiumToast.error("Please fill in Antecedent, Behavior, and Consequence first")
+      return
+    }
+
+    setIsAnalyzingFunction(observationId)
+
+    try {
+      const response = await fetch("/api/analyze-behavior-function", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          antecedent: observation.antecedent,
+          behavior: observation.behavior,
+          consequence: observation.consequence,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze function")
+      }
+
+      const data = await response.json()
+
+      if (data.function) {
+        updateObservation(observationId, "function", data.function.toLowerCase())
+        updateObservation(observationId, "functionReasoning", data.reasoning)
+
+        premiumToast.success(`AI suggests: ${data.function} function`)
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      premiumToast.error("Could not analyze behavior function")
+    } finally {
+      setIsAnalyzingFunction(null)
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">ABC Observation Recording</h1>
@@ -102,7 +155,6 @@ export function ABCObservation() {
         </div>
       </div>
 
-      {/* Observations List */}
       <div className="space-y-4">
         {observations.map((observation, index) => (
           <Card
@@ -112,7 +164,6 @@ export function ABCObservation() {
               animation: `slideIn 400ms ease-out ${index * 100}ms both`,
             }}
           >
-            {/* Observation Header */}
             <div className="bg-gradient-to-r from-[#0D9488]/10 to-cyan-50/50 p-4 border-b flex items-center justify-between">
               <button
                 onClick={() => toggleCollapse(observation.id)}
@@ -143,11 +194,9 @@ export function ABCObservation() {
               )}
             </div>
 
-            {/* Observation Content */}
             {!observation.collapsed && (
               <div className="p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Antecedent */}
                   <div className="space-y-2">
                     <Label
                       htmlFor={`antecedent-${observation.id}`}
@@ -169,7 +218,6 @@ export function ABCObservation() {
                     />
                   </div>
 
-                  {/* Behavior */}
                   <div className="space-y-2">
                     <Label
                       htmlFor={`behavior-${observation.id}`}
@@ -191,7 +239,6 @@ export function ABCObservation() {
                     />
                   </div>
 
-                  {/* Consequence */}
                   <div className="space-y-2">
                     <Label
                       htmlFor={`consequence-${observation.id}`}
@@ -213,17 +260,38 @@ export function ABCObservation() {
                     />
                   </div>
 
-                  {/* Function */}
                   <div className="space-y-2">
-                    <Label
-                      htmlFor={`function-${observation.id}`}
-                      className="text-base font-semibold flex items-center gap-2"
-                    >
-                      <span className="h-8 w-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-bold">
-                        F
-                      </span>
-                      Impression of Function
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor={`function-${observation.id}`}
+                        className="text-base font-semibold flex items-center gap-2"
+                      >
+                        <span className="h-8 w-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-bold">
+                          F
+                        </span>
+                        Impression of Function
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAnalyzeFunction(observation.id)}
+                        disabled={isAnalyzingFunction === observation.id}
+                        className="text-teal-600 hover:text-teal-700 h-7 px-2"
+                      >
+                        {isAnalyzingFunction === observation.id ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            <span className="text-xs">Analyzing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            <span className="text-xs">AI Analyze</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground mb-2">What was the likely purpose of this behavior?</p>
                     <Select
                       value={observation.function}
@@ -242,6 +310,13 @@ export function ABCObservation() {
                         <SelectItem value="automatic">Automatic/Sensory - For internal sensory stimulation</SelectItem>
                       </SelectContent>
                     </Select>
+
+                    {observation.functionReasoning && (
+                      <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm mt-2">
+                        <Sparkles className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-purple-800">{observation.functionReasoning}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -250,7 +325,6 @@ export function ABCObservation() {
         ))}
       </div>
 
-      {/* Helper Card */}
       <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
         <div className="p-6">
           <h3 className="font-semibold text-foreground mb-3">ABC Analysis Guidelines</h3>
