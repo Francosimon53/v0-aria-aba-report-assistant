@@ -23,6 +23,8 @@ import {
   CheckIcon,
   Sparkles, // Added for AI generation
   Loader2, // Added for AI generation
+  Loader2Icon, // Added for AI generation
+  SparklesIcon, // Added for AI generation
 } from "@/components/icons"
 import type { AssessmentData, DomainScore, BehaviorReduction } from "@/lib/types"
 import { assessmentTypes } from "@/lib/data/assessment-types"
@@ -81,6 +83,8 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
 
   // State for tracking which domain is generating notes
   const [isGeneratingNotes, setIsGeneratingNotes] = useState<string | null>(null)
+
+  const [isAutoFilling, setIsAutoFilling] = useState(false)
 
   const filteredBehaviors = behaviorLibrary.filter((behavior) => {
     const matchesSearch =
@@ -218,6 +222,56 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
       })
     } finally {
       setIsGeneratingNotes(null)
+    }
+  }
+
+  const handleAutoFillAll = async () => {
+    setIsAutoFilling(true)
+
+    try {
+      const response = await fetch("/api/autofill-assessment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assessmentType: selectedAssessment.abbreviation,
+          domains: selectedAssessment.domains,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to auto-fill assessment")
+      }
+
+      const data = await response.json()
+
+      if (data.results) {
+        // Update all domain scores and notes
+        data.results.forEach((result: any) => {
+          handleDomainChange(result.domain, result.score, result.notes)
+        })
+
+        // Also fill strengths, deficits, and barriers if provided
+        setFormData((prev) => ({
+          ...prev,
+          strengths: data.strengths || prev.strengths,
+          deficits: data.deficits || prev.deficits,
+          barriers: data.barriers || prev.barriers,
+        }))
+
+        toast({
+          title: "Assessment Auto-filled",
+          description: `AI generated data for ${data.results.length} domains with clinical observations.`,
+        })
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Auto-fill failed",
+        description: "Failed to generate assessment data. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAutoFilling(false)
     }
   }
 
@@ -382,6 +436,23 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
             onImport={handleImportAssessmentData}
             parseFunction={parseAssessmentDataFile}
           />
+          <Button
+            onClick={handleAutoFillAll}
+            disabled={isAutoFilling}
+            className="bg-teal-600 hover:bg-teal-700 text-white"
+          >
+            {isAutoFilling ? (
+              <>
+                <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                Auto-filling...
+              </>
+            ) : (
+              <>
+                <SparklesIcon className="h-4 w-4 mr-2" />
+                AI Auto-fill All
+              </>
+            )}
+          </Button>
           <Button variant="outline" onClick={onBack} disabled={!onBack}>
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Back
