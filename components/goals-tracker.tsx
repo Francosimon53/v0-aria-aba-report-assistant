@@ -9,6 +9,7 @@ import { Progress } from "./ui/progress"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
 import { Label } from "./ui/label"
+import { toast } from "@/components/ui/use-toast"
 import {
   TargetIcon,
   PlusIcon,
@@ -19,6 +20,8 @@ import {
   EditIcon,
   ArchiveIcon,
   XIcon,
+  Sparkles,
+  Loader2,
 } from "./icons"
 import { cn } from "@/lib/utils"
 
@@ -127,6 +130,9 @@ export function GoalsTracker() {
     targetDate: "",
   })
 
+  const [isGeneratingSTOs, setIsGeneratingSTOs] = useState(false)
+  const [generatingForLTO, setGeneratingForLTO] = useState<string | null>(null)
+
   const toggleLTOExpanded = (ltoId: string) => {
     setLtos(ltos.map((lto) => (lto.id === ltoId ? { ...lto, expanded: !lto.expanded } : lto)))
   }
@@ -146,6 +152,57 @@ export function GoalsTracker() {
           : lto,
       ),
     )
+  }
+
+  const handleAutoGenerateSTOs = async (lto: LongTermObjective) => {
+    setIsGeneratingSTOs(true)
+    setGeneratingForLTO(lto.id)
+
+    try {
+      const response = await fetch("/api/generate-stos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          goalTitle: lto.description,
+          goalDescription: lto.description,
+          domain: lto.type,
+          currentBaseline: lto.stos[0]?.baseline || "Unknown",
+          targetCriteria: lto.stos[0]?.masteryCriteria || "80% over 3 sessions",
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.stos && data.stos.length > 0) {
+        // Add generated STOs to the goal
+        setLtos(
+          ltos.map((l) =>
+            l.id === lto.id
+              ? {
+                  ...l,
+                  stos: [...l.stos, ...data.stos],
+                  expanded: true, // Expand to show new STOs
+                }
+              : l,
+          ),
+        )
+
+        toast({
+          title: "STOs Generated",
+          description: `AI generated ${data.stos.length} short-term objectives.`,
+        })
+      }
+    } catch (error) {
+      console.error("Error generating STOs:", error)
+      toast({
+        title: "Generation failed",
+        description: "Could not generate STOs. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGeneratingSTOs(false)
+      setGeneratingForLTO(null)
+    }
   }
 
   const filteredLtos = ltos.filter((lto) => {
@@ -440,17 +497,34 @@ export function GoalsTracker() {
 
             {/* STOs Section */}
             <div className="border-t">
-              <button
-                onClick={() => toggleLTOExpanded(lto.id)}
-                className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-sm font-medium text-gray-700">Short-Term Objectives ({lto.stos.length})</span>
-                {lto.expanded ? (
-                  <ChevronUpIcon className="h-4 w-4 text-gray-500" />
-                ) : (
-                  <ChevronDownIcon className="h-4 w-4 text-gray-500" />
-                )}
-              </button>
+              <div className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <button onClick={() => toggleLTOExpanded(lto.id)} className="flex items-center gap-2 flex-1">
+                  <span className="text-sm font-medium text-gray-700">Short-Term Objectives ({lto.stos.length})</span>
+                  {lto.expanded ? (
+                    <ChevronUpIcon className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+                  )}
+                </button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAutoGenerateSTOs(lto)}
+                  disabled={isGeneratingSTOs}
+                >
+                  {isGeneratingSTOs && generatingForLTO === lto.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Auto-generate STOs
+                    </>
+                  )}
+                </Button>
+              </div>
 
               {lto.expanded && (
                 <div className="p-6 pt-0 space-y-3">
