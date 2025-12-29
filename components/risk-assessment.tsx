@@ -153,9 +153,59 @@ export function RiskAssessment() {
         setRiskLevel("low")
       }
 
+      const emergencyProceduresText = `
+RISK LEVEL: ${data.riskProfile.level}
+
+WARNING SIGNS:
+${data.warningSignsEscalation.map((s: string) => `• ${s}`).join("\n")}
+
+DE-ESCALATION STEPS:
+${data.deEscalationStrategies.map((s: any) => `${s.step}. ${s.action}: ${s.details}`).join("\n")}
+
+IMMEDIATE ACTIONS:
+${data.emergencyProcedures.immediateActions.map((a: string) => `• ${a}`).join("\n")}
+
+SAFETY MEASURES:
+${data.emergencyProcedures.safetyMeasures.map((m: string) => `• ${m}`).join("\n")}
+
+${data.emergencyProcedures.restrictedItems?.length > 0 ? `ITEMS TO SECURE:\n${data.emergencyProcedures.restrictedItems.map((i: string) => `• ${i}`).join("\n")}\n\n` : ""}WHEN TO CALL 911:
+${data.when911.criteria.map((c: string) => `• ${c}`).join("\n")}
+
+911 SCRIPT: "${data.when911.whatToSay}"
+
+POST-CRISIS PROTOCOL:
+${data.postCrisisProtocol.map((s: string, i: number) => `${i + 1}. ${s}`).join("\n")}
+
+PREVENTION STRATEGIES:
+${data.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
+`.trim()
+
+      setEmergencyProcedures(emergencyProceduresText)
+
+      const today = new Date()
+      let reviewDays = 90 // default for Low risk
+
+      if (data.riskProfile.level === "Critical") {
+        reviewDays = 14 // 2 weeks for critical
+      } else if (data.riskProfile.level === "High") {
+        reviewDays = 30 // 1 month for high
+      } else if (data.riskProfile.level === "Medium") {
+        reviewDays = 60 // 2 months for medium
+      }
+
+      const nextReviewDate = new Date(today)
+      nextReviewDate.setDate(nextReviewDate.getDate() + reviewDays)
+
+      // Format as YYYY-MM-DD for date input
+      const formattedNextReviewDate = nextReviewDate.toISOString().split("T")[0]
+      setNextReviewDate(formattedNextReviewDate)
+
+      // Also set last assessment date to today
+      setLastAssessmentDate(today.toISOString().split("T")[0])
+
       toast({
-        title: "Crisis Plan Generated",
-        description: `Risk Level: ${data.riskProfile.level}`,
+        title: "✓ Crisis Plan Generated",
+        description: `Risk Level: ${data.riskProfile.level}. Emergency procedures populated. Next review: ${reviewDays} days.`,
       })
     } catch (error) {
       console.error("Error:", error)
@@ -635,6 +685,29 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
               value={nextReviewDate}
               onChange={(e) => setNextReviewDate(e.target.value)}
             />
+            {nextReviewDate && crisisPlan && (
+              <div className="flex items-center gap-2 mt-2">
+                <span
+                  className={`text-xs px-2 py-1 rounded-full font-medium ${
+                    crisisPlan.riskProfile.level === "Critical"
+                      ? "bg-red-100 text-red-700"
+                      : crisisPlan.riskProfile.level === "High"
+                        ? "bg-orange-100 text-orange-700"
+                        : crisisPlan.riskProfile.level === "Medium"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {crisisPlan.riskProfile.level === "Critical"
+                    ? "14-day review (Critical)"
+                    : crisisPlan.riskProfile.level === "High"
+                      ? "30-day review (High Risk)"
+                      : crisisPlan.riskProfile.level === "Medium"
+                        ? "60-day review (Medium Risk)"
+                        : "90-day review (Low Risk)"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </Card>
