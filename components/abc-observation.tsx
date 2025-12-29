@@ -1,21 +1,14 @@
 "use client"
 
 import { useState } from "react"
+
+import { useSectionData } from "@/hooks/use-section-data"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  PlusIcon,
-  XIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  ClockIcon,
-  SaveIcon,
-  Sparkles,
-  Loader2,
-} from "@/components/icons"
+import { PlusIcon, XIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, Sparkles, Loader2 } from "@/components/icons"
 import { premiumToast } from "@/components/ui/premium-toast"
 
 interface ABCObservation {
@@ -30,7 +23,11 @@ interface ABCObservation {
 }
 
 export function ABCObservation() {
-  const [observations, setObservations] = useState<ABCObservation[]>([
+  const {
+    data: observations,
+    setData: setObservations,
+    isLoaded,
+  } = useSectionData<ABCObservation[]>("abc-observations", [
     {
       id: "1",
       timestamp: new Date(),
@@ -44,6 +41,14 @@ export function ABCObservation() {
 
   const [isAnalyzingFunction, setIsAnalyzingFunction] = useState<string | null>(null)
   const [generatingField, setGeneratingField] = useState<{ id: string; field: string } | null>(null)
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+      </div>
+    )
+  }
 
   const addObservation = () => {
     const newObservation: ABCObservation = {
@@ -74,22 +79,6 @@ export function ABCObservation() {
 
   const toggleCollapse = (id: string) => {
     setObservations(observations.map((obs) => (obs.id === id ? { ...obs, collapsed: !obs.collapsed } : obs)))
-  }
-
-  const handleSave = () => {
-    localStorage.setItem("aria_abc_observations", JSON.stringify(observations))
-    premiumToast.success("ABC observations saved successfully")
-  }
-
-  const formatTimestamp = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }).format(date)
   }
 
   const handleAnalyzeFunction = async (observationId: string) => {
@@ -197,10 +186,7 @@ export function ABCObservation() {
             <PlusIcon className="h-4 w-4" />
             Add Observation
           </Button>
-          <Button onClick={handleSave} variant="outline" className="gap-2 bg-transparent">
-            <SaveIcon className="h-4 w-4" />
-            Save All
-          </Button>
+          {/* Removed manual save button */}
         </div>
       </div>
 
@@ -468,4 +454,15 @@ export function ABCObservation() {
       `}</style>
     </div>
   )
+}
+
+function formatTimestamp(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date)
 }
