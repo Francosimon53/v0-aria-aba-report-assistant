@@ -54,6 +54,7 @@ type ActiveView =
   | "consent"
   | "medicalnecessity"
   | "report"
+  | "progressreport" // Added progressreport view type
   | "timesaved"
   | "support"
 
@@ -88,7 +89,7 @@ export function Dashboard() {
   }, [completedSteps])
 
   // Calculate progress
-  const totalSteps = 19
+  const totalSteps = 20
   const completedCount = completedSteps.length
   const progressPercent = Math.round((completedCount / totalSteps) * 100)
 
@@ -220,6 +221,10 @@ export function Dashboard() {
         )
       case "report":
         return <AIReportGenerator />
+      case "progressreport":
+        // Import ProgressReportPage component
+        const ProgressReportPage = require("@/app/assessment/progress-report/page").default
+        return <ProgressReportPage />
       case "timesaved":
         return <TimeSavedTracker />
       case "support":
@@ -473,6 +478,12 @@ export function Dashboard() {
                     label="Generate Report"
                     completed={isStepCompleted("report")}
                     onClick={() => setActiveView("report")}
+                  />
+                  <NavItem
+                    active={activeView === "progressreport"}
+                    label="Progress Report"
+                    completed={isStepCompleted("progressreport")}
+                    onClick={() => setActiveView("progressreport")}
                   />
                   <NavItem
                     active={activeView === "medicalnecessity"}

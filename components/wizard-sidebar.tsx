@@ -47,6 +47,7 @@ type ActiveView =
   | "consent"
   | "medicalnecessity"
   | "report"
+  | "progressreport"
   | "timesaved"
   | "support"
 
@@ -212,6 +213,14 @@ const WIZARD_STEPS: WizardStep[] = [
     label: "Generate Report",
     icon: FileTextIcon,
     description: "Generate & export",
+    phase: 6,
+    phaseLabel: "Report & Finalize",
+  },
+  {
+    id: "progressreport",
+    label: "Progress Report",
+    icon: TrendingUpIcon,
+    description: "Re-authorization updates",
     phase: 6,
     phaseLabel: "Report & Finalize",
   },

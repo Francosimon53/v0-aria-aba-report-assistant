@@ -34,6 +34,7 @@ type ActiveView =
   | "reassessment"
   | "goals"
   | "report"
+  | "progressreport" // Added progressreport view type
   | "integration"
   | "support"
   | "timesaved"
@@ -172,9 +173,15 @@ export function Sidebar({
     },
     {
       id: "report" as const,
-      label: "Report",
+      label: "Generate Report",
       icon: FileTextIcon,
       description: "Generate & export",
+    },
+    {
+      id: "progressreport" as const, // Added Progress Report menu item after Generate Report
+      label: "Progress Report",
+      icon: TrendingUpIcon,
+      description: "Re-authorization updates",
     },
     {
       id: "timesaved" as const,
