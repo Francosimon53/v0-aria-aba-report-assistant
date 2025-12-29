@@ -1076,6 +1076,8 @@ export function XIcon({ className }: { className?: string }) {
   )
 }
 
+export const X = XIcon
+
 export function ChevronUpIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -1203,6 +1205,8 @@ export function PlusIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+
+export const Plus = PlusIcon
 
 export function FilterIcon({ className }: { className?: string }) {
   return (

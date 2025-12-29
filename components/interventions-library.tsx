@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
 import {
   SearchIcon,
   CheckIcon,
@@ -15,6 +17,10 @@ import {
   TargetIcon,
   AlertTriangleIcon,
   DownloadIcon,
+  Sparkles,
+  Loader2,
+  X,
+  Plus,
 } from "@/components/icons"
 
 interface Intervention {
@@ -192,6 +198,56 @@ export function InterventionsLibrary() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedInterventions, setSelectedInterventions] = useState<Set<string>>(new Set())
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
+  const [isSuggesting, setIsSuggesting] = useState(false)
+  const [suggestedInterventions, setSuggestedInterventions] = useState<any[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const { toast } = useToast()
+
+  const handleSuggestInterventions = async () => {
+    setIsSuggesting(true)
+
+    try {
+      const goalsData = JSON.parse(localStorage.getItem("goalsTrackerData") || "[]")
+
+      if (!goalsData || goalsData.length === 0) {
+        toast({
+          title: "No Goals Found",
+          description: "Please add goals in the Goals Tracker first.",
+          variant: "destructive",
+        })
+        setIsSuggesting(false)
+        return
+      }
+
+      const response = await fetch("/api/suggest-interventions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goals: goalsData }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to suggest interventions")
+      }
+
+      const data = await response.json()
+      setSuggestedInterventions(data.suggestions)
+      setShowSuggestions(true)
+
+      toast({
+        title: "Interventions Suggested",
+        description: `AI recommended ${data.suggestions.length} interventions based on your goals.`,
+      })
+    } catch (error) {
+      console.error("Error suggesting interventions:", error)
+      toast({
+        title: "Suggestion failed",
+        description: "Could not analyze goals. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSuggesting(false)
+    }
+  }
 
   const toggleIntervention = (id: string) => {
     const newSelected = new Set(selectedInterventions)
@@ -328,11 +384,32 @@ export function InterventionsLibrary() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-6">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Intervention Library</h1>
-          <p className="text-sm text-gray-600 mb-4">
-            Evidence-based interventions organized by behavioral function. Select interventions to add to your client's
-            treatment plan.
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Intervention Library</h1>
+              <p className="text-sm text-gray-600">
+                Evidence-based interventions organized by behavioral function. Select interventions to add to your
+                client's treatment plan.
+              </p>
+            </div>
+            <Button
+              onClick={handleSuggestInterventions}
+              disabled={isSuggesting}
+              className="bg-teal-600 hover:bg-teal-700"
+            >
+              {isSuggesting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing Goals...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  AI Suggest Interventions
+                </>
+              )}
+            </Button>
+          </div>
 
           {/* Search Bar */}
           <div className="relative">
@@ -351,6 +428,48 @@ export function InterventionsLibrary() {
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="max-w-5xl mx-auto p-6">
+            {/* AI Suggestions Panel */}
+            {showSuggestions && suggestedInterventions.length > 0 && (
+              <Card className="mb-6 border-teal-200 bg-teal-50">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-teal-600" />
+                      <CardTitle className="text-lg text-teal-800">AI Recommended Interventions</CardTitle>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setShowSuggestions(false)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-teal-700">Based on your current treatment goals</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {suggestedInterventions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-white rounded-lg border border-teal-100"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{suggestion.name}</p>
+                          <p className="text-xs text-gray-600 mt-1">{suggestion.reason}</p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          <Badge variant="outline" className="text-teal-600 border-teal-600 text-xs">
+                            {suggestion.function}
+                          </Badge>
+                          <Button size="sm" variant="outline" className="text-xs bg-transparent">
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Tabs defaultValue="attention" className="space-y-6">
               <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-white border border-gray-200">
                 <TabsTrigger
