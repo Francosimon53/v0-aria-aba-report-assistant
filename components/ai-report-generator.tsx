@@ -53,6 +53,8 @@ interface ReportSection {
   isEditing: boolean
   icon: React.ReactNode
   estimatedWords: string
+  optional?: boolean
+  generated?: boolean
 }
 
 interface AssessmentData {
@@ -167,6 +169,35 @@ interface AssessmentData {
   dischargeCriteria?: string
   crisisPlan?: string
   medicalNecessity?: string
+}
+
+const loadGoalsTrackerData = () => {
+  try {
+    const data = localStorage.getItem("aria-goals-tracker")
+    if (data) {
+      return JSON.parse(data) as Array<{
+        id: string
+        type: "behavior-reduction" | "skill-acquisition" | "parent-training"
+        description: string
+        startDate: string
+        targetDate: string
+        status: string
+        progress: number
+        stos: Array<{
+          id: string
+          description: string
+          baseline: string
+          current: string
+          masteryCriteria: string
+          status: string
+          progress: number
+        }>
+      }>
+    }
+  } catch (error) {
+    console.error("[v0] Error loading goals tracker data:", error)
+  }
+  return []
 }
 
 const REPORT_SECTIONS = [
@@ -301,6 +332,8 @@ const getInitialSections = () =>
     isEditing: false,
     icon: s.icon,
     estimatedWords: s.estimatedWords,
+    optional: s.optional,
+    generated: false,
   }))
 
 interface AIReportGeneratorProps {
@@ -933,18 +966,46 @@ Include prompt levels, fading criteria, generalization plans, and maintenance pr
 Client: ${clientName}
 Assessment Date: ${data.assessmentDates || new Date().toLocaleDateString()}
 
-Create 4-6 comprehensive skill acquisition goals with the following format:
+${(() => {
+  const goalsTrackerData = loadGoalsTrackerData()
+  const skillAcquisitionGoals = goalsTrackerData.filter((g) => g.type === "skill-acquisition")
 
-${
-  goals.length > 0
-    ? goals
+  if (skillAcquisitionGoals.length > 0) {
+    return `GOALS DATA FROM TRACKER (${skillAcquisitionGoals.length} goals):
+${JSON.stringify(skillAcquisitionGoals, null, 2)}
+
+For each goal above, create a comprehensive narrative that includes:
+1. Goal title and domain (extract from description)
+2. Baseline performance with date: ${skillAcquisitionGoals.map((g) => g.startDate).join(", ")}
+3. Current performance: ${skillAcquisitionGoals.map((g) => `${g.progress}% progress`).join(", ")}
+4. Mastery criteria (90% accuracy target unless specified)
+5. Overall progress percentage: ${skillAcquisitionGoals.map((g) => g.progress).join(", ")}%
+6. Short-term objectives with individual progress:
+${skillAcquisitionGoals
+  .map(
+    (g, i) =>
+      `   Goal ${i + 1} STOs:\n${g.stos
         .map(
-          (g, i) => `
-**GOAL ${i + 1}: ${g.domain} - ${g.shortTerm}**
-`,
+          (sto, j) =>
+            `   - STO ${j + 1}: ${sto.description}
+     Baseline: ${sto.baseline}
+     Current: ${sto.current}
+     Mastery: ${sto.masteryCriteria}
+     Progress: ${sto.progress}%
+     Status: ${sto.status}`,
         )
-        .join("\n")
-    : `
+        .join("\n")}`,
+  )
+  .join("\n\n")}
+
+7. Clinical interpretation of progress for each goal
+8. Specific recommendations for continued treatment
+
+Format as professional ABA documentation suitable for insurance review.`
+  }
+
+  return `Create 4-6 comprehensive skill acquisition goals with the following format:
+
 **GOAL 1: COMMUNICATION - Functional Requesting**
 
 Long-Term Objective (LTO):
@@ -980,19 +1041,59 @@ Short-Term Objectives:
 ---
 
 **GOAL 5: ACADEMIC READINESS - Pre-Academic Skills**
-[Same detailed format]`
-}
+[Same detailed format]
 
 Each goal must include:
 1. Measurable LTO with accuracy criterion and duration
 2. Baseline data with date established
 3. 7 progressive STOs with specific criteria
 4. Target timeline for each STO (typically 4 weeks each)
-5. Data collection method`,
+5. Data collection method`
+})()}`,
 
       behavior_reduction_goals: `Write the BEHAVIOR REDUCTION GOALS section (400-600 words) for a professional ABA assessment report.
 
-Create behavior reduction goals for each target behavior:
+${(() => {
+  const goalsTrackerData = loadGoalsTrackerData()
+  const behaviorReductionGoals = goalsTrackerData.filter((g) => g.type === "behavior-reduction")
+
+  if (behaviorReductionGoals.length > 0) {
+    return `GOALS DATA FROM TRACKER (${behaviorReductionGoals.length} goals):
+${JSON.stringify(behaviorReductionGoals, null, 2)}
+
+For each behavior reduction goal above, create a comprehensive narrative that includes:
+
+1. Target behavior definition (extract from description)
+2. Baseline rate/frequency/duration with date: ${behaviorReductionGoals.map((g) => g.startDate).join(", ")}
+3. Current rate/frequency/duration (calculate from progress)
+4. Target reduction criterion (typically 80-90% reduction or specific rate)
+5. Percentage reduction achieved: ${behaviorReductionGoals.map((g) => `${g.progress}%`).join(", ")}
+6. Short-term objectives progress:
+${behaviorReductionGoals
+  .map(
+    (g, i) =>
+      `   Behavior ${i + 1} STOs:\n${g.stos
+        .map(
+          (sto, j) =>
+            `   - STO ${j + 1}: ${sto.description}
+     Baseline: ${sto.baseline}
+     Current: ${sto.current}
+     Target: ${sto.masteryCriteria}
+     Reduction: ${sto.progress}%
+     Status: ${sto.status}`,
+        )
+        .join("\n")}`,
+  )
+  .join("\n\n")}
+
+7. Function of behavior (if identified in description or STOs)
+8. Intervention effectiveness analysis comparing baseline to current
+9. Clinical recommendations for continued treatment
+
+Format as professional ABA documentation suitable for insurance review. Emphasize data-driven progress and clinical significance of reductions.`
+  }
+
+  return `Create behavior reduction goals for each target behavior:
 
 ${
   behaviorGoals.length > 0
@@ -1008,33 +1109,22 @@ Target: ${bg.target}`,
         .map(
           (b) => `
 **${b.name.toUpperCase()} REDUCTION**
-
-Long-Term Objective (LTO):
-${clientName} will demonstrate near-zero incidents of ${b.name.toLowerCase()} (defined as: ${b.definition || "[operational definition]"}) for 8 consecutive weeks.
-
-Baseline: ${b.baseline || "[X] incidents per week"} (${b.frequency || "established [Month/Year]"})
-Current Level: [X] incidents per week
-
-Short-Term Objectives:
-- STO 1 (Weeks 1-4): Reduce to [baseline - 10%] incidents per week
-- STO 2 (Weeks 5-8): Reduce to [baseline - 20%] incidents per week
-- STO 3 (Weeks 9-12): Reduce to [baseline - 30%] incidents per week
-- STO 4 (Weeks 13-16): Reduce to [baseline - 40%] incidents per week
-- STO 5 (Weeks 17-20): Reduce to [baseline - 50%] incidents per week
-- STO 6 (Weeks 21-24): Reduce to [baseline - 60%] incidents per week
-- STO 7 (Weeks 25-28): Reduce to [baseline - 70%] incidents per week
-- STO 8 (Weeks 29-32): Reduce to [baseline - 80%] incidents per week
-- STO 9 (Weeks 33-36): Reduce to [baseline - 90%] incidents per week
-- STO 10 (Weeks 37-40): Maintain at [1-2] incidents per week
-- STO 11 (Weeks 41-44): Maintain at near-zero incidents
-
-Intervention Summary: ${b.function ? `Function-based interventions targeting ${b.function}` : "[List primary interventions]"}
-Data Collection: Frequency count with ABC narrative`,
+Baseline: ${b.baseline}
+Target: ${b.baseline} (80% reduction)`,
         )
-        .join("\n\n---\n")
+        .join("\n")
 }
 
-Include extinction burst warnings and safety considerations for each behavior.`,
+Each behavior goal must include:
+1. Operational definition
+2. Baseline data with measurement
+3. Current performance level
+4. Target reduction criterion
+5. Progress toward goal
+6. Function of behavior
+7. Intervention strategies used
+8. Data collection methods`
+})()}`,
 
       caregiver_goals: `Write the CAREGIVER TRAINING GOALS section (300-400 words) for a professional ABA assessment report.
 
@@ -1272,7 +1362,7 @@ Ensure notes reflect data-driven decision-making and client-centered care. Use c
   }
 
   const generateSection = async (sectionId: string) => {
-    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, status: "generating" } : s)))
+    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, status: "generating", generated: true } : s)))
     setCurrentGenerating(sectionId) // Set current generating section
     setError(null) // Clear previous errors
 
@@ -2605,7 +2695,15 @@ Ensure notes reflect data-driven decision-making and client-centered care. Use c
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Report Sections</p>
             <div className="flex flex-wrap gap-2">
               {sections.map((section, index) => {
+                const hasGoalsTrackerData =
+                  (section.id === "skill_acquisition_goals" || section.id === "behavior_reduction_goals") &&
+                  loadGoalsTrackerData().filter((g) =>
+                    section.id === "skill_acquisition_goals"
+                      ? g.type === "skill-acquisition"
+                      : g.type === "behavior-reduction",
+                  ).length > 0
                 const isGenerating = section.status === "generating"
+
                 return (
                   <button
                     key={section.id}
@@ -2632,6 +2730,12 @@ Ensure notes reflect data-driven decision-making and client-centered care. Use c
                       </span>
                     )}
                     <span className="truncate max-w-[120px]">{section.title}</span>
+                    {hasGoalsTrackerData && section.status === "complete" && (
+                      <Badge className="bg-green-100 text-green-700 border-0">
+                        <Check className="h-3 w-3" />
+                        Goals Data
+                      </Badge>
+                    )}
                   </button>
                 )
               })}
