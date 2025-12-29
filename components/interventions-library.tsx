@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import {
   SearchIcon,
@@ -20,7 +19,6 @@ import {
   Sparkles,
   Loader2,
   X,
-  Plus,
 } from "@/components/icons"
 
 interface Intervention {
@@ -199,94 +197,133 @@ export function InterventionsLibrary() {
   const [selectedInterventions, setSelectedInterventions] = useState<Set<string>>(new Set())
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
   const [isSuggesting, setIsSuggesting] = useState(false)
-  const [suggestedInterventions, setSuggestedInterventions] = useState<any[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [aiSuggestions, setAiSuggestions] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState("attention")
   const { toast } = useToast()
 
-  const handleSuggestInterventions = async () => {
+  const handleAISuggest = async () => {
     setIsSuggesting(true)
 
     try {
-      console.log("[v0] All localStorage keys:", Object.keys(localStorage))
+      const abcDataRaw = localStorage.getItem("aria-assessment-abc-observations")
+      const riskDataRaw = localStorage.getItem("aria-assessment-risk-assessment")
+      const patternDataRaw = localStorage.getItem("aria-assessment-abc-pattern")
 
-      let goalsData = null
-      const possibleKeys = [
-        "goals",
-        "goalsData",
-        "goalsTrackerData",
-        "trackerGoals",
-        "aria-goals",
-        "ltos",
-        "longTermObjectives",
-      ]
+      let abcData = null
+      let riskData = null
 
-      for (const key of possibleKeys) {
-        const data = localStorage.getItem(key)
-        if (data) {
-          try {
-            const parsed = JSON.parse(data)
-            if (parsed && (Array.isArray(parsed) ? parsed.length > 0 : Object.keys(parsed).length > 0)) {
-              goalsData = parsed
-              console.log("[v0] Found goals in key:", key, goalsData)
-              break
-            }
-          } catch (e) {
-            console.log("[v0] Failed to parse data from key:", key)
-            continue
+      if (patternDataRaw) {
+        try {
+          const pattern = JSON.parse(patternDataRaw)
+          abcData = {
+            primaryFunction: pattern.data?.primaryFunction,
+            secondaryFunction: pattern.data?.secondaryFunction,
+            recommendations: pattern.data?.recommendations,
           }
+        } catch (e) {
+          console.error("Failed to parse ABC pattern data")
         }
       }
 
-      if (!goalsData || (Array.isArray(goalsData) && goalsData.length === 0)) {
-        toast({
-          title: "No Goals Found",
-          description:
-            "Please add and save goals in the Goals Tracker first. Goals must be saved to localStorage to generate suggestions.",
-          variant: "destructive",
-        })
-        setIsSuggesting(false)
-        return
+      if (riskDataRaw) {
+        try {
+          const risk = JSON.parse(riskDataRaw)
+          riskData = {
+            riskLevel: risk.data?.crisisPlan?.riskProfile?.level,
+            riskFactors: risk.data?.selectedRiskFactors,
+            preventionStrategies: risk.data?.crisisPlan?.preventionStrategies,
+          }
+        } catch (e) {
+          console.error("Failed to parse risk data")
+        }
       }
 
-      console.log("[v0] Sending goals to API:", goalsData)
+      if (!abcData?.primaryFunction) {
+        toast({
+          title: "No ABC Data Found",
+          description:
+            "Complete ABC Observations first to get personalized suggestions. Showing general recommendations.",
+          variant: "default",
+        })
+      }
 
       const response = await fetch("/api/suggest-interventions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goals: goalsData }),
+        body: JSON.stringify({ abcData, riskData }),
       })
-
-      if (!response.ok) {
-        throw new Error("Failed to suggest interventions")
-      }
 
       const data = await response.json()
 
-      if (data.suggestions && data.suggestions.length > 0) {
-        setSuggestedInterventions(data.suggestions)
-        setShowSuggestions(true)
-
-        toast({
-          title: "Interventions Suggested",
-          description: `AI recommended ${data.suggestions.length} interventions based on your goals.`,
-        })
-      } else {
-        toast({
-          title: "No Suggestions",
-          description: "Could not generate intervention suggestions for the current goals.",
-          variant: "destructive",
-        })
+      if (!response.ok) {
+        throw new Error(data.error || "Suggestion failed")
       }
-    } catch (error) {
-      console.error("[v0] Error suggesting interventions:", error)
+
+      setAiSuggestions(data)
+
+      if (data.primaryFunctionTab) {
+        setActiveTab(data.primaryFunctionTab.toLowerCase())
+      }
+
+      autoSelectInterventions(data.recommendations)
+
       toast({
-        title: "Suggestion failed",
-        description: "Could not analyze goals. Please try again.",
+        title: "Interventions Suggested",
+        description: `Based on ${data.primaryFunctionTab} function. ${
+          Object.values(data.recommendations).flat().length
+        } interventions recommended.`,
+      })
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Suggestion Failed",
+        description: error instanceof Error ? error.message : "Could not suggest interventions",
         variant: "destructive",
       })
     } finally {
       setIsSuggesting(false)
     }
+  }
+
+  const autoSelectInterventions = (recommendations: any) => {
+    const allRecommendedNames: string[] = []
+
+    Object.values(recommendations).forEach((category: any) => {
+      category.forEach((item: any) => {
+        allRecommendedNames.push(item.name)
+      })
+    })
+
+    const newSelected = new Set(selectedInterventions)
+    Object.values(interventionsData)
+      .flat()
+      .forEach((intervention) => {
+        if (allRecommendedNames.includes(intervention.title)) {
+          newSelected.add(intervention.id)
+        }
+      })
+
+    setSelectedInterventions(newSelected)
+  }
+
+  const isRecommendedByAI = (interventionTitle: string) => {
+    if (!aiSuggestions?.recommendations) return false
+
+    const allRecommended = Object.values(aiSuggestions.recommendations)
+      .flat()
+      .map((r: any) => r.name.toLowerCase())
+
+    return allRecommended.includes(interventionTitle.toLowerCase())
+  }
+
+  const getAIRationale = (interventionTitle: string) => {
+    if (!aiSuggestions?.recommendations) return null
+
+    for (const category of Object.values(aiSuggestions.recommendations)) {
+      const found = (category as any[]).find((r: any) => r.name.toLowerCase() === interventionTitle.toLowerCase())
+      if (found) return { rationale: found.rationale, priority: found.priority }
+    }
+    return null
   }
 
   const toggleIntervention = (id: string) => {
@@ -378,38 +415,66 @@ export function InterventionsLibrary() {
 
               {isExpanded && (
                 <div className="p-3 space-y-2 bg-white">
-                  {items.map((intervention) => (
-                    <div
-                      key={intervention.id}
-                      className={`p-4 border rounded-lg transition-all duration-300 ease-out hover:shadow-md cursor-pointer ${
-                        selectedInterventions.has(intervention.id)
-                          ? "border-[#0D9488] bg-[#0D9488]/5"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                      onClick={() => toggleIntervention(intervention.id)}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1">
-                          <div
-                            className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
-                              selectedInterventions.has(intervention.id)
-                                ? "bg-[#0D9488] border-[#0D9488]"
-                                : "border-gray-300"
-                            }`}
-                          >
-                            {selectedInterventions.has(intervention.id) && <CheckIcon className="h-3 w-3 text-white" />}
+                  {items.map((intervention) => {
+                    const aiData = getAIRationale(intervention.title)
+                    const isAIRecommended = isRecommendedByAI(intervention.title)
+
+                    return (
+                      <div
+                        key={intervention.id}
+                        className={`p-4 border rounded-lg transition-all duration-300 ease-out hover:shadow-md cursor-pointer ${
+                          selectedInterventions.has(intervention.id)
+                            ? "border-[#0D9488] bg-[#0D9488]/5"
+                            : isAIRecommended
+                              ? "border-teal-300 bg-teal-50"
+                              : "border-gray-200 hover:border-gray-300"
+                        }`}
+                        onClick={() => toggleIntervention(intervention.id)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-1">
+                            <div
+                              className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
+                                selectedInterventions.has(intervention.id)
+                                  ? "bg-[#0D9488] border-[#0D9488]"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              {selectedInterventions.has(intervention.id) && (
+                                <CheckIcon className="h-3 w-3 text-white" />
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <h4 className="font-medium text-sm text-gray-900">{intervention.title}</h4>
-                            {getEvidenceBadge(intervention.evidenceLevel)}
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-medium text-sm text-gray-900">{intervention.title}</h4>
+                                {isAIRecommended && (
+                                  <span className="px-2 py-0.5 bg-teal-100 text-teal-700 text-xs rounded-full flex items-center gap-1">
+                                    <Sparkles className="h-3 w-3" />
+                                    AI Recommended
+                                    {aiData?.priority === "high" && (
+                                      <span className="ml-1 text-xs font-semibold">★</span>
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                              {getEvidenceBadge(intervention.evidenceLevel)}
+                            </div>
+                            <p className="text-xs text-gray-600 leading-relaxed">{intervention.description}</p>
+                            {aiData && (
+                              <div className="mt-2 pt-2 border-t border-teal-200">
+                                <p className="text-xs text-teal-700 italic flex items-start gap-1">
+                                  <span className="font-semibold">AI Insight:</span>
+                                  {aiData.rationale}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                          <p className="text-xs text-gray-600 leading-relaxed">{intervention.description}</p>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -421,7 +486,6 @@ export function InterventionsLibrary() {
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 p-6">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-4">
@@ -433,25 +497,24 @@ export function InterventionsLibrary() {
               </p>
             </div>
             <Button
-              onClick={handleSuggestInterventions}
+              onClick={handleAISuggest}
               disabled={isSuggesting}
-              className="bg-teal-600 hover:bg-teal-700"
+              className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white gap-2"
             >
               {isSuggesting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing Goals...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Analyzing Assessment Data...
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <Sparkles className="h-4 w-4" />
                   AI Suggest Interventions
                 </>
               )}
             </Button>
           </div>
 
-          {/* Search Bar */}
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -464,53 +527,51 @@ export function InterventionsLibrary() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="max-w-5xl mx-auto p-6">
-            {/* AI Suggestions Panel */}
-            {showSuggestions && suggestedInterventions.length > 0 && (
-              <Card className="mb-6 border-teal-200 bg-teal-50">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-teal-600" />
-                      <CardTitle className="text-lg text-teal-800">AI Recommended Interventions</CardTitle>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => setShowSuggestions(false)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-sm text-teal-700">Based on your current treatment goals</p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {suggestedInterventions.map((suggestion, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-white rounded-lg border border-teal-100"
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{suggestion.name}</p>
-                          <p className="text-xs text-gray-600 mt-1">{suggestion.reason}</p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <Badge variant="outline" className="text-teal-600 border-teal-600 text-xs">
-                            {suggestion.function}
-                          </Badge>
-                          <Button size="sm" variant="outline" className="text-xs bg-transparent">
-                            <Plus className="h-3 w-3 mr-1" />
-                            Add
-                          </Button>
-                        </div>
+            {aiSuggestions && (
+              <div className="mb-6 bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="h-5 w-5 text-teal-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-teal-900 mb-1">
+                      AI Recommendation: {aiSuggestions.primaryFunctionTab} Function Interventions
+                    </h4>
+                    <p className="text-sm text-teal-700 mb-2">{aiSuggestions.reasoning}</p>
+
+                    {aiSuggestions.implementationNotes && (
+                      <div className="bg-white/60 rounded-lg p-3 mt-3">
+                        <p className="text-xs text-teal-600">
+                          <strong>Implementation Notes:</strong> {aiSuggestions.implementationNotes}
+                        </p>
                       </div>
-                    ))}
+                    )}
+
+                    {aiSuggestions.cautionNotes && aiSuggestions.cautionNotes.trim() !== "" && (
+                      <div className="bg-amber-50 rounded-lg p-3 mt-2 border border-amber-200">
+                        <p className="text-xs text-amber-700 flex items-start gap-1">
+                          <AlertTriangleIcon className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                          <span>
+                            <strong>Caution:</strong> {aiSuggestions.cautionNotes}
+                          </span>
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAiSuggestions(null)}
+                    className="text-teal-600 flex-shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             )}
 
-            <Tabs defaultValue="attention" className="space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-white border border-gray-200">
                 <TabsTrigger
                   value="attention"
@@ -570,7 +631,6 @@ export function InterventionsLibrary() {
         </ScrollArea>
       </div>
 
-      {/* Footer Actions */}
       {selectedInterventions.size > 0 && (
         <div className="border-t border-gray-200 bg-white p-4">
           <div className="max-w-5xl mx-auto flex items-center justify-between">

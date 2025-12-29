@@ -2,11 +2,7 @@ import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
   try {
-    const { goals } = await request.json()
-
-    if (!goals || goals.length === 0) {
-      return NextResponse.json({ suggestions: [] })
-    }
+    const { abcData, riskData } = await request.json()
 
     const anthropicKey = process.env.ANTHROPIC_API_KEY
     if (!anthropicKey) {
@@ -22,59 +18,109 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 2048,
+        max_tokens: 1024,
         messages: [
           {
             role: "user",
-            content: `You are an expert BCBA analyzing treatment goals to suggest appropriate evidence-based interventions.
+            content: `You are an expert BCBA selecting evidence-based interventions for a treatment plan.
 
-TREATMENT GOALS:
-${JSON.stringify(goals, null, 2)}
+CLIENT DATA:
+- Primary Behavior Function: ${abcData?.primaryFunction || "Not identified"}
+- Secondary Function: ${abcData?.secondaryFunction || "None"}
+- ABC Pattern Recommendations: ${abcData?.recommendations?.join(", ") || "None provided"}
+- Risk Level: ${riskData?.riskLevel || "Not assessed"}
+- Risk Factors: ${riskData?.riskFactors?.join(", ") || "None identified"}
+- Prevention Strategies from Crisis Plan: ${riskData?.preventionStrategies?.join(", ") || "None"}
 
-Analyze these goals and suggest 5-8 of the most appropriate interventions. For each goal domain or target behavior, recommend specific intervention strategies.
+Based on this data, recommend specific interventions from each category. Return a JSON object with:
 
-Return a JSON array with this exact structure:
-[
-  {
-    "name": "Intervention name (be specific)",
-    "function": "Attention|Escape|Tangible|Automatic",
-    "category": "Preventive|Replacement|Management|Consequence",
-    "reason": "Brief clinical explanation why this intervention matches the goal (1-2 sentences)",
-    "goalId": "ID or title of the related goal"
-  }
-]
+{
+  "primaryFunctionTab": "Attention|Escape|Tangible|Automatic",
+  "reasoning": "Brief explanation of why these interventions were selected based on the function and risk factors",
+  "recommendations": {
+    "preventiveStrategies": [
+      {
+        "name": "Exact intervention name from the library",
+        "priority": "high|medium",
+        "rationale": "Why this specific intervention for this client"
+      }
+    ],
+    "replacementStrategies": [
+      {
+        "name": "Exact intervention name",
+        "priority": "high|medium",
+        "rationale": "Why this intervention"
+      }
+    ],
+    "managementStrategies": [
+      {
+        "name": "Exact intervention name",
+        "priority": "high|medium",
+        "rationale": "Why this intervention"
+      }
+    ],
+    "maladaptiveBehaviorStrategies": [
+      {
+        "name": "Exact intervention name",
+        "priority": "high|medium",
+        "rationale": "Why this intervention"
+      }
+    ]
+  },
+  "implementationNotes": "2-3 sentences about key considerations when implementing these interventions for this specific client",
+  "cautionNotes": "Any warnings or contraindications based on the risk factors (can be empty string if none)"
+}
 
-Guidelines:
-- Match interventions to behavioral functions evident in the goals
-- Prioritize evidence-based strategies (FCT, DRA, DRI, NCR, task analysis, etc.)
-- Include a mix of preventive, replacement, and management strategies
-- Consider the client's developmental level and skill deficits
-- Focus on functionally equivalent replacement behaviors
-- Ensure interventions address the maintaining variables
+IMPORTANT: Use exact intervention names that exist in the library:
 
-Return ONLY the JSON array, no additional text or formatting.`,
+FOR ATTENTION FUNCTION:
+- Preventive: "Attention Schedule"
+- Replacement: "Functional Communication Training (FCT) - Attention"
+- Management: "Planned Ignoring"
+- Maladaptive: "Response Cost for Attention-Seeking"
+
+FOR ESCAPE FUNCTION:
+- Preventive: "Task Modification", "Scheduled Breaks"
+- Replacement: "FCT - Escape/Break Request"
+- Management: "Escape Extinction"
+- Maladaptive: "Differential Reinforcement of Alternative Behavior (DRA)"
+
+FOR TANGIBLE FUNCTION:
+- Preventive: "Non-Contingent Access", "Choice-Making Opportunities"
+- Replacement: "FCT - Item/Activity Request"
+- Management: "Tangible Extinction"
+- Maladaptive: "Response Blocking + Redirection"
+
+FOR AUTOMATIC FUNCTION:
+- Preventive: "Environmental Enrichment", "Matched Stimulation"
+- Replacement: "Differential Reinforcement of Other Behavior (DRO)"
+- Management: "Response Interruption/Redirection (RIRD)"
+- Maladaptive: "Sensory Extinction"
+
+Return ONLY the JSON object with no markdown formatting.`,
           },
         ],
       }),
     })
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status}`)
+      const errorData = await response.json()
+      console.error("Anthropic API error:", errorData)
+      return NextResponse.json({ error: "AI suggestion failed" }, { status: 500 })
     }
 
     const data = await response.json()
     const content = data.content[0].text
 
-    // Extract JSON from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/)
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
 
     if (!jsonMatch) {
       console.error("No valid JSON found in response:", content)
-      return NextResponse.json({ suggestions: [] })
+      return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 })
     }
 
-    const suggestions = JSON.parse(jsonMatch[0])
-    return NextResponse.json({ suggestions })
+    const result = JSON.parse(jsonMatch[0])
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Error suggesting interventions:", error)
     return NextResponse.json({ error: "Failed to suggest interventions" }, { status: 500 })
