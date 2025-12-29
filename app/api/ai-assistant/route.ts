@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server"
+import { ASSESSMENT_INSTRUMENTS_KNOWLEDGE } from "@/lib/aba-prompts"
 
 export const maxDuration = 60
 
@@ -15,13 +16,29 @@ CRITICAL FORMATTING RULES:
 - Use proper ABA terminology (contingency, reinforcement, prompting, fading, shaping, etc.)
 - Reference DSM-5 criteria and evidence-based practices when relevant
 
+ASSESSMENT INSTRUMENTS KNOWLEDGE:
+You have access to detailed information about major ABA assessment tools:
+- VB-MAPP: 170 milestones across 16 domains, levels 1-3 (0-48 months)
+- ABLLS-R: 544 skills across 15 domains, scored 0-4
+- AFLS: 6 protocols for functional living skills
+- Vineland-3: Norm-referenced adaptive behavior (Communication, Daily Living, Socialization, Motor)
+- PEAK: 184 programs across 4 modules (Direct Training, Generalization, Equivalence, Transformation)
+- ADOS-2: Gold standard diagnostic tool with 5 modules
+- Essentials for Living: 2700 skills for moderate-to-severe disabilities
+
+When writing "Assessment Instruments" or "Assessment Results" sections, include:
+- Full instrument names and authors
+- Domains assessed and scoring methodology
+- Clinical interpretation of scores
+- Insurance-relevant reporting guidelines
+
 SECTION-SPECIFIC GUIDELINES:
 - For "Reason for Referral": Include referral source, presenting concerns, and family priorities
 - For "Client Information": Include demographics and relevant identifying information
 - For "Diagnosis": Reference DSM-5 criteria, onset, and severity specifiers
 - For "Medical History": Include relevant medical conditions, medications, and developmental history
-- For "Assessment Instruments": List tools used with validity and standardization notes
-- For "Assessment Results": Include scores, percentiles, and clinical interpretations
+- For "Assessment Instruments": List tools used with validity, standardization notes, and proper citations
+- For "Assessment Results": Include scores, percentiles, clinical interpretations, and functional implications
 - For "Behavioral Observations": Describe observed behaviors during assessment sessions
 - For "Skill Assessments": Detail current skill levels across domains (communication, social, adaptive, etc.)
 - For "Barriers to Treatment": Identify factors that may impact treatment progress
@@ -85,6 +102,18 @@ export async function POST(req: NextRequest) {
     }
     if (sectionType) {
       contextInfo += `Section Type: ${sectionType}\n`
+    }
+
+    if (
+      sectionType === "assessments" ||
+      sectionType === "assessment-results" ||
+      userMessage.toLowerCase().includes("assessment")
+    ) {
+      contextInfo += "\n[Assessment Instruments Available]\n"
+      contextInfo += Object.entries(ASSESSMENT_INSTRUMENTS_KNOWLEDGE)
+        .map(([key, value]) => `${key}: ${value.fullName} by ${value.author || "standard"}`)
+        .join("\n")
+      contextInfo += "\n"
     }
 
     // Determine max tokens based on section type

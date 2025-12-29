@@ -65,6 +65,146 @@ export const INSURANCE_KNOWLEDGE = {
 }
 
 // ============================================================================
+// ASSESSMENT INSTRUMENTS KNOWLEDGE BASE
+// ============================================================================
+
+export const ASSESSMENT_INSTRUMENTS_KNOWLEDGE = {
+  "VB-MAPP": {
+    fullName: "Verbal Behavior Milestones Assessment and Placement Program",
+    author: "Dr. Mark Sundberg",
+    description: "Criterion-referenced assessment tool based on B.F. Skinner's analysis of verbal behavior",
+    domains: [
+      "Mand",
+      "Tact",
+      "Listener Responding",
+      "Visual Perceptual Skills",
+      "Play",
+      "Social Behavior",
+      "Motor Imitation",
+      "Echoic",
+      "Spontaneous Vocal Behavior",
+      "Listener Responding by Function/Feature/Class",
+      "Intraverbal",
+      "Classroom Routines",
+      "Linguistic Structure",
+      "Reading",
+      "Writing",
+      "Math",
+    ],
+    levels: ["Level 1 (0-18 months)", "Level 2 (18-30 months)", "Level 3 (30-48 months)"],
+    totalMilestones: 170,
+    scoringMethod: "Each milestone scored 0, 0.5, or 1 based on specific criteria",
+    clinicalUse: "Identifies language and learning barriers, guides IEP development, tracks progress",
+    insuranceReporting: "Report milestone levels achieved, barriers identified, and recommended intervention intensity",
+  },
+  "ABLLS-R": {
+    fullName: "Assessment of Basic Language and Learning Skills - Revised",
+    author: "Dr. James Partington",
+    description:
+      "Criterion-referenced assessment and curriculum guide for children with autism and developmental disabilities",
+    domains: [
+      "Cooperation",
+      "Visual Performance",
+      "Receptive Language",
+      "Motor Imitation",
+      "Vocal Imitation",
+      "Requests",
+      "Labeling",
+      "Intraverbals",
+      "Spontaneous Vocalizations",
+      "Syntax/Grammar",
+      "Play/Leisure",
+      "Social Interaction",
+      "Group Instruction",
+      "Classroom Routines",
+      "Generalized Responding",
+    ],
+    totalSkills: 544,
+    scoringMethod: "Task-analyzed skills scored 0-4 based on independence level",
+    clinicalUse: "Comprehensive curriculum guide, identifies skill deficits, tracks acquisition",
+    insuranceReporting: "Report percentage of skills mastered per domain, priority areas for intervention",
+  },
+  AFLS: {
+    fullName: "Assessment of Functional Living Skills",
+    author: "Dr. James Partington",
+    description: "Assessment for functional and independent living skills across lifespan",
+    protocols: [
+      "Basic Living Skills",
+      "Home Skills",
+      "Community Participation",
+      "School Skills",
+      "Vocational Skills",
+      "Independent Living Skills",
+    ],
+    scoringMethod: "Skills scored 0-4 based on independence and prompt level",
+    clinicalUse: "Transition planning, independent living goals, vocational readiness",
+    insuranceReporting: "Report functional skill levels, barriers to independence, caregiver training needs",
+  },
+  "Vineland-3": {
+    fullName: "Vineland Adaptive Behavior Scales, Third Edition",
+    description: "Norm-referenced assessment of adaptive behavior from birth to 90 years",
+    domains: ["Communication", "Daily Living Skills", "Socialization", "Motor Skills", "Maladaptive Behavior Index"],
+    subdomains: {
+      Communication: ["Receptive", "Expressive", "Written"],
+      DailyLiving: ["Personal", "Domestic", "Community"],
+      Socialization: ["Interpersonal", "Play/Leisure", "Coping"],
+      Motor: ["Gross", "Fine"],
+    },
+    scoringMethod: "Standard scores (M=100, SD=15), V-scale scores, age equivalents, adaptive levels",
+    adaptiveLevels: [
+      "High (≥130)",
+      "Moderately High (115-129)",
+      "Adequate (86-114)",
+      "Moderately Low (71-85)",
+      "Low (≤70)",
+    ],
+    clinicalUse: "Diagnostic support, eligibility determination, treatment planning",
+    insuranceReporting: "Report standard scores, adaptive levels, and comparison to same-age peers",
+  },
+  PEAK: {
+    fullName: "Promoting Emergence of Advanced Knowledge",
+    author: "Dr. Mark Dixon",
+    description:
+      "Comprehensive assessment based on Relational Frame Theory combining Skinner's verbal behavior with derived relational responding",
+    modules: ["Direct Training Module", "Generalization Module", "Equivalence Module", "Transformation Module"],
+    totalPrograms: 184,
+    scoringMethod: "Programs scored based on correct responding across trials",
+    clinicalUse: "Advanced language assessment, cognitive flexibility, problem-solving skills",
+    insuranceReporting: "Report module progress, derived relational responding capabilities",
+  },
+  "ADOS-2": {
+    fullName: "Autism Diagnostic Observation Schedule, Second Edition",
+    description:
+      "Semi-structured, standardized assessment of communication, social interaction, play, and restricted behaviors",
+    modules: ["Toddler Module", "Module 1", "Module 2", "Module 3", "Module 4"],
+    moduleSelection: "Based on expressive language level and chronological age",
+    scoringMethod: "Algorithm scores converted to comparison scores and classification",
+    classifications: ["Autism", "Autism Spectrum", "Non-Spectrum"],
+    clinicalUse: "Diagnostic confirmation, severity level determination",
+    insuranceReporting: "Report module administered, comparison score, classification, severity level",
+  },
+  Essentials: {
+    fullName: "Essentials for Living",
+    author: "Dr. Patrick McGreevy",
+    description: "Functional curriculum and assessment for individuals with moderate-to-severe disabilities",
+    domains: [
+      "Tolerating",
+      "Waiting",
+      "Following Directions",
+      "Accepting Removal/Denial",
+      "Communication",
+      "Daily Living",
+      "Community",
+      "Vocational",
+    ],
+    totalSkills: 2700,
+    scoringMethod: "Skills tracked for acquisition and fluency",
+    clinicalUse: "Functional skills, behavior reduction, independence training",
+    insuranceReporting: "Report essential skills status, priority behaviors, safety considerations",
+  },
+}
+
+// ============================================================================
 // ABA SYSTEM PROMPT
 // ============================================================================
 
