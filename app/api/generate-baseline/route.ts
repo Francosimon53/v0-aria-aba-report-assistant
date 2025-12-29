@@ -1,40 +1,23 @@
 import { NextResponse } from "next/server"
-import { anthropic } from "@ai-sdk/anthropic"
-import { generateObject } from "ai"
-import { z } from "zod"
-
-const baselineSchema = z.object({
-  currentRate: z.number().optional(),
-  rateUnit: z.enum(["hour", "day", "session", "week"]).optional(),
-  percentCorrect: z.number().optional(),
-  totalTrials: z.number().optional(),
-  averageDuration: z.number().optional(),
-  durationUnit: z.enum(["seconds", "minutes", "hours"]).optional(),
-  stepsCompleted: z.number().optional(),
-  totalSteps: z.number().optional(),
-  percentIntervals: z.number().optional(),
-  observationDuration: z.number().optional(),
-  promptLevel: z.enum(["independent", "gesture", "verbal", "model", "partial_physical", "full_physical"]),
-  setting: z.enum(["home", "clinic", "school", "community", "multiple"]),
-  dataSource: z.enum(["direct_observation", "parent_report", "teacher_report", "assessment", "probe"]),
-  collectionPeriod: z.number(),
-  notes: z.string().optional(),
-})
 
 export async function POST(request: Request) {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY
-
-  if (!anthropicKey) {
-    return NextResponse.json({ error: "AI service not configured" }, { status: 503 })
-  }
-
   try {
     const { goalTitle, goalDescription, measurementType, criteria, ageRange } = await request.json()
 
-    const { object } = await generateObject({
-      model: anthropic("claude-sonnet-4-20250514"),
-      schema: baselineSchema,
-      prompt: `You are an expert BCBA generating realistic baseline data for an ABA therapy goal.
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY!,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1024,
+        messages: [
+          {
+            role: "user",
+            content: `You are an expert BCBA generating realistic baseline data for an ABA therapy goal. Return ONLY valid JSON, no other text.
 
 Goal: ${goalTitle}
 Description: ${goalDescription}
@@ -42,23 +25,40 @@ Measurement Type: ${measurementType}
 Mastery Criteria: ${criteria}
 Age Range: ${ageRange}
 
-Generate realistic BASELINE data that represents a client BEFORE intervention begins. The baseline should:
-1. Be significantly below the mastery criteria (this is PRE-intervention)
-2. Use appropriate values for the measurement type
-3. Reflect typical starting points for clients working on this skill
-4. Be clinically realistic
+Generate realistic BASELINE data (BEFORE intervention). Return JSON with these fields based on measurement type:
 
-For ${measurementType} measurement:
-${measurementType === "Frequency" ? "- Provide currentRate (low number) and rateUnit" : ""}
-${measurementType === "Accuracy" || measurementType === "Discrete Trial" || measurementType === "Opportunity" ? "- Provide percentCorrect (low, like 10-30%) and totalTrials" : ""}
-${measurementType === "Duration" ? "- Provide averageDuration and durationUnit" : ""}
-${measurementType === "Task Analysis" ? "- Provide stepsCompleted (low) and totalSteps" : ""}
-${measurementType === "Interval" ? "- Provide percentIntervals (high for problem behavior, low for desired behavior) and observationDuration" : ""}
+For Frequency: { "currentRate": number, "rateUnit": "hour"|"day"|"session"|"week", "promptLevel": "independent"|"gesture"|"verbal"|"model"|"partial_physical"|"full_physical", "setting": "home"|"clinic"|"school"|"community"|"multiple", "dataSource": "direct_observation"|"parent_report"|"teacher_report"|"assessment"|"probe", "collectionPeriod": number }
 
-Always include: promptLevel, setting, dataSource, and collectionPeriod (typically 3-5 days).`,
+For Accuracy/Discrete Trial/Opportunity: { "percentCorrect": number (10-30), "totalTrials": number, "promptLevel": ..., "setting": ..., "dataSource": ..., "collectionPeriod": number }
+
+For Duration: { "averageDuration": number, "durationUnit": "seconds"|"minutes"|"hours", "promptLevel": ..., "setting": ..., "dataSource": ..., "collectionPeriod": number }
+
+For Task Analysis: { "stepsCompleted": number, "totalSteps": number, "promptLevel": ..., "setting": ..., "dataSource": ..., "collectionPeriod": number }
+
+For Interval: { "percentIntervals": number, "observationDuration": number, "promptLevel": ..., "setting": ..., "dataSource": ..., "collectionPeriod": number }
+
+The baseline should be significantly below mastery criteria. Return ONLY the JSON object.`,
+          },
+        ],
+      }),
     })
 
-    return NextResponse.json(object)
+    const data = await response.json()
+
+    if (data.error) {
+      console.error("Anthropic API error:", data.error)
+      return NextResponse.json({ error: data.error.message }, { status: 500 })
+    }
+
+    const content = data.content[0].text
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+
+    if (!jsonMatch) {
+      return NextResponse.json({ error: "Invalid response format" }, { status: 500 })
+    }
+
+    const baselineData = JSON.parse(jsonMatch[0])
+    return NextResponse.json(baselineData)
   } catch (error) {
     console.error("Error generating baseline:", error)
     return NextResponse.json({ error: "Failed to generate baseline" }, { status: 500 })
