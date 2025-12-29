@@ -24,85 +24,95 @@ export function AutoSaveProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast()
 
   useEffect(() => {
-    const keysToCheck = [
-      "aria-assessment-client-info",
-      "aria-assessment-abc-observations",
-      "aria-assessment-selected-goals",
-      "aria-assessment-assessment-data",
-      "aria-assessment-behaviors",
-      "aria-assessment-background",
-    ]
+    const cleanupCorruptedData = () => {
+      try {
+        const keys = Object.keys(localStorage).filter((key) => key.startsWith("aria-"))
 
-    keysToCheck.forEach((key) => {
-      const saved = localStorage.getItem(key)
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          if (parsed.timestamp) {
-            const date = new Date(parsed.timestamp)
-            if (isNaN(date.getTime())) {
-              localStorage.removeItem(key)
-              console.log(`[v0] Cleaned corrupted data for ${key}`)
+        keys.forEach((key) => {
+          try {
+            const value = localStorage.getItem(key)
+            if (value) {
+              const parsed = JSON.parse(value)
+
+              // Check if timestamp is valid
+              if (parsed.timestamp) {
+                const date = new Date(parsed.timestamp)
+                if (isNaN(date.getTime())) {
+                  console.warn(`Removing corrupted data for ${key}`)
+                  localStorage.removeItem(key)
+                }
+              }
             }
+          } catch (e) {
+            // If parsing fails, remove the item
+            console.warn(`Removing unparseable data for ${key}`)
+            localStorage.removeItem(key)
           }
-        } catch {
-          localStorage.removeItem(key)
-          console.log(`[v0] Removed invalid JSON for ${key}`)
-        }
+        })
+      } catch (e) {
+        console.error("Error cleaning up localStorage:", e)
       }
-    })
+    }
+
+    cleanupCorruptedData()
   }, [])
 
-  // Mark that there are unsaved changes
   const markAsChanged = useCallback(() => {
     setHasUnsavedChanges(true)
   }, [])
 
-  // Save data for a specific section
   const saveData = useCallback(async (key: string, data: any) => {
-    setPendingChanges((prev) => ({ ...prev, [key]: data }))
-    setHasUnsavedChanges(true)
+    try {
+      const storageKey = `aria-assessment-${key}`
+      const timestamp = new Date().toISOString()
 
-    // Save to localStorage immediately
-    const storageKey = `aria-assessment-${key}`
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify({
-        data,
-        timestamp: new Date().toISOString(),
-      }),
-    )
-  }, [])
-
-  // Load data for a specific section
-  const loadData = useCallback((key: string) => {
-    const storageKey = `aria-assessment-${key}`
-    const saved = localStorage.getItem(storageKey)
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-
-        // Validate timestamp if present
-        if (parsed.timestamp) {
-          const date = new Date(parsed.timestamp)
-          if (isNaN(date.getTime())) {
-            console.warn(`[v0] Invalid timestamp in ${key}, ignoring`)
-            localStorage.removeItem(storageKey)
-            return null
-          }
-        }
-
-        return parsed.data
-      } catch (e) {
-        console.error(`[v0] Failed to load ${key}:`, e)
-        localStorage.removeItem(storageKey)
-        return null
+      // Validate timestamp before saving
+      if (isNaN(new Date(timestamp).getTime())) {
+        console.error("Invalid timestamp generated")
+        return
       }
+
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          data,
+          timestamp,
+        }),
+      )
+
+      setPendingChanges((prev) => ({ ...prev, [key]: data }))
+      setHasUnsavedChanges(true)
+    } catch (error) {
+      console.error("Error saving data:", error)
     }
-    return null
   }, [])
 
-  // Save all sections
+  const loadData = useCallback((key: string) => {
+    try {
+      const storageKey = `aria-assessment-${key}`
+      const saved = localStorage.getItem(storageKey)
+
+      if (!saved) return null
+
+      const parsed = JSON.parse(saved)
+
+      // Validate timestamp
+      if (parsed.timestamp) {
+        const date = new Date(parsed.timestamp)
+        if (isNaN(date.getTime())) {
+          console.warn(`Invalid timestamp in ${key}, removing`)
+          localStorage.removeItem(storageKey)
+          return null
+        }
+      }
+
+      return parsed.data
+    } catch (e) {
+      console.error(`Failed to load ${key}:`, e)
+      return null
+    }
+  }, [])
+
   const saveAllSections = useCallback(async () => {
     setIsSaving(true)
     try {

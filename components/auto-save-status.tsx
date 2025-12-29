@@ -4,15 +4,21 @@ import { useAutoSaveContext } from "@/contexts/auto-save-context"
 import { Loader2, CheckCircle2, Cloud, CloudOff, Save } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 
-export function AutoSaveStatus() {
-  const { isSaving, lastSaved, hasUnsavedChanges, saveAllSections } = useAutoSaveContext()
+const formatTimeAgo = (date: Date | string | null | undefined): string => {
+  if (!date) return ""
 
-  const formatTimeAgo = (date: Date | null) => {
-    if (!date || isNaN(date.getTime())) return ""
+  try {
+    // Convert to Date if it's a string
+    const dateObj = typeof date === "string" ? new Date(date) : date
 
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000)
+    // Validate the date
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
+      return ""
+    }
 
-    // Handle future dates
+    const now = new Date()
+    const seconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000)
+
     if (seconds < 0) return "just now"
     if (seconds < 60) return "just now"
 
@@ -22,12 +28,23 @@ export function AutoSaveStatus() {
     const hours = Math.floor(minutes / 60)
     if (hours < 24) return `${hours}h ago`
 
-    return "earlier"
+    const days = Math.floor(hours / 24)
+    return `${days}d ago`
+  } catch (error) {
+    console.warn("formatTimeAgo error:", error)
+    return ""
   }
+}
+
+const isValidDate = (date: Date | null): boolean => {
+  return date instanceof Date && !isNaN(date.getTime())
+}
+
+export function AutoSaveStatus() {
+  const { isSaving, lastSaved, hasUnsavedChanges, saveAllSections } = useAutoSaveContext()
 
   return (
     <div className="flex items-center gap-3">
-      {/* Status indicator */}
       <div className="flex items-center gap-2 text-sm">
         {isSaving ? (
           <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
@@ -39,7 +56,7 @@ export function AutoSaveStatus() {
             <CloudOff className="h-3.5 w-3.5" />
             <span className="text-xs font-medium">Unsaved changes</span>
           </div>
-        ) : lastSaved && !isNaN(lastSaved.getTime()) ? (
+        ) : lastSaved && isValidDate(lastSaved) ? (
           <div className="flex items-center gap-1.5 text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
             <CheckCircle2 className="h-3.5 w-3.5" />
             <span className="text-xs font-medium">Saved {formatTimeAgo(lastSaved)}</span>
