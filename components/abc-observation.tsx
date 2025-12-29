@@ -8,7 +8,24 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusIcon, XIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, Sparkles, Loader2 } from "@/components/icons"
+import {
+  PlusIcon,
+  XIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  Sparkles,
+  Loader2,
+  BarChart3Icon,
+  PieChartIcon,
+  FileTextIcon,
+  LightbulbIcon,
+  CheckCircle2Icon,
+  CopyIcon,
+  ArrowRightIcon,
+  ArrowLeftIcon,
+  AlertTriangleIcon,
+} from "@/components/icons"
 import { premiumToast } from "@/components/ui/premium-toast"
 
 interface ABCObservation {
@@ -20,6 +37,20 @@ interface ABCObservation {
   function: "attention" | "escape" | "tangible" | "automatic" | ""
   functionReasoning?: string
   collapsed: boolean
+}
+
+interface PatternAnalysis {
+  functionBreakdown: {
+    [key: string]: { count: number; percentage: number }
+  }
+  primaryFunction: string
+  secondaryFunction: string | null
+  commonAntecedents: string[]
+  commonConsequences: string[]
+  summary: string
+  recommendations: string[]
+  confidence: "high" | "medium" | "low"
+  minimumObservationsMet: boolean
 }
 
 export function ABCObservation() {
@@ -41,6 +72,8 @@ export function ABCObservation() {
 
   const [isAnalyzingFunction, setIsAnalyzingFunction] = useState<string | null>(null)
   const [generatingField, setGeneratingField] = useState<{ id: string; field: string } | null>(null)
+  const [isAnalyzingPattern, setIsAnalyzingPattern] = useState(false)
+  const [patternAnalysis, setPatternAnalysis] = useState<PatternAnalysis | null>(null)
 
   if (!isLoaded) {
     return (
@@ -172,6 +205,53 @@ export function ABCObservation() {
     }
   }
 
+  const handleAnalyzePattern = async () => {
+    const validObservations = observations.filter(
+      (obs) => obs.antecedent?.trim() || obs.behavior?.trim() || obs.consequence?.trim(),
+    )
+
+    if (validObservations.length < 2) {
+      premiumToast.error("More observations needed", {
+        description: "Please add at least 2 observations with data",
+      })
+      return
+    }
+
+    setIsAnalyzingPattern(true)
+
+    try {
+      const response = await fetch("/api/analyze-abc-pattern", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ observations: validObservations }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Analysis failed")
+      }
+
+      setPatternAnalysis(data)
+
+      premiumToast.success("Pattern Analysis Complete", {
+        description: `Primary function: ${data.primaryFunction}`,
+      })
+    } catch (error) {
+      console.error("Error:", error)
+      premiumToast.error(error instanceof Error ? error.message : "Could not analyze patterns")
+    } finally {
+      setIsAnalyzingPattern(false)
+    }
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    premiumToast.success("Copied!", {
+      description: "Summary copied to clipboard",
+    })
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
       <div className="flex items-start justify-between">
@@ -186,7 +266,6 @@ export function ABCObservation() {
             <PlusIcon className="h-4 w-4" />
             Add Observation
           </Button>
-          {/* Removed manual save button */}
         </div>
       </div>
 
@@ -406,6 +485,164 @@ export function ABCObservation() {
             )}
           </Card>
         ))}
+      </div>
+
+      <div className="mt-8 border-t pt-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <BarChart3Icon className="h-5 w-5 text-purple-600" />
+              Pattern Analysis
+            </h3>
+            <p className="text-sm text-muted-foreground">Analyze all observations to identify behavioral patterns</p>
+          </div>
+
+          <Button
+            onClick={handleAnalyzePattern}
+            disabled={isAnalyzingPattern || observations.length < 2}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white gap-2"
+          >
+            {isAnalyzingPattern ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Analyzing {observations.length} observations...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                AI Pattern Summary
+              </>
+            )}
+          </Button>
+        </div>
+
+        {observations.length < 2 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800 text-sm">
+            <AlertTriangleIcon className="h-4 w-4 inline mr-2" />
+            Add at least 2 observations to enable pattern analysis.
+            <span className="font-medium"> 4+ observations recommended</span> for reliable results.
+          </div>
+        )}
+
+        {patternAnalysis && (
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-6 space-y-6">
+            <div>
+              <h4 className="font-medium text-purple-900 mb-3 flex items-center gap-2">
+                <PieChartIcon className="h-4 w-4" />
+                Function Breakdown
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Object.entries(patternAnalysis.functionBreakdown).map(([func, data]: [string, any]) => (
+                  <div
+                    key={func}
+                    className={`p-3 rounded-lg border-2 ${
+                      func === patternAnalysis.primaryFunction
+                        ? "border-purple-500 bg-purple-100"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="text-2xl font-bold text-purple-700">{data.percentage}%</div>
+                    <div className="text-sm font-medium">{func}</div>
+                    <div className="text-xs text-muted-foreground">{data.count} observations</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex-1 bg-white rounded-lg p-4 border border-purple-200">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Primary Function</div>
+                <div className="text-xl font-bold text-purple-700">{patternAnalysis.primaryFunction}</div>
+              </div>
+              {patternAnalysis.secondaryFunction && (
+                <div className="flex-1 bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Secondary Function</div>
+                  <div className="text-xl font-bold text-gray-700">{patternAnalysis.secondaryFunction}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg p-4 border border-purple-200">
+                <h5 className="font-medium text-sm mb-2 flex items-center gap-1">
+                  <ArrowRightIcon className="h-3 w-3 text-green-600" />
+                  Common Antecedents
+                </h5>
+                <ul className="text-sm space-y-1">
+                  {patternAnalysis.commonAntecedents.map((ant: string, i: number) => (
+                    <li key={i} className="text-gray-600">
+                      • {ant}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-purple-200">
+                <h5 className="font-medium text-sm mb-2 flex items-center gap-1">
+                  <ArrowLeftIcon className="h-3 w-3 text-blue-600" />
+                  Common Consequences
+                </h5>
+                <ul className="text-sm space-y-1">
+                  {patternAnalysis.commonConsequences.map((con: string, i: number) => (
+                    <li key={i} className="text-gray-600">
+                      • {con}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-4 border border-purple-200">
+              <h5 className="font-medium text-sm mb-2 flex items-center gap-1">
+                <FileTextIcon className="h-3 w-3 text-purple-600" />
+                Clinical Summary
+              </h5>
+              <p className="text-gray-700 leading-relaxed">{patternAnalysis.summary}</p>
+            </div>
+
+            <div className="bg-white rounded-lg p-4 border border-purple-200">
+              <h5 className="font-medium text-sm mb-2 flex items-center gap-1">
+                <LightbulbIcon className="h-3 w-3 text-amber-500" />
+                Recommended Interventions
+              </h5>
+              <ul className="text-sm space-y-2">
+                {patternAnalysis.recommendations.map((rec: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle2Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-600">{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    patternAnalysis.confidence === "high"
+                      ? "bg-green-100 text-green-700"
+                      : patternAnalysis.confidence === "medium"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {patternAnalysis.confidence} confidence
+                </span>
+                {!patternAnalysis.minimumObservationsMet && (
+                  <span className="text-amber-600 text-xs">⚠️ Add more observations for higher confidence</span>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(patternAnalysis.summary)}
+                className="gap-1"
+              >
+                <CopyIcon className="h-3 w-3" />
+                Copy Summary
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
