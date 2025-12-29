@@ -205,52 +205,85 @@ export function InterventionsLibrary() {
     setIsSuggesting(true)
 
     try {
-      const abcDataRaw = localStorage.getItem("aria-assessment-abc-observations")
-      const riskDataRaw = localStorage.getItem("aria-assessment-risk-assessment")
-      const patternDataRaw = localStorage.getItem("aria-assessment-abc-pattern")
-
       let abcData = null
       let riskData = null
 
-      if (patternDataRaw) {
-        try {
-          const pattern = JSON.parse(patternDataRaw)
-          abcData = {
-            primaryFunction: pattern.data?.primaryFunction,
-            secondaryFunction: pattern.data?.secondaryFunction,
-            recommendations: pattern.data?.recommendations,
+      // 1. Leer ABC Observations desde la key correcta
+      try {
+        const abcRaw = localStorage.getItem("aria-assessment-abc-observations")
+        console.log("[v0] Raw ABC data:", abcRaw)
+
+        if (abcRaw) {
+          const parsed = JSON.parse(abcRaw)
+          const observations = parsed.data || []
+
+          if (Array.isArray(observations) && observations.length > 0) {
+            // Extraer funciones de las observaciones
+            const functions = observations.map((obs: any) => obs.function || obs.impressionOfFunction).filter(Boolean)
+
+            // Contar frecuencia
+            const functionCounts: Record<string, number> = {}
+            functions.forEach((f: string) => {
+              functionCounts[f] = (functionCounts[f] || 0) + 1
+            })
+
+            // Función más común
+            const sortedFunctions = Object.entries(functionCounts).sort((a, b) => b[1] - a[1])
+
+            const primaryFunction = sortedFunctions[0]?.[0] || null
+            const secondaryFunction = sortedFunctions[1]?.[0] || null
+
+            abcData = {
+              primaryFunction,
+              secondaryFunction,
+              observationCount: observations.length,
+              functionCounts,
+            }
+
+            console.log("[v0] Parsed ABC Data:", abcData)
           }
-        } catch (e) {
-          console.error("Failed to parse ABC pattern data")
         }
+      } catch (e) {
+        console.warn("Could not parse ABC observations:", e)
       }
 
-      if (riskDataRaw) {
-        try {
-          const risk = JSON.parse(riskDataRaw)
+      // 2. Leer Risk Assessment
+      try {
+        const riskRaw = localStorage.getItem("aria-assessment-risk-assessment")
+        if (riskRaw) {
+          const parsed = JSON.parse(riskRaw)
           riskData = {
-            riskLevel: risk.data?.crisisPlan?.riskProfile?.level,
-            riskFactors: risk.data?.selectedRiskFactors,
-            preventionStrategies: risk.data?.crisisPlan?.preventionStrategies,
+            riskLevel: parsed.data?.riskLevel || parsed.data?.crisisPlan?.riskProfile?.level,
+            riskFactors: parsed.data?.selectedRiskFactors || [],
+            preventionStrategies: parsed.data?.crisisPlan?.preventionStrategies || [],
           }
-        } catch (e) {
-          console.error("Failed to parse risk data")
+          console.log("[v0] Parsed Risk Data:", riskData)
         }
+      } catch (e) {
+        console.warn("Could not parse risk assessment:", e)
       }
 
+      // 3. Mostrar mensaje si no hay función identificada
       if (!abcData?.primaryFunction) {
         toast({
-          title: "No ABC Data Found",
-          description:
-            "Complete ABC Observations first to get personalized suggestions. Showing general recommendations.",
-          variant: "default",
+          title: "No Function Identified",
+          description: "Go to ABC Observations, add data, and use 'AI Analyze' to identify the behavioral function.",
+        })
+      } else {
+        toast({
+          title: "Data Found!",
+          description: `Primary function: ${abcData.primaryFunction} (${abcData.observationCount} observations)`,
         })
       }
 
+      // 4. Llamar a la API
       const response = await fetch("/api/suggest-interventions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ abcData, riskData }),
+        body: JSON.stringify({
+          abcData: abcData || {},
+          riskData: riskData || {},
+        }),
       })
 
       const data = await response.json()
@@ -261,18 +294,15 @@ export function InterventionsLibrary() {
 
       setAiSuggestions(data)
 
+      // Auto-select the recommended function tab
       if (data.primaryFunctionTab) {
         setActiveTab(data.primaryFunctionTab.toLowerCase())
       }
 
-      autoSelectInterventions(data.recommendations)
-
-      toast({
-        title: "Interventions Suggested",
-        description: `Based on ${data.primaryFunctionTab} function. ${
-          Object.values(data.recommendations).flat().length
-        } interventions recommended.`,
-      })
+      // Auto-check recommended interventions
+      if (data.recommendations) {
+        autoSelectInterventions(data.recommendations)
+      }
     } catch (error) {
       console.error("Error:", error)
       toast({
