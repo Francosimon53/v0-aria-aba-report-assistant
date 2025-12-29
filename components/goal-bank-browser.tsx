@@ -358,12 +358,12 @@ export function GoalBankBrowser({ onGoalSelect, selectedGoals = [] }: GoalBankBr
 
       {/* Add Goal Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-md h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Add Goal to Assessment</DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 pr-4">
+          <ScrollArea className="flex-1 overflow-auto pr-4">
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Priority Level</Label>
@@ -680,7 +680,7 @@ export function GoalBankBrowser({ onGoalSelect, selectedGoals = [] }: GoalBankBr
             </div>
           </ScrollArea>
 
-          <div className="flex gap-2 pt-4 border-t">
+          <div className="flex gap-2 pt-4 mt-4 border-t shrink-0">
             <Button variant="outline" onClick={() => setShowAddDialog(false)} className="flex-1">
               Cancel
             </Button>
