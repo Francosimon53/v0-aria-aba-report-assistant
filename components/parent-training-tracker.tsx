@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Progress } from "@/components/ui/progress"
+import { useToast } from "@/hooks/use-toast"
 import {
   CheckIcon,
   CheckCircle2Icon,
@@ -16,6 +17,12 @@ import {
   UsersIcon,
   BookOpenIcon,
   VideoIcon,
+  SparklesIcon,
+  Loader2Icon,
+  TargetIcon,
+  ListOrderedIcon,
+  HomeIcon,
+  ClipboardCheckIcon,
 } from "@/components/icons"
 
 interface TrainingModule {
@@ -152,6 +159,63 @@ export function ParentTrainingTracker() {
   const [modules, setModules] = useState<TrainingModule[]>(initialModules)
   const [selectedModule, setSelectedModule] = useState<string | null>(null)
   const [newFidelityScores, setNewFidelityScores] = useState<Record<string, string>>({})
+
+  const [moduleContent, setModuleContent] = useState<Record<string, any>>({})
+  const [generatingModule, setGeneratingModule] = useState<string | null>(null)
+  const [savedInterventions, setSavedInterventions] = useState<any[]>([])
+  const { toast } = useToast()
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("aria-assessment-selected-interventions")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setSavedInterventions(parsed.data || parsed || [])
+      }
+    } catch (e) {
+      console.warn("[v0] Could not load interventions:", e)
+    }
+  }, [])
+
+  const handleGenerateModuleContent = async (moduleName: string) => {
+    setGeneratingModule(moduleName)
+
+    try {
+      const response = await fetch("/api/generate-parent-training", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          moduleName,
+          interventions: savedInterventions,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Generation failed")
+      }
+
+      setModuleContent((prev) => ({
+        ...prev,
+        [moduleName]: data,
+      }))
+
+      toast({
+        title: "Content Generated",
+        description: `Training content for "${moduleName}" created successfully.`,
+      })
+    } catch (error) {
+      console.error("[v0] Error:", error)
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Could not generate content",
+        variant: "destructive",
+      })
+    } finally {
+      setGeneratingModule(null)
+    }
+  }
 
   const updateModule = (id: string, updates: Partial<TrainingModule>) => {
     setModules(modules.map((m) => (m.id === id ? { ...m, ...updates } : m)))
@@ -383,6 +447,32 @@ export function ParentTrainingTracker() {
                           <div className="text-sm text-gray-600">Duration: {module.duration}</div>
                         </div>
 
+                        {/* AI Generate Content button */}
+                        <div className="flex items-center gap-2 mr-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleGenerateModuleContent(module.name)
+                            }}
+                            disabled={generatingModule === module.name}
+                            className="gap-1.5 border-[#0D9488]/30 hover:bg-[#0D9488]/5"
+                          >
+                            {generatingModule === module.name ? (
+                              <>
+                                <Loader2Icon className="h-3.5 w-3.5 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <SparklesIcon className="h-3.5 w-3.5 text-[#0D9488]" />
+                                AI Generate Content
+                              </>
+                            )}
+                          </Button>
+                        </div>
+
                         {/* Completion Check */}
                         {module.status === "completed" && (
                           <CheckCircle2Icon className="h-6 w-6 text-green-500 flex-shrink-0" />
@@ -392,6 +482,200 @@ export function ParentTrainingTracker() {
 
                     <AccordionContent>
                       <div className="px-6 pb-6 space-y-4">
+                        {moduleContent[module.name] && (
+                          <div className="mb-6 space-y-6 border-t pt-6">
+                            {/* Learning Objectives */}
+                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                              <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                                <TargetIcon className="h-4 w-4" />
+                                Learning Objectives
+                              </h4>
+                              <ul className="space-y-2">
+                                {moduleContent[module.name].learningObjectives?.map((obj: string, i: number) => (
+                                  <li key={i} className="text-sm text-blue-800 flex items-start gap-2">
+                                    <CheckCircle2Icon className="h-4 w-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                                    {obj}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            {/* Key Concepts */}
+                            <div>
+                              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                <BookOpenIcon className="h-4 w-4 text-[#0D9488]" />
+                                Key Concepts
+                              </h4>
+                              <div className="grid gap-3">
+                                {moduleContent[module.name].keyConceptsSection?.concepts?.map(
+                                  (concept: any, i: number) => (
+                                    <div key={i} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                      <p className="font-medium text-gray-900 mb-1">{concept.term}</p>
+                                      <p className="text-sm text-gray-600 mb-2">{concept.definition}</p>
+                                      <p className="text-sm text-[#0D9488] italic">💡 Example: {concept.example}</p>
+                                    </div>
+                                  ),
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Procedure Steps */}
+                            <div>
+                              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                <ListOrderedIcon className="h-4 w-4 text-[#0D9488]" />
+                                Procedure Steps
+                              </h4>
+                              <div className="space-y-3">
+                                {moduleContent[module.name].procedureSteps?.map((step: any, i: number) => (
+                                  <div key={i} className="border border-gray-200 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="bg-[#0D9488] text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-medium flex-shrink-0">
+                                        {step.step}
+                                      </span>
+                                      <span className="font-medium text-gray-900">{step.title}</span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-2 ml-9">{step.description}</p>
+                                    {step.tips?.length > 0 && (
+                                      <div className="bg-green-50 rounded p-3 mt-2 ml-9 border border-green-200">
+                                        <p className="text-xs font-medium text-green-800 mb-1">💡 Tips:</p>
+                                        <ul className="text-xs text-green-700 space-y-1">
+                                          {step.tips.map((tip: string, j: number) => (
+                                            <li key={j}>• {tip}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {step.commonMistakes?.length > 0 && (
+                                      <div className="bg-red-50 rounded p-3 mt-2 ml-9 border border-red-200">
+                                        <p className="text-xs font-medium text-red-800 mb-1">⚠️ Avoid:</p>
+                                        <ul className="text-xs text-red-700 space-y-1">
+                                          {step.commonMistakes.map((mistake: string, j: number) => (
+                                            <li key={j}>• {mistake}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Practice Scenarios */}
+                            <div>
+                              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                <UsersIcon className="h-4 w-4 text-[#0D9488]" />
+                                Practice Scenarios
+                              </h4>
+                              <div className="space-y-3">
+                                {moduleContent[module.name].practiceScenarios?.map((scenario: any, i: number) => (
+                                  <div key={i} className="border border-gray-200 rounded-lg p-4">
+                                    <p className="text-sm font-medium text-gray-900 mb-3">📋 {scenario.scenario}</p>
+                                    <div className="grid md:grid-cols-2 gap-3">
+                                      <div className="bg-green-50 rounded p-3 border border-green-200">
+                                        <p className="text-xs font-medium text-green-800 mb-1">✅ Correct Response:</p>
+                                        <p className="text-xs text-green-700">{scenario.correctResponse}</p>
+                                      </div>
+                                      <div className="bg-red-50 rounded p-3 border border-red-200">
+                                        <p className="text-xs font-medium text-red-800 mb-1">❌ Avoid:</p>
+                                        <p className="text-xs text-red-700">{scenario.incorrectResponse}</p>
+                                      </div>
+                                    </div>
+                                    <p className="text-xs text-gray-600 mt-2 italic">{scenario.rationale}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Home Activities */}
+                            <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                              <h4 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                                <HomeIcon className="h-4 w-4" />
+                                Home Practice Activities
+                              </h4>
+                              <div className="space-y-3">
+                                {moduleContent[module.name].homeActivities?.map((activity: any, i: number) => (
+                                  <div key={i} className="bg-white rounded p-3 border border-amber-200">
+                                    <p className="font-medium text-sm text-gray-900">{activity.activity}</p>
+                                    <p className="text-xs text-gray-600 mt-1">{activity.description}</p>
+                                    <div className="flex items-center gap-4 mt-2">
+                                      <p className="text-xs text-amber-700 font-medium">📅 {activity.frequency}</p>
+                                      {activity.materials?.length > 0 && (
+                                        <p className="text-xs text-gray-500">
+                                          Materials: {activity.materials.join(", ")}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Fidelity Checklist */}
+                            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                              <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                                <ClipboardCheckIcon className="h-4 w-4" />
+                                Fidelity Checklist
+                              </h4>
+                              <div className="space-y-2">
+                                {moduleContent[module.name].fidelityChecklist?.map((item: string, i: number) => (
+                                  <label
+                                    key={i}
+                                    className="flex items-center gap-2 text-sm text-purple-800 cursor-pointer"
+                                  >
+                                    <input type="checkbox" className="rounded border-purple-300 text-purple-600" />
+                                    {item}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Quiz Questions */}
+                            {moduleContent[module.name].quizQuestions?.length > 0 && (
+                              <div>
+                                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                  <CheckCircle2Icon className="h-4 w-4 text-[#0D9488]" />
+                                  Knowledge Check
+                                </h4>
+                                <div className="space-y-4">
+                                  {moduleContent[module.name].quizQuestions?.map((q: any, i: number) => (
+                                    <div key={i} className="border border-gray-200 rounded-lg p-4 bg-white">
+                                      <p className="font-medium text-sm text-gray-900 mb-3">
+                                        {i + 1}. {q.question}
+                                      </p>
+                                      <div className="space-y-2 mb-3">
+                                        {q.options?.map((option: string, j: number) => (
+                                          <label
+                                            key={j}
+                                            className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+                                          >
+                                            <input
+                                              type="radio"
+                                              name={`quiz-${module.id}-${i}`}
+                                              className="text-[#0D9488]"
+                                            />
+                                            {option}
+                                          </label>
+                                        ))}
+                                      </div>
+                                      <details className="text-xs text-gray-600">
+                                        <summary className="cursor-pointer font-medium text-[#0D9488]">
+                                          Show answer
+                                        </summary>
+                                        <p className="mt-2 bg-green-50 p-2 rounded border border-green-200">
+                                          <span className="font-medium">Correct: {q.correctAnswer}</span>
+                                          <br />
+                                          {q.explanation}
+                                        </p>
+                                      </details>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Original module content */}
                         {/* Learning Objectives */}
                         <div>
                           <h5 className="font-medium text-sm text-gray-700 mb-2">Learning Objectives</h5>
