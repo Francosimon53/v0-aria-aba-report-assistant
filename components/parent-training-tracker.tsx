@@ -21,6 +21,7 @@ import {
   ListOrderedIcon,
   HomeIcon,
   ClipboardCheckIcon,
+  SaveIcon,
 } from "@/components/icons"
 
 interface TrainingModule {
@@ -161,21 +162,87 @@ export function ParentTrainingTracker() {
   const [moduleContent, setModuleContent] = useState<Record<string, any>>({})
   const [generatingModule, setGeneratingModule] = useState<string | null>(null)
   const [savedInterventions, setSavedInterventions] = useState<any[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
     try {
+      const savedData = localStorage.getItem("aria-parent-training-data")
+      if (savedData) {
+        const parsed = JSON.parse(savedData)
+        if (parsed.modules) setModules(parsed.modules)
+        if (parsed.moduleContent) setModuleContent(parsed.moduleContent)
+        if (parsed.newFidelityScores) setNewFidelityScores(parsed.newFidelityScores)
+        if (parsed.selectedModule) setSelectedModule(parsed.selectedModule)
+        console.log("[v0] Loaded parent training data from localStorage")
+      }
+    } catch (e) {
+      console.error("[v0] Error loading parent training data:", e)
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
       const saved = localStorage.getItem("aria-assessment-selected-interventions")
-      console.log("[v0] Raw localStorage value:", saved)
       if (saved) {
         const parsed = JSON.parse(saved)
         console.log("[v0] Loaded interventions from localStorage:", parsed)
         setSavedInterventions(parsed.data || parsed || [])
       }
     } catch (e) {
-      console.warn("[v0] Could not load interventions:", e)
+      console.error("[v0] Error loading interventions:", e)
     }
   }, [])
+
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      handleSaveAll(true) // true = silent save (no toast)
+    }, 30000)
+
+    return () => clearInterval(autoSaveInterval)
+  }, [modules, moduleContent, newFidelityScores, selectedModule])
+
+  const handleSaveAll = (silent = false) => {
+    setIsSaving(true)
+
+    try {
+      const dataToSave = {
+        modules,
+        moduleContent,
+        newFidelityScores,
+        selectedModule,
+        lastSaved: new Date().toISOString(),
+      }
+
+      localStorage.setItem("aria-parent-training-data", JSON.stringify(dataToSave))
+
+      if (!silent) {
+        setSaveSuccess(true)
+        toast({
+          title: "Saved Successfully",
+          description: "All parent training data has been saved.",
+        })
+
+        setTimeout(() => {
+          setSaveSuccess(false)
+        }, 2000)
+      }
+
+      console.log("[v0] Parent training data saved to localStorage")
+    } catch (e) {
+      console.error("[v0] Error saving parent training data:", e)
+      if (!silent) {
+        toast({
+          title: "Save Failed",
+          description: "There was an error saving your data.",
+          variant: "destructive",
+        })
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const handleGenerateModuleContent = async (moduleName: string) => {
     console.log("[v0] Starting generation for:", moduleName)
@@ -305,24 +372,8 @@ export function ParentTrainingTracker() {
   const overallProgress = (completedCount / modules.length) * 100
 
   return (
-    <div className="h-full overflow-auto bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
-        {/* Debug Information */}
-        <Card className="border-2 border-amber-500 bg-amber-50 p-4">
-          <h3 className="text-sm font-bold text-amber-900 mb-2">Debug Information</h3>
-          <div className="space-y-1 text-xs text-amber-800">
-            <div>
-              Number of saved interventions: <strong>{savedInterventions.length}</strong>
-            </div>
-            <div>
-              Currently generating: <strong>{generatingModule || "none"}</strong>
-            </div>
-            <div>
-              Modules with content: <strong>{Object.keys(moduleContent).join(", ") || "none"}</strong>
-            </div>
-          </div>
-        </Card>
-
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-cyan-50/30 to-blue-50/30 p-6 space-y-6">
+      <Card className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -336,13 +387,41 @@ export function ParentTrainingTracker() {
               Track parent competency and fidelity of implementation
             </p>
           </div>
-          <Button
-            className="bg-[#0D9488] hover:bg-[#0F766E] transition-colors duration-300"
-            onClick={handleExportReport}
-          >
-            <DownloadIcon className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
+          {/* Save All button with visual feedback */}
+          <div className="flex gap-3">
+            <Button
+              className={`transition-all duration-300 ${
+                saveSuccess ? "bg-green-600 hover:bg-green-700" : "bg-[#0D9488] hover:bg-[#0F766E]"
+              }`}
+              onClick={() => handleSaveAll()}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <CheckCircle2Icon className="h-4 w-4 mr-2" />
+                  Saved!
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Save All
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              className="border-[#0D9488]/30 hover:bg-[#0D9488]/5 bg-transparent"
+              onClick={handleExportReport}
+            >
+              <DownloadIcon className="h-4 w-4 mr-2" />
+              Export Report
+            </Button>
+          </div>
         </div>
 
         {/* Overall Progress Card */}
@@ -841,7 +920,7 @@ export function ParentTrainingTracker() {
             })}
           </Accordion>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }
