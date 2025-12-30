@@ -1182,78 +1182,128 @@ Caregiver will correctly identify and deliver reinforcement contingent on approp
 Training will occur during 97156 Family Guidance sessions (${parentHours} hours/week).`,
 
       parent_training_progress: (() => {
-        // Load parent training data from localStorage
-        const trainingDataStr = localStorage.getItem("aria-parent-training-data")
+        console.log("[v0] Loading parent training data for report...")
+
+        // Try primary key first
+        let trainingDataStr = localStorage.getItem("aria-parent-training-data")
+        console.log("[v0] Data from aria-parent-training-data:", trainingDataStr ? "Found" : "Not found")
+
+        // Try alternative key if primary doesn't exist
         if (!trainingDataStr) {
-          return `## Parent Training Progress\n\nNo parent training data found. Please complete parent training modules first.`
+          trainingDataStr = localStorage.getItem("aria-assessment-parent-training")
+          console.log("[v0] Data from aria-assessment-parent-training:", trainingDataStr ? "Found" : "Not found")
         }
 
-        const trainingData = JSON.parse(trainingDataStr)
+        if (!trainingDataStr) {
+          console.log("[v0] No parent training data found in localStorage")
+          return `## Parent Training Progress\n\nNo parent training data found. Please complete and save parent training modules first.`
+        }
 
-        // Calculate statistics
-        const completedModules = trainingData.modules.filter((m: any) => m.completed).length
-        const totalModules = trainingData.modules.length
-        const progressPercentage = Math.round((completedModules / totalModules) * 100)
+        try {
+          const trainingData = JSON.parse(trainingDataStr)
+          console.log("[v0] Parsed parent training data:", trainingData)
 
-        const totalHours = trainingData.modules.reduce((sum: number, m: any) => {
-          return sum + (m.fidelityScores?.reduce((s: number, score: any) => s + (score.duration || 0), 0) || 0)
-        }, 0)
+          // The actual data structure has: modules, moduleContent, newFidelityScores
+          const modules = trainingData.modules || []
+          const fidelityScores = trainingData.newFidelityScores || {}
+          const moduleContent = trainingData.moduleContent || {}
 
-        const avgFidelity = trainingData.modules
-          .filter((m: any) => m.fidelityScores && m.fidelityScores.length > 0)
-          .reduce((sum: number, m: any, idx: number, arr: any[]) => {
-            const moduleAvg =
-              m.fidelityScores.reduce((s: number, score: any) => s + score.score, 0) / m.fidelityScores.length
-            return sum + moduleAvg / arr.length
+          console.log("[v0] Modules array:", modules)
+          console.log("[v0] Fidelity scores:", fidelityScores)
+          console.log("[v0] Module content:", moduleContent)
+
+          // Calculate statistics based on actual module structure
+          const completedModules = modules.filter((m: any) => m.completed).length
+          const totalModules = modules.length
+          const progressPercentage = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0
+
+          // Calculate total hours from session durations
+          const totalHours = modules.reduce((sum: number, m: any) => {
+            return sum + (m.sessionsCompleted || 0) * 1.5 // Assume 1.5 hours per session
           }, 0)
 
-        // Build the report content
-        let content = `## Parent Training Progress\n\n`
-        content += `### Training Summary\n\n`
-        content += `- **Overall Progress:** ${completedModules} of ${totalModules} modules completed (${progressPercentage}%)\n`
-        content += `- **Total Training Hours:** ${(totalHours / 60).toFixed(1)} hours\n`
-        content += `- **Average Fidelity Score:** ${avgFidelity.toFixed(1)}%\n\n`
+          // Calculate average fidelity from newFidelityScores
+          const allScores = Object.values(fidelityScores).flat() as any[]
+          const avgFidelity =
+            allScores.length > 0
+              ? allScores.reduce((sum: number, score: any) => sum + (score.score || 0), 0) / allScores.length
+              : 0
 
-        // Completed modules
-        const completed = trainingData.modules.filter((m: any) => m.completed)
-        if (completed.length > 0) {
-          content += `### Modules Completed\n\n`
-          completed.forEach((module: any) => {
-            const latestScore = module.fidelityScores?.[module.fidelityScores.length - 1]
-            content += `**${module.name}**\n`
-            content += `- Completion Date: ${module.completionDate || "Not recorded"}\n`
-            if (latestScore) {
-              content += `- Final Fidelity Score: ${latestScore.score}%\n`
-            }
-            content += `- Competency Status: ${module.competencyPassed ? "Passed" : "In Progress"}\n\n`
+          console.log(
+            "[v0] Calculated stats - Completed:",
+            completedModules,
+            "Total:",
+            totalModules,
+            "Progress:",
+            progressPercentage,
+          )
+
+          // Build the report content
+          let content = `## Parent Training Progress\n\n`
+          content += `### Training Summary\n\n`
+          content += `- **Overall Progress:** ${completedModules} of ${totalModules} modules completed (${progressPercentage}%)\n`
+          content += `- **Total Training Hours:** ${totalHours.toFixed(1)} hours\n`
+          content += `- **Average Fidelity Score:** ${avgFidelity.toFixed(1)}%\n\n`
+
+          // Completed modules
+          const completed = modules.filter((m: any) => m.completed)
+          if (completed.length > 0) {
+            content += `### Modules Completed\n\n`
+            completed.forEach((module: any) => {
+              const moduleScores = fidelityScores[module.id] || []
+              const latestScore = moduleScores[moduleScores.length - 1]
+              content += `**${module.name}**\n`
+              content += `- Completion Date: ${module.completionDate || new Date().toLocaleDateString()}\n`
+              if (latestScore) {
+                content += `- Final Fidelity Score: ${latestScore.score}%\n`
+              }
+              content += `- Competency Status: ${module.competencyChecked ? "Passed" : "In Progress"}\n\n`
+            })
+          }
+
+          // In-progress modules
+          const inProgress = modules.filter((m: any) => !m.completed && m.sessionsCompleted > 0)
+          if (inProgress.length > 0) {
+            content += `### Modules In Progress\n\n`
+            inProgress.forEach((module: any) => {
+              const moduleProgress =
+                module.sessionsCompleted > 0
+                  ? Math.round((module.sessionsCompleted / (module.requiredSessions || 4)) * 100)
+                  : 0
+              content += `**${module.name}**\n`
+              content += `- Progress: ${moduleProgress}%\n`
+              content += `- Sessions Completed: ${module.sessionsCompleted}\n\n`
+            })
+          }
+
+          // Skills demonstrated from fidelity checklists
+          const allCheckedSkills: string[] = []
+          Object.values(fidelityScores).forEach((scores: any) => {
+            scores.forEach((score: any) => {
+              if (score.checklist) {
+                score.checklist.forEach((item: any) => {
+                  if (item.checked) {
+                    allCheckedSkills.push(item.skill)
+                  }
+                })
+              }
+            })
           })
+
+          if (allCheckedSkills.length > 0) {
+            content += `### Skills Demonstrated\n\n`
+            const uniqueSkills = [...new Set(allCheckedSkills)]
+            uniqueSkills.forEach((skill: string) => {
+              content += `- ${skill}\n`
+            })
+          }
+
+          console.log("[v0] Generated parent training report content")
+          return content
+        } catch (error) {
+          console.error("[v0] Error parsing parent training data:", error)
+          return `## Parent Training Progress\n\nError loading parent training data. Please try refreshing the page.`
         }
-
-        // In-progress modules
-        const inProgress = trainingData.modules.filter((m: any) => !m.completed && m.sessionsCompleted > 0)
-        if (inProgress.length > 0) {
-          content += `### Modules In Progress\n\n`
-          inProgress.forEach((module: any) => {
-            content += `**${module.name}**\n`
-            content += `- Progress: ${module.progress || 0}%\n`
-            content += `- Sessions Completed: ${module.sessionsCompleted}\n\n`
-          })
-        }
-
-        // Skills demonstrated
-        const allCheckedSkills = trainingData.modules
-          .flatMap((m: any) => m.fidelityChecklist || [])
-          .filter((item: any) => item.checked)
-
-        if (allCheckedSkills.length > 0) {
-          content += `### Skills Demonstrated\n\n`
-          const uniqueSkills = [...new Set(allCheckedSkills.map((s: any) => s.skill))]
-          uniqueSkills.forEach((skill: string) => {
-            content += `- ${skill}\n`
-          })
-        }
-
-        return content
       })(),
 
       medical_necessity: `Write a MEDICAL NECESSITY STATEMENT (250-350 words, 4 paragraphs, NO BULLETS) for a professional ABA assessment report.
