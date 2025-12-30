@@ -19,84 +19,44 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 3000,
+        max_tokens: 4096,
         messages: [
           {
             role: "user",
-            content: `You are an expert BCBA creating parent training content for ABA therapy.
+            content: `You are an expert BCBA creating parent training content.
 
-MODULE TO CREATE: ${moduleName}
+MODULE: ${moduleName}
+INTERVENTIONS: ${interventionsList}
 
-CLIENT'S SELECTED INTERVENTIONS: ${interventionsList}
-${clientContext ? `ADDITIONAL CONTEXT: ${clientContext}` : ""}
+Create CONCISE parent training content. Keep each section brief.
 
-Create comprehensive parent training content for this module. The content should be practical, easy to understand for parents without ABA background, and include real-world examples.
-
-Return a JSON object with:
+Return ONLY valid JSON with this EXACT structure (no markdown, no extra text):
 
 {
   "moduleTitle": "${moduleName}",
-  "learningObjectives": [
-    "By the end of this module, parent will be able to...",
-    "Parent will demonstrate...",
-    "Parent will identify..."
-  ],
+  "learningObjectives": ["Objective 1", "Objective 2", "Objective 3"],
   "keyConceptsSection": {
     "title": "Key Concepts",
     "concepts": [
-      {
-        "term": "Term name",
-        "definition": "Simple parent-friendly definition",
-        "example": "Real-world example parents can relate to"
-      }
+      {"term": "Term", "definition": "Definition", "example": "Example"}
     ]
   },
   "procedureSteps": [
-    {
-      "step": 1,
-      "title": "Step title",
-      "description": "Detailed description of what parent should do",
-      "tips": ["Helpful tip 1", "Helpful tip 2"],
-      "commonMistakes": ["Mistake to avoid"]
-    }
+    {"step": 1, "title": "Title", "description": "Description", "tips": ["Tip"], "commonMistakes": ["Mistake"]}
   ],
   "practiceScenarios": [
-    {
-      "scenario": "Description of a realistic situation",
-      "correctResponse": "What the parent should do",
-      "incorrectResponse": "What to avoid doing",
-      "rationale": "Why this matters"
-    }
+    {"scenario": "Scenario", "correctResponse": "Correct", "incorrectResponse": "Incorrect", "rationale": "Why"}
   ],
   "homeActivities": [
-    {
-      "activity": "Name of activity",
-      "description": "How to do it at home",
-      "frequency": "How often to practice",
-      "materials": ["Items needed"]
-    }
+    {"activity": "Activity", "description": "How to do it", "frequency": "Daily", "materials": ["Item"]}
   ],
-  "fidelityChecklist": [
-    "Did parent do X?",
-    "Did parent avoid Y?",
-    "Did parent provide Z?"
-  ],
+  "fidelityChecklist": ["Check item 1", "Check item 2", "Check item 3"],
   "quizQuestions": [
-    {
-      "question": "Question text",
-      "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
-      "correctAnswer": "A",
-      "explanation": "Why this is correct"
-    }
+    {"question": "Question?", "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"], "correctAnswer": "A", "explanation": "Explanation"}
   ]
 }
 
-Make the content specific to the interventions the client is using. For example:
-- If "Task Modification" is selected, include examples about breaking tasks into smaller steps
-- If "FCT" is selected, include examples about teaching communication
-- If "Escape Extinction" is selected, include safety considerations
-
-Return ONLY the JSON object, no markdown formatting.`,
+CRITICAL: Return ONLY the JSON object. No markdown code blocks. No explanation. Just pure JSON.`,
           },
         ],
       }),
@@ -105,26 +65,51 @@ Return ONLY the JSON object, no markdown formatting.`,
     if (!response.ok) {
       const errorData = await response.json()
       console.error("Anthropic API error:", errorData)
-      return NextResponse.json({ error: "Content generation failed" }, { status: 500 })
+      return NextResponse.json(
+        { error: "API call failed: " + (errorData.error?.message || "Unknown error") },
+        { status: 500 },
+      )
     }
 
     const data = await response.json()
-    const content = data.content[0].text
+    let content = data.content[0].text
 
-    // Try to extract JSON from the response
-    let jsonMatch = content.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      // If no JSON found, try without markdown code blocks
-      jsonMatch = content.replace(/```json\n?|\n?```/g, "").match(/\{[\s\S]*\}/)
+    // Clean up the response - remove markdown code blocks if present
+    content = content
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim()
+
+    // Try to find JSON object in the response
+    const jsonStart = content.indexOf("{")
+    const jsonEnd = content.lastIndexOf("}")
+
+    if (jsonStart === -1 || jsonEnd === -1) {
+      console.error("No JSON found in response:", content.substring(0, 500))
+      return NextResponse.json({ error: "No valid JSON in AI response" }, { status: 500 })
     }
 
-    if (!jsonMatch) {
-      console.error("Could not extract JSON from response:", content)
-      return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 })
-    }
+    const jsonString = content.substring(jsonStart, jsonEnd + 1)
 
-    const result = JSON.parse(jsonMatch[0])
-    return NextResponse.json(result)
+    try {
+      const result = JSON.parse(jsonString)
+      return NextResponse.json(result)
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError)
+      console.error("Attempted to parse:", jsonString.substring(0, 1000))
+
+      return NextResponse.json({
+        moduleTitle: moduleName,
+        learningObjectives: ["Content generation encountered an issue. Please try again."],
+        keyConceptsSection: { title: "Key Concepts", concepts: [] },
+        procedureSteps: [],
+        practiceScenarios: [],
+        homeActivities: [],
+        fidelityChecklist: ["Try regenerating this module"],
+        quizQuestions: [],
+        _error: "Partial generation - please try again",
+      })
+    }
   } catch (error) {
     console.error("Error generating parent training:", error)
     return NextResponse.json(

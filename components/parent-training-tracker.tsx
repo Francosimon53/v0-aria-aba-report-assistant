@@ -168,8 +168,10 @@ export function ParentTrainingTracker() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem("aria-assessment-selected-interventions")
+      console.log("[v0] Raw localStorage value:", saved)
       if (saved) {
         const parsed = JSON.parse(saved)
+        console.log("[v0] Loaded interventions from localStorage:", parsed)
         setSavedInterventions(parsed.data || parsed || [])
       }
     } catch (e) {
@@ -178,6 +180,10 @@ export function ParentTrainingTracker() {
   }, [])
 
   const handleGenerateModuleContent = async (moduleName: string) => {
+    console.log("[v0] Starting generation for:", moduleName)
+    console.log("[v0] Saved interventions:", savedInterventions)
+    console.log("[v0] Number of interventions:", savedInterventions.length)
+
     setGeneratingModule(moduleName)
 
     try {
@@ -191,6 +197,8 @@ export function ParentTrainingTracker() {
       })
 
       const data = await response.json()
+      console.log("[v0] API Response:", data)
+      console.log("[v0] Response status:", response.status)
 
       if (!response.ok) {
         throw new Error(data.error || "Generation failed")
@@ -301,6 +309,22 @@ export function ParentTrainingTracker() {
   return (
     <div className="h-full overflow-auto bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto p-6 space-y-6">
+        {/* Debug Information */}
+        <Card className="border-2 border-amber-500 bg-amber-50 p-4">
+          <h3 className="text-sm font-bold text-amber-900 mb-2">Debug Information</h3>
+          <div className="space-y-1 text-xs text-amber-800">
+            <div>
+              Number of saved interventions: <strong>{savedInterventions.length}</strong>
+            </div>
+            <div>
+              Currently generating: <strong>{generatingModule || "none"}</strong>
+            </div>
+            <div>
+              Modules with content: <strong>{Object.keys(moduleContent).join(", ") || "none"}</strong>
+            </div>
+          </div>
+        </Card>
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
