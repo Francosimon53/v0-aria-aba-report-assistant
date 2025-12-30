@@ -15,10 +15,10 @@ import {
   ShieldIcon,
   TargetIcon,
   AlertTriangleIcon,
-  DownloadIcon,
   Sparkles,
   Loader2,
   X,
+  PlusIcon,
 } from "@/components/icons"
 
 interface Intervention {
@@ -336,26 +336,6 @@ export function InterventionsLibrary() {
     setSelectedInterventions(newSelected)
   }
 
-  const isRecommendedByAI = (interventionTitle: string) => {
-    if (!aiSuggestions?.recommendations) return false
-
-    const allRecommended = Object.values(aiSuggestions.recommendations)
-      .flat()
-      .map((r: any) => r.name.toLowerCase())
-
-    return allRecommended.includes(interventionTitle.toLowerCase())
-  }
-
-  const getAIRationale = (interventionTitle: string) => {
-    if (!aiSuggestions?.recommendations) return null
-
-    for (const category of Object.values(aiSuggestions.recommendations)) {
-      const found = (category as any[]).find((r: any) => r.name.toLowerCase() === interventionTitle.toLowerCase())
-      if (found) return { rationale: found.rationale, priority: found.priority }
-    }
-    return null
-  }
-
   const toggleIntervention = (id: string) => {
     const newSelected = new Set(selectedInterventions)
     if (newSelected.has(id)) {
@@ -364,6 +344,114 @@ export function InterventionsLibrary() {
       newSelected.add(id)
     }
     setSelectedInterventions(newSelected)
+  }
+
+  const findInterventionDetails = (id: string): Intervention | undefined => {
+    // Search through all function tabs
+    for (const functionTab of Object.values(interventionsData)) {
+      const found = functionTab.find((i) => i.id === id)
+      if (found) return found
+    }
+    return undefined
+  }
+
+  const isRecommendedByAI = (id: string): boolean => {
+    if (!aiSuggestions?.recommendations) return false
+    return aiSuggestions.recommendations.some((rec: any) => rec.interventionId === id)
+  }
+
+  const getAIRationale = (id: string): string | null => {
+    if (!aiSuggestions?.recommendations) return null
+    const rec = aiSuggestions.recommendations.find((r: any) => r.interventionId === id)
+    return rec?.rationale || null
+  }
+
+  const handleAddToPlan = () => {
+    if (selectedInterventions.size === 0) {
+      toast({
+        title: "No interventions selected",
+        description: "Please select at least one intervention to add to the plan.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      // Prepare intervention data with details
+      const interventionsToSave = Array.from(selectedInterventions)
+        .map((id) => {
+          const details = findInterventionDetails(id)
+          if (!details) {
+            console.warn(`Could not find details for intervention: ${id}`)
+            return null
+          }
+
+          return {
+            id: details.id,
+            name: details.title,
+            description: details.description,
+            category: details.category,
+            evidenceLevel: details.evidenceLevel,
+            function: activeTab,
+            aiRecommended: isRecommendedByAI(id),
+            aiRationale: getAIRationale(id) || "",
+            addedAt: new Date().toISOString(),
+          }
+        })
+        .filter(Boolean) // Remove any null entries
+
+      if (interventionsToSave.length === 0) {
+        throw new Error("No valid interventions to save")
+      }
+
+      // Save to localStorage
+      const storageKey = "aria-assessment-selected-interventions"
+      const existingData = localStorage.getItem(storageKey)
+      let allInterventions: any[] = []
+
+      if (existingData) {
+        try {
+          const parsed = JSON.parse(existingData)
+          allInterventions = parsed.data || []
+        } catch (e) {
+          console.warn("Could not parse existing interventions, starting fresh")
+        }
+      }
+
+      // Add new interventions (avoid duplicates by ID)
+      interventionsToSave.forEach((intervention) => {
+        const exists = allInterventions.some((i: any) => i.id === intervention!.id)
+        if (!exists) {
+          allInterventions.push(intervention)
+        }
+      })
+
+      // Save to localStorage
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          data: allInterventions,
+          timestamp: new Date().toISOString(),
+        }),
+      )
+
+      console.log("[v0] Saved interventions to plan:", allInterventions)
+
+      toast({
+        title: "✓ Added to Treatment Plan",
+        description: `${interventionsToSave.length} intervention(s) added successfully.`,
+      })
+
+      // Clear selection after adding
+      setSelectedInterventions(new Set())
+    } catch (error) {
+      console.error("[v0] Error saving interventions:", error)
+      toast({
+        title: "Error",
+        description: "Could not save interventions. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const toggleCategory = (categoryKey: string) => {
@@ -446,8 +534,8 @@ export function InterventionsLibrary() {
               {isExpanded && (
                 <div className="p-3 space-y-2 bg-white">
                   {items.map((intervention) => {
-                    const aiData = getAIRationale(intervention.title)
-                    const isAIRecommended = isRecommendedByAI(intervention.title)
+                    const aiData = getAIRationale(intervention.id)
+                    const isAIRecommended = isRecommendedByAI(intervention.id)
 
                     return (
                       <div
@@ -496,7 +584,7 @@ export function InterventionsLibrary() {
                               <div className="mt-2 pt-2 border-t border-teal-200">
                                 <p className="text-xs text-teal-700 italic flex items-start gap-1">
                                   <span className="font-semibold">AI Insight:</span>
-                                  {aiData.rationale}
+                                  {aiData}
                                 </p>
                               </div>
                             )}
@@ -672,8 +760,8 @@ export function InterventionsLibrary() {
               <Button variant="outline" onClick={() => setSelectedInterventions(new Set())}>
                 Clear Selection
               </Button>
-              <Button className="bg-[#0D9488] hover:bg-[#0F766E] text-white">
-                <DownloadIcon className="h-4 w-4 mr-2" />
+              <Button onClick={handleAddToPlan} className="bg-[#0D9488] hover:bg-[#0F766E] text-white">
+                <PlusIcon className="h-4 w-4 mr-2" />
                 Add to Plan ({selectedInterventions.size})
               </Button>
             </div>
