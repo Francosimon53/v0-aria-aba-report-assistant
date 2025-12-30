@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useToast } from "@/hooks/use-toast"
 import {
   PlusIcon,
   XIcon,
@@ -17,6 +18,8 @@ import {
   ChevronRightIcon,
   AlertCircleIcon,
   FileTextIcon,
+  Sparkles,
+  Loader2,
 } from "@/components/icons"
 
 interface ProtocolStep {
@@ -309,6 +312,7 @@ const PROTOCOL_TEMPLATES = {
 }
 
 export function TeachingProtocolBuilder() {
+  const { toast } = useToast()
   const [protocol, setProtocol] = useState<TeachingProtocol>({
     id: "1",
     ...PROTOCOL_TEMPLATES.custom,
@@ -325,6 +329,21 @@ export function TeachingProtocolBuilder() {
     modifications: false,
     examples: false,
   })
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [savedInterventions, setSavedInterventions] = useState<any[]>([])
+  const [selectedIntervention, setSelectedIntervention] = useState<any>(null)
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("aria-assessment-selected-interventions")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setSavedInterventions(parsed.data || [])
+      }
+    } catch (e) {
+      console.warn("[v0] Could not load interventions:", e)
+    }
+  }, [])
 
   const handleTemplateChange = (templateKey: string) => {
     setSelectedTemplate(templateKey)
@@ -378,6 +397,80 @@ export function TeachingProtocolBuilder() {
     a.click()
   }
 
+  const handleGenerateProtocol = async () => {
+    if (!selectedIntervention) {
+      toast({
+        title: "Select an Intervention",
+        description: "Please select an intervention from the dropdown to generate a protocol.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsGenerating(true)
+
+    try {
+      const response = await fetch("/api/generate-protocol", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intervention: selectedIntervention }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Generation failed")
+      }
+
+      const mappedSteps = data.steps.map((step: any, index: number) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        number: index + 1,
+        description: step.description,
+        whatNotToDo: step.whatNotToDo,
+      }))
+
+      setProtocol({
+        ...protocol,
+        name: data.protocolName,
+        operationalDefinition: data.operationalDefinition,
+        barriers: data.barriers,
+        measurementProcedures: data.measurementProcedures,
+        steps: mappedSteps,
+        promptingHierarchy: data.promptingHierarchy,
+        reinforcementSchedule: data.reinforcementSchedule,
+        masteryCriteria: data.masteryCriteria,
+        proceduralModifications: data.proceduralModifications,
+        teachingExamples: data.teachingExamples,
+      })
+
+      setExpandedSections({
+        definition: true,
+        barriers: true,
+        measurement: true,
+        steps: true,
+        prompting: true,
+        reinforcement: true,
+        mastery: true,
+        modifications: true,
+        examples: true,
+      })
+
+      toast({
+        title: "✨ Protocol Generated",
+        description: `Teaching protocol for "${data.protocolName}" created successfully.`,
+      })
+    } catch (error) {
+      console.error("[v0] Error generating protocol:", error)
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Could not generate protocol",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   const SectionHeader = ({ title, section }: { title: string; section: string }) => (
     <button
       onClick={() => toggleSection(section)}
@@ -408,6 +501,71 @@ export function TeachingProtocolBuilder() {
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-5 w-5 text-purple-600" />
+            <h3 className="font-semibold text-purple-900">AI Protocol Generator</h3>
+          </div>
+
+          <p className="text-sm text-purple-700 mb-4">
+            Select an intervention from your treatment plan to auto-generate a complete teaching protocol.
+          </p>
+
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <Label className="text-purple-800 mb-1 block text-sm">Select Intervention</Label>
+              <Select
+                value={selectedIntervention?.name || selectedIntervention?.title || ""}
+                onValueChange={(value) => {
+                  const intervention = savedInterventions.find((i) => (i.name || i.title) === value)
+                  setSelectedIntervention(intervention)
+                }}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Choose an intervention..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {savedInterventions.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      No interventions saved. Add from Interventions page.
+                    </SelectItem>
+                  ) : (
+                    savedInterventions.map((intervention, index) => (
+                      <SelectItem key={index} value={intervention.name || intervention.title}>
+                        {intervention.name || intervention.title}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              onClick={handleGenerateProtocol}
+              disabled={isGenerating || !selectedIntervention}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white gap-2"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  AI Generate Protocol
+                </>
+              )}
+            </Button>
+          </div>
+
+          {savedInterventions.length === 0 && (
+            <p className="text-xs text-purple-600 mt-2">
+              💡 Tip: Go to Interventions → Select interventions → Click "Add to Plan" first.
+            </p>
+          )}
         </div>
 
         {/* Template Selector */}
