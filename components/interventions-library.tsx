@@ -346,23 +346,42 @@ export function InterventionsLibrary() {
     setSelectedInterventions(newSelected)
   }
 
-  const findInterventionDetails = (id: string): Intervention | undefined => {
+  const findInterventionDetails = (idOrName: string): Intervention | undefined => {
     // Search through all function tabs
     for (const functionTab of Object.values(interventionsData)) {
-      const found = functionTab.find((i) => i.id === id)
+      // First try to find by ID
+      let found = functionTab.find((i) => i.id === idOrName)
+      if (found) return found
+
+      // If not found by ID, try by title (case-insensitive)
+      found = functionTab.find((i) => i.title.toLowerCase() === idOrName.toLowerCase())
       if (found) return found
     }
     return undefined
   }
 
-  const isRecommendedByAI = (id: string): boolean => {
+  const isRecommendedByAI = (idOrName: string): boolean => {
     if (!aiSuggestions?.recommendations) return false
-    return aiSuggestions.recommendations.some((rec: any) => rec.interventionId === id)
+
+    const intervention = findInterventionDetails(idOrName)
+    if (!intervention) return false
+
+    // Check if this intervention is in the recommendations array
+    return aiSuggestions.recommendations.some((rec: any) => {
+      return rec.interventionId === intervention.id || rec.name?.toLowerCase() === intervention.title.toLowerCase()
+    })
   }
 
-  const getAIRationale = (id: string): string | null => {
+  const getAIRationale = (idOrName: string): string | null => {
     if (!aiSuggestions?.recommendations) return null
-    const rec = aiSuggestions.recommendations.find((r: any) => r.interventionId === id)
+
+    const intervention = findInterventionDetails(idOrName)
+    if (!intervention) return null
+
+    const rec = aiSuggestions.recommendations.find((r: any) => {
+      return r.interventionId === intervention.id || r.name?.toLowerCase() === intervention.title.toLowerCase()
+    })
+
     return rec?.rationale || null
   }
 
@@ -378,27 +397,36 @@ export function InterventionsLibrary() {
 
     try {
       // Prepare intervention data with details
-      const interventionsToSave = Array.from(selectedInterventions)
-        .map((id) => {
-          const details = findInterventionDetails(id)
-          if (!details) {
-            console.warn(`Could not find details for intervention: ${id}`)
-            return null
-          }
-
+      const interventionsToSave = Array.from(selectedInterventions).map((id) => {
+        const details = findInterventionDetails(id)
+        if (!details) {
+          console.warn(`Could not find details for intervention: ${id}`)
+          // Return a minimal object rather than null to prevent complete failure
           return {
-            id: details.id,
-            name: details.title,
-            description: details.description,
-            category: details.category,
-            evidenceLevel: details.evidenceLevel,
+            id,
+            name: id,
+            description: "Description not available",
+            category: "unknown",
+            evidenceLevel: "unknown",
             function: activeTab,
-            aiRecommended: isRecommendedByAI(id),
-            aiRationale: getAIRationale(id) || "",
+            aiRecommended: false,
+            aiRationale: "",
             addedAt: new Date().toISOString(),
           }
-        })
-        .filter(Boolean) // Remove any null entries
+        }
+
+        return {
+          id: details.id,
+          name: details.title,
+          description: details.description,
+          category: details.category,
+          evidenceLevel: details.evidenceLevel,
+          function: activeTab,
+          aiRecommended: isRecommendedByAI(id),
+          aiRationale: getAIRationale(id) || "",
+          addedAt: new Date().toISOString(),
+        }
+      })
 
       if (interventionsToSave.length === 0) {
         throw new Error("No valid interventions to save")
@@ -420,7 +448,7 @@ export function InterventionsLibrary() {
 
       // Add new interventions (avoid duplicates by ID)
       interventionsToSave.forEach((intervention) => {
-        const exists = allInterventions.some((i: any) => i.id === intervention!.id)
+        const exists = allInterventions.some((i: any) => i.id === intervention.id)
         if (!exists) {
           allInterventions.push(intervention)
         }
@@ -439,10 +467,10 @@ export function InterventionsLibrary() {
 
       toast({
         title: "✓ Added to Treatment Plan",
-        description: `${interventionsToSave.length} intervention(s) added successfully.`,
+        description: `${interventionsToSave.length} intervention(s) saved successfully.`,
       })
 
-      // Clear selection after adding
+      // Clear selections after successful save
       setSelectedInterventions(new Set())
     } catch (error) {
       console.error("[v0] Error saving interventions:", error)
