@@ -12,11 +12,9 @@ import { useToast } from "@/hooks/use-toast"
 import {
   CheckIcon,
   CheckCircle2Icon,
-  PlayIcon,
   DownloadIcon,
   UsersIcon,
   BookOpenIcon,
-  VideoIcon,
   SparklesIcon,
   Loader2Icon,
   TargetIcon,
@@ -785,18 +783,6 @@ export function ParentTrainingTracker() {
                             placeholder="Add notes about this training session..."
                             className="min-h-[80px]"
                           />
-                        </div>
-
-                        {/* Video Resources */}
-                        <div>
-                          <h5 className="font-medium text-sm text-gray-700 mb-2 flex items-center gap-2">
-                            <VideoIcon className="h-4 w-4 text-[#0D9488]" />
-                            Video Resources
-                          </h5>
-                          <Button variant="outline" size="sm">
-                            <PlayIcon className="h-4 w-4 mr-2" />
-                            Watch Training Video
-                          </Button>
                         </div>
 
                         {/* Competency Check & Signature */}
