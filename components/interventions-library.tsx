@@ -316,24 +316,42 @@ export function InterventionsLibrary() {
   }
 
   const autoSelectInterventions = (recommendations: any) => {
-    const allRecommendedNames: string[] = []
+    if (!recommendations) return
 
-    Object.values(recommendations).forEach((category: any) => {
-      category.forEach((item: any) => {
-        allRecommendedNames.push(item.name)
-      })
-    })
+    try {
+      const allRecommended: string[] = []
 
-    const newSelected = new Set(selectedInterventions)
-    Object.values(interventionsData)
-      .flat()
-      .forEach((intervention) => {
-        if (allRecommendedNames.includes(intervention.title)) {
-          newSelected.add(intervention.id)
-        }
-      })
+      // Si es array
+      if (Array.isArray(recommendations)) {
+        recommendations.forEach((item: any) => {
+          if (item?.name) allRecommended.push(item.name)
+        })
+      }
+      // Si es objeto con categorías
+      else if (typeof recommendations === "object") {
+        Object.values(recommendations).forEach((category: any) => {
+          if (Array.isArray(category)) {
+            category.forEach((item: any) => {
+              if (item?.name) allRecommended.push(item.name)
+            })
+          }
+        })
+      }
 
-    setSelectedInterventions(newSelected)
+      if (allRecommended.length > 0) {
+        const newSelected = new Set(selectedInterventions)
+        Object.values(interventionsData)
+          .flat()
+          .forEach((intervention) => {
+            if (allRecommended.includes(intervention.title)) {
+              newSelected.add(intervention.id)
+            }
+          })
+        setSelectedInterventions(newSelected)
+      }
+    } catch (e) {
+      console.error("Error in autoSelectInterventions:", e)
+    }
   }
 
   const toggleIntervention = (id: string) => {
@@ -360,29 +378,63 @@ export function InterventionsLibrary() {
     return undefined
   }
 
-  const isRecommendedByAI = (idOrName: string): boolean => {
+  const isRecommendedByAI = (interventionName: string): boolean => {
     if (!aiSuggestions?.recommendations) return false
 
-    const intervention = findInterventionDetails(idOrName)
-    if (!intervention) return false
+    try {
+      const recommendations = aiSuggestions.recommendations
 
-    // Check if this intervention is in the recommendations array
-    return aiSuggestions.recommendations.some((rec: any) => {
-      return rec.interventionId === intervention.id || rec.name?.toLowerCase() === intervention.title.toLowerCase()
-    })
+      // Si es array
+      if (Array.isArray(recommendations)) {
+        return recommendations.some((r: any) => r?.name?.toLowerCase() === interventionName?.toLowerCase())
+      }
+
+      // Si es objeto con categorías
+      if (typeof recommendations === "object") {
+        for (const category of Object.values(recommendations)) {
+          if (Array.isArray(category)) {
+            const found = category.some((r: any) => r?.name?.toLowerCase() === interventionName?.toLowerCase())
+            if (found) return true
+          }
+        }
+      }
+
+      return false
+    } catch (e) {
+      console.warn("Error in isRecommendedByAI:", e)
+      return false
+    }
   }
 
-  const getAIRationale = (idOrName: string): string | null => {
+  const getAIRationale = (interventionName: string): string | null => {
     if (!aiSuggestions?.recommendations) return null
 
-    const intervention = findInterventionDetails(idOrName)
-    if (!intervention) return null
+    try {
+      const recommendations = aiSuggestions.recommendations
 
-    const rec = aiSuggestions.recommendations.find((r: any) => {
-      return r.interventionId === intervention.id || r.name?.toLowerCase() === intervention.title.toLowerCase()
-    })
+      // Si es array
+      if (Array.isArray(recommendations)) {
+        const found = recommendations.find((r: any) => r?.name?.toLowerCase() === interventionName?.toLowerCase())
+        return found?.rationale || null
+      }
 
-    return rec?.rationale || null
+      // Si es objeto con categorías
+      if (typeof recommendations === "object") {
+        for (const category of Object.values(recommendations)) {
+          if (Array.isArray(category)) {
+            const found = (category as any[]).find(
+              (r: any) => r?.name?.toLowerCase() === interventionName?.toLowerCase(),
+            )
+            if (found?.rationale) return found.rationale
+          }
+        }
+      }
+
+      return null
+    } catch (e) {
+      console.warn("Error in getAIRationale:", e)
+      return null
+    }
   }
 
   const handleAddToPlan = () => {
@@ -422,8 +474,8 @@ export function InterventionsLibrary() {
           category: details.category,
           evidenceLevel: details.evidenceLevel,
           function: activeTab,
-          aiRecommended: isRecommendedByAI(id),
-          aiRationale: getAIRationale(id) || "",
+          aiRecommended: isRecommendedByAI(details.title),
+          aiRationale: getAIRationale(details.title) || "",
           addedAt: new Date().toISOString(),
         }
       })
@@ -562,8 +614,8 @@ export function InterventionsLibrary() {
               {isExpanded && (
                 <div className="p-3 space-y-2 bg-white">
                   {items.map((intervention) => {
-                    const aiData = getAIRationale(intervention.id)
-                    const isAIRecommended = isRecommendedByAI(intervention.id)
+                    const aiRationale = getAIRationale(intervention.title)
+                    const isAIRecommended = isRecommendedByAI(intervention.title)
 
                     return (
                       <div
@@ -599,20 +651,17 @@ export function InterventionsLibrary() {
                                   <span className="px-2 py-0.5 bg-teal-100 text-teal-700 text-xs rounded-full flex items-center gap-1">
                                     <Sparkles className="h-3 w-3" />
                                     AI Recommended
-                                    {aiData?.priority === "high" && (
-                                      <span className="ml-1 text-xs font-semibold">★</span>
-                                    )}
                                   </span>
                                 )}
                               </div>
                               {getEvidenceBadge(intervention.evidenceLevel)}
                             </div>
                             <p className="text-xs text-gray-600 leading-relaxed">{intervention.description}</p>
-                            {aiData && (
+                            {aiRationale && (
                               <div className="mt-2 pt-2 border-t border-teal-200">
                                 <p className="text-xs text-teal-700 italic flex items-start gap-1">
                                   <span className="font-semibold">AI Insight:</span>
-                                  {aiData}
+                                  {aiRationale}
                                 </p>
                               </div>
                             )}
