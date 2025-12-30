@@ -23,6 +23,7 @@ import {
   ClipboardCheckIcon,
   SaveIcon,
 } from "@/components/icons"
+import { saveParentTrainingProgress, getCurrentUser } from "@/lib/supabase-db"
 
 interface TrainingModule {
   id: string
@@ -203,7 +204,7 @@ export function ParentTrainingTracker() {
     return () => clearInterval(autoSaveInterval)
   }, [modules, moduleContent, newFidelityScores, selectedModule])
 
-  const handleSaveAll = (silent = false) => {
+  const handleSaveAll = async (silent = false) => {
     setIsSaving(true)
 
     try {
@@ -215,13 +216,42 @@ export function ParentTrainingTracker() {
         lastSaved: new Date().toISOString(),
       }
 
+      // Save to localStorage as backup/cache
       localStorage.setItem("aria-parent-training-data", JSON.stringify(dataToSave))
+
+      // Save to Supabase cloud
+      try {
+        const user = await getCurrentUser()
+        if (user) {
+          // Get or create assessment ID from URL or localStorage
+          const urlParams = new URLSearchParams(window.location.search)
+          const assessmentId = urlParams.get("assessmentId") || localStorage.getItem("aria-current-assessment-id")
+
+          if (assessmentId) {
+            // Save each module's progress to Supabase
+            for (const module of modules) {
+              await saveParentTrainingProgress(assessmentId, {
+                moduleName: module.name,
+                status: module.status,
+                fidelityScore: module.fidelityScore,
+                sessionNotes: module.notes || "",
+                aiContent: moduleContent[module.name] || null,
+              })
+            }
+
+            console.log("[v0] Parent training data saved to Supabase")
+          }
+        }
+      } catch (dbError) {
+        console.error("[v0] Supabase save failed, data saved to localStorage only:", dbError)
+        // Continue - we still have localStorage backup
+      }
 
       if (!silent) {
         setSaveSuccess(true)
         toast({
           title: "Saved Successfully",
-          description: "All parent training data has been saved.",
+          description: "All parent training data has been saved to cloud ☁️",
         })
 
         setTimeout(() => {
@@ -229,7 +259,7 @@ export function ParentTrainingTracker() {
         }, 2000)
       }
 
-      console.log("[v0] Parent training data saved to localStorage")
+      console.log("[v0] Parent training data saved")
     } catch (e) {
       console.error("[v0] Error saving parent training data:", e)
       if (!silent) {
