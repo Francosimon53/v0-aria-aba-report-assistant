@@ -382,9 +382,9 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
         </div>
 
         {/* Split View */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[600px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Panel: Inputs */}
-          <Card className="p-6 flex flex-col max-h-[700px]">
+          <Card className="p-6 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Input Data</h2>
               <Select value={template} onValueChange={setTemplate}>
@@ -443,8 +443,8 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 pr-4">
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 pr-4 max-h-[calc(100vh-400px)]">
+              <div className="space-y-4 pb-4">
                 <div>
                   <Label htmlFor="diagnosis">Child's Diagnosis *</Label>
                   <Input
@@ -556,7 +556,7 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
           </Card>
 
           {/* Right Panel: Generated Text */}
-          <Card className="p-6 flex flex-col max-h-[700px]">
+          <Card className="p-6 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Generated Statement</h2>
               {confidenceScore !== null && (
@@ -576,7 +576,7 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
 
             {generatedText ? (
               <>
-                <ScrollArea className="flex-1 mb-4">
+                <ScrollArea className="flex-1 mb-4 max-h-[calc(100vh-400px)]">
                   <AITextarea
                     value={editedText}
                     onChange={(e) => setEditedText(e.target.value)}
@@ -675,9 +675,9 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
         </div>
 
         {/* Key Phrases Reference */}
-        <Card className="mt-6 p-4 mb-4 flex-shrink-0">
+        <Card className="mt-8 p-4 mb-4 relative z-10">
           <div className="flex items-start gap-4">
-            <AlertCircleIcon className="h-5 w-5 text-[#0D9488] mt-0.5" />
+            <AlertCircleIcon className="h-5 w-5 text-[#0D9488] mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <h3 className="font-semibold mb-2">
                 Insurance Key Phrases
