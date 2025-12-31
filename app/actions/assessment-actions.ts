@@ -162,3 +162,135 @@ export async function saveCurrentAssessment(userId: string, assessmentId: string
     return { success: false, error }
   }
 }
+
+export async function getMonthlyAssessments(userId: string) {
+  const supabase = await createClient()
+  try {
+    const { data, error } = await supabase
+      .from("assessments")
+      .select("created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true })
+
+    if (error) throw error
+
+    // Group by month
+    const monthlyData: { [key: string]: number } = {}
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    data?.forEach((assessment) => {
+      const date = new Date(assessment.created_at)
+      const monthKey = months[date.getMonth()]
+      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1
+    })
+
+    // Get last 6 months
+    const now = new Date()
+    const result = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const monthKey = months[d.getMonth()]
+      result.push({ month: monthKey, value: monthlyData[monthKey] || 0 })
+    }
+
+    return result
+  } catch (error) {
+    return []
+  }
+}
+
+export async function getStatusBreakdown(userId: string) {
+  const supabase = await createClient()
+  try {
+    const { data, error } = await supabase.from("assessments").select("status").eq("user_id", userId)
+
+    if (error) throw error
+
+    const total = data?.length || 0
+    if (total === 0) return []
+
+    const statusCounts: { [key: string]: number } = {}
+    data?.forEach((assessment) => {
+      const status = assessment.status || "draft"
+      statusCounts[status] = (statusCounts[status] || 0) + 1
+    })
+
+    return [
+      {
+        label: "Completed",
+        value: statusCounts["complete"] || 0,
+        percentage: Math.round(((statusCounts["complete"] || 0) / total) * 100),
+      },
+      {
+        label: "In Progress",
+        value: statusCounts["draft"] || 0,
+        percentage: Math.round(((statusCounts["draft"] || 0) / total) * 100),
+      },
+      {
+        label: "Pending Review",
+        value: statusCounts["review"] || 0,
+        percentage: Math.round(((statusCounts["review"] || 0) / total) * 100),
+      },
+    ]
+  } catch (error) {
+    return []
+  }
+}
+
+export async function getRecentAssessments(userId: string, limit = 5) {
+  const supabase = await createClient()
+  try {
+    const { data, error } = await supabase
+      .from("assessments")
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+
+    return (
+      data?.map((assessment) => ({
+        id: assessment.id,
+        clientName: assessment.title || "Unnamed Client",
+        type: assessment.evaluation_type === "Reassessment" ? "Reassessment" : "Initial",
+        status:
+          assessment.status === "complete"
+            ? "Completed"
+            : assessment.status === "review"
+              ? "Pending Review"
+              : "In Progress",
+        date: assessment.created_at,
+        completionPercentage: calculateCompletionPercentage(assessment.data),
+      })) || []
+    )
+  } catch (error) {
+    return []
+  }
+}
+
+function calculateCompletionPercentage(data: any): number {
+  if (!data) return 0
+
+  const sections = [
+    "clientData",
+    "backgroundHistory",
+    "assessmentData",
+    "behaviorReduction",
+    "abcObservations",
+    "riskAssessment",
+    "interventions",
+    "goals",
+  ]
+
+  const completed = sections.filter((section) => {
+    const sectionData = data[section]
+    if (!sectionData) return false
+    if (typeof sectionData === "object") {
+      return Object.keys(sectionData).length > 0
+    }
+    return Boolean(sectionData)
+  }).length
+
+  return Math.round((completed / sections.length) * 100)
+}

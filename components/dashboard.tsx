@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { WizardNavigation } from "./wizard-navigation"
 import { ClientForm } from "./client-form"
 import { GoalBankBrowser } from "./goal-bank-browser"
@@ -68,6 +68,8 @@ export function Dashboard() {
   const [agencyData, setAgencyData] = useState<AgencyData[]>([])
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [completedSteps, setCompletedSteps] = useState<ActiveView[]>([])
   const [activeField, setActiveField] = useState<string | undefined>()
   const [aiMessages, setAiMessages] = useState<{ role: string; content: string }[]>([])
@@ -291,6 +293,77 @@ export function Dashboard() {
   useEffect(() => {
     console.log("[v0] activeView changed to:", activeView)
   }, [activeView])
+
+  const handleSaveAll = async () => {
+    console.log("[v0] Save All clicked")
+    setIsSaving(true)
+    setSaveStatus("saving")
+
+    try {
+      // Collect all data
+      const allData = {
+        clientData,
+        assessmentData,
+        selectedGoals,
+        // Add other sections here
+      }
+
+      // Save to localStorage first (backup)
+      localStorage.setItem("aria-assessment-data", JSON.stringify(allData))
+      console.log("[v0] Saved to localStorage")
+
+      // Try to save to Supabase if user is logged in
+      try {
+        const { getCurrentUser, saveCurrentAssessment } = await import("@/app/actions/assessment-actions")
+        const user = await getCurrentUser()
+
+        if (user) {
+          const assessmentId = localStorage.getItem("aria-current-assessment-id")
+          const result = await saveCurrentAssessment(user.id, assessmentId, allData)
+
+          if (result.success) {
+            console.log("[v0] Saved to Supabase:", result.assessmentId)
+            if (result.assessmentId && !assessmentId) {
+              localStorage.setItem("aria-current-assessment-id", result.assessmentId)
+            }
+            setSaveStatus("saved")
+            setLastSaved(new Date())
+            setTimeout(() => setSaveStatus("idle"), 2000)
+          } else {
+            throw new Error("Failed to save to Supabase")
+          }
+        } else {
+          // No user logged in, just use localStorage
+          setSaveStatus("saved")
+          setLastSaved(new Date())
+          setTimeout(() => setSaveStatus("idle"), 2000)
+        }
+      } catch (supabaseError) {
+        console.error("[v0] Supabase save error:", supabaseError)
+        // Fallback to localStorage only
+        setSaveStatus("saved")
+        setLastSaved(new Date())
+        setTimeout(() => setSaveStatus("idle"), 2000)
+      }
+    } catch (error) {
+      console.error("[v0] Save error:", error)
+      setSaveStatus("error")
+      setTimeout(() => setSaveStatus("idle"), 3000)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const isReady = useMemo(() => {
+    const requiredFields = [
+      clientData?.name,
+      clientData?.dateOfBirth,
+      clientData?.diagnosis,
+      assessmentData?.domains,
+      selectedGoals?.length > 0,
+    ]
+    return requiredFields.every((field) => Boolean(field))
+  }, [clientData, assessmentData, selectedGoals])
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -573,6 +646,21 @@ export function Dashboard() {
             <div className="text-sm text-gray-500">
               Assessment / <span className="text-gray-900 font-medium">{activeView}</span>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleSaveAll}
+              className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 shadow-md"
+              disabled={isSaving || saveStatus === "saved" || saveStatus === "error"}
+            >
+              {isSaving
+                ? "Saving..."
+                : saveStatus === "saved"
+                  ? "Saved"
+                  : saveStatus === "error"
+                    ? "Error"
+                    : "Save All"}
+            </Button>
           </div>
         </header>
 

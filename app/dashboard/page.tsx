@@ -5,8 +5,14 @@ import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FileTextIcon, CheckIcon, ClockIcon, TrendingUpIcon, PlusIcon, SparklesIcon } from "lucide-react"
-import { getCurrentUser, getDashboardStats } from "@/app/actions/assessment-actions"
+import { FileTextIcon, CheckIcon, ClockIcon, TrendingUpIcon, PlusIcon, SparklesIcon, EyeIcon } from "lucide-react"
+import {
+  getCurrentUser,
+  getDashboardStats,
+  getMonthlyAssessments,
+  getStatusBreakdown,
+  getRecentAssessments,
+} from "@/app/actions/assessment-actions"
 
 interface Assessment {
   id: string
@@ -52,19 +58,19 @@ export default function DashboardPage() {
           console.log("[v0] Dashboard: Stats loaded:", stats)
 
           // Fetch monthly data
-          // const monthly = await getMonthlyAssessments(user.id)
-          // setMonthlyData(monthly)
-          // console.log("[v0] Dashboard: Monthly data loaded:", monthly)
+          const monthly = await getMonthlyAssessments(user.id)
+          setMonthlyData(monthly)
+          console.log("[v0] Dashboard: Monthly data loaded:", monthly)
 
           // Fetch status breakdown
-          // const breakdown = await getStatusBreakdown(user.id)
-          // setStatusBreakdown(breakdown)
-          // console.log("[v0] Dashboard: Status breakdown loaded:", breakdown)
+          const breakdown = await getStatusBreakdown(user.id)
+          setStatusBreakdown(breakdown)
+          console.log("[v0] Dashboard: Status breakdown loaded:", breakdown)
 
           // Fetch recent assessments
-          // const recent = await getRecentAssessments(user.id, 5)
-          // setRecentAssessments(recent as Assessment[])
-          // console.log("[v0] Dashboard: Recent assessments loaded:", recent)
+          const recent = await getRecentAssessments(user.id, 5)
+          setRecentAssessments(recent as Assessment[])
+          console.log("[v0] Dashboard: Recent assessments loaded:", recent)
         } else {
           console.log("[v0] Dashboard: No user found, using default values")
           setUserName("Welcome back")
@@ -210,21 +216,28 @@ export default function DashboardPage() {
             <Card className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Assessments Over Time</h2>
               <div className="h-64 flex items-end justify-around gap-2">
-                {/* {monthlyData.map((data, i) => {
-                  const maxValue = Math.max(...monthlyData.map((d) => d.value))
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                      <div
-                        className="w-full bg-gradient-to-t from-teal-500 to-cyan-600 rounded-t-lg"
-                        style={{
-                          height: `${(data.value / maxValue) * 100}%`,
-                          minHeight: data.value > 0 ? "20px" : "0",
-                        }}
-                      />
-                      <span className="text-sm text-gray-600">{data.month}</span>
-                    </div>
-                  )
-                })} */}
+                {monthlyData.length > 0 ? (
+                  monthlyData.map((data, i) => {
+                    const maxValue = Math.max(...monthlyData.map((d) => d.value), 1)
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                        <div
+                          className="w-full bg-gradient-to-t from-teal-500 to-cyan-600 rounded-t-lg transition-all duration-500"
+                          style={{
+                            height: `${(data.value / maxValue) * 100}%`,
+                            minHeight: data.value > 0 ? "20px" : "0",
+                          }}
+                        />
+                        <div className="text-xs font-semibold text-gray-700">{data.value}</div>
+                        <span className="text-sm text-gray-600">{data.month}</span>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="flex items-center justify-center h-full w-full text-gray-400">
+                    No data yet. Create your first assessment!
+                  </div>
+                )}
               </div>
             </Card>
 
@@ -232,22 +245,29 @@ export default function DashboardPage() {
             <Card className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Report Status</h2>
               <div className="space-y-4">
-                {/* {statusBreakdown.map((item, i) => {
-                  const colors = ["bg-green-500", "bg-yellow-500", "bg-blue-500"]
-                  return (
-                    <div key={i}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">{item.label}</span>
-                        <span className="text-sm text-gray-500">
-                          {item.value} ({item.percentage}%)
-                        </span>
+                {statusBreakdown.length > 0 ? (
+                  statusBreakdown.map((item, i) => {
+                    const colors = ["bg-green-500", "bg-yellow-500", "bg-blue-500"]
+                    return (
+                      <div key={i}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">{item.label}</span>
+                          <span className="text-sm text-gray-500">
+                            {item.value} ({item.percentage}%)
+                          </span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${colors[i]} transition-all duration-500`}
+                            style={{ width: `${item.percentage}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full ${colors[i]}`} style={{ width: `${item.percentage}%` }} />
-                      </div>
-                    </div>
-                  )
-                })} */}
+                    )
+                  })
+                ) : (
+                  <div className="text-center text-gray-400 py-8">No assessments yet</div>
+                )}
               </div>
             </Card>
           </div>
@@ -287,39 +307,63 @@ export default function DashboardPage() {
             <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
           </div>
           <div className="divide-y">
-            {/* {recentAssessments.map((assessment) => (
-              <div key={assessment.id} className="p-6 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{assessment.clientName}</h3>
-                      <Badge className={getStatusColor(assessment.status)}>{assessment.status}</Badge>
-                      <Badge variant="outline">{assessment.type}</Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>{new Date(assessment.date).toLocaleDateString()}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-32 bg-gray-200 rounded-full">
-                          <div
-                            className="h-full bg-teal-500 rounded-full"
-                            style={{ width: `${assessment.completionPercentage}%` }}
-                          />
+            {recentAssessments.length > 0 ? (
+              recentAssessments.map((assessment) => (
+                <div
+                  key={assessment.id}
+                  className="p-6 hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => router.push(`/assessment/${assessment.id}`)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold text-gray-900">{assessment.clientName}</h3>
+                        <Badge className={getStatusColor(assessment.status)}>{assessment.status}</Badge>
+                        <Badge variant="outline">{assessment.type}</Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span>{new Date(assessment.date).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-32 bg-gray-200 rounded-full">
+                            <div
+                              className="h-full bg-teal-500 rounded-full transition-all duration-500"
+                              style={{ width: `${assessment.completionPercentage}%` }}
+                            />
+                          </div>
+                          <span>{assessment.completionPercentage}%</span>
                         </div>
-                        <span>{assessment.completionPercentage}%</span>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {assessment.status === "Completed" && (
-                      <Button size="sm" variant="outline">
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/assessment/${assessment.id}`)
+                        }}
+                      >
                         <EyeIcon className="h-4 w-4 mr-1" />
                         View
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="p-12 text-center text-gray-400">
+                <FileTextIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium mb-2">No assessments yet</p>
+                <p className="text-sm mb-4">Create your first assessment to get started</p>
+                <Button
+                  onClick={() => router.push("/assessment/new")}
+                  className="bg-gradient-to-r from-teal-500 to-cyan-600"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  New Assessment
+                </Button>
               </div>
-            ))} */}
+            )}
           </div>
         </Card>
       </div>
