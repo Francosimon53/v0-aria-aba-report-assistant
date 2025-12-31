@@ -693,13 +693,33 @@ export function ABCObservation() {
   )
 }
 
-function formatTimestamp(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date)
+function formatTimestamp(date: Date | string) {
+  const parsedDate = safeParseDate(date)
+  if (!parsedDate) {
+    return "Invalid date"
+  }
+
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(parsedDate)
+  } catch {
+    return "Invalid date"
+  }
+}
+
+function safeParseDate(date: Date | string): Date | null {
+  if (date instanceof Date) {
+    return date
+  }
+  try {
+    return new Date(date)
+  } catch {
+    return null
+  }
 }

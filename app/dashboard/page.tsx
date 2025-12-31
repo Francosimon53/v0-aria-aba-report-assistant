@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PlusIcon, FileTextIcon, CheckCircleIcon, ClockIcon } from "@/components/icons"
+import { safeParseDate } from "@/lib/safe-date"
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -21,11 +22,19 @@ export default function DashboardPage() {
         if (saved) {
           const data = JSON.parse(saved)
           const assessments = Array.isArray(data) ? data : []
+
+          const validAssessments = assessments.filter((a: any) => {
+            if (a.createdAt) {
+              return safeParseDate(a.createdAt) !== null
+            }
+            return true // Keep assessments without dates
+          })
+
           setStats({
-            totalAssessments: assessments.length || 0,
-            completedReports: assessments.filter((a: any) => a?.status === "complete").length || 0,
-            inProgress: assessments.filter((a: any) => a?.status === "in_progress").length || 0,
-            timeSaved: assessments.length * 45 || 0,
+            totalAssessments: validAssessments.length || 0,
+            completedReports: validAssessments.filter((a: any) => a?.status === "complete").length || 0,
+            inProgress: validAssessments.filter((a: any) => a?.status === "in_progress").length || 0,
+            timeSaved: validAssessments.length * 45 || 0,
           })
         }
       } catch (e) {
