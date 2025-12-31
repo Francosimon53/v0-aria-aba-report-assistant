@@ -85,6 +85,12 @@ export function RiskAssessment({ clientData, onSave }: RiskAssessmentProps) {
   const [crisisPlan, setCrisisPlan] = useState<any>(null)
   const { toast } = useToast()
 
+  const safeClientData = {
+    name: clientData?.name || "Unnamed Client",
+    age: clientData?.age || 0,
+    gender: clientData?.gender || "Unknown",
+  }
+
   useEffect(() => {
     const checkedFactors = riskFactors.filter((f) => f.checked)
     const highRiskCount = checkedFactors.filter((f) => f.severity === "high").length
@@ -301,7 +307,7 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
         <div>
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             <AlertTriangleIcon className="h-8 w-8 text-red-500" />
-            Risk Assessment & Crisis Plan for {clientData.name}
+            Risk Assessment & Crisis Plan for {safeClientData.name}
           </h1>
           <p className="text-muted-foreground">Comprehensive safety evaluation and emergency planning</p>
         </div>

@@ -144,6 +144,32 @@ export function Dashboard() {
     onSave: () => setLastSaved(new Date()),
   })
 
+  const safeClientData = useMemo(() => {
+    if (!clientData) {
+      return {
+        id: "",
+        name: "Unnamed Client",
+        firstName: "",
+        lastName: "",
+        dateOfBirth: "",
+        age: 0,
+        gender: "Unknown",
+        diagnosis: "",
+        insuranceProvider: "",
+        insuranceId: "",
+        guardianName: "",
+        guardianPhone: "",
+        guardianEmail: "",
+        referralSource: "",
+        referralDate: "",
+        assessmentDate: new Date().toISOString().split("T")[0],
+        assessor: "",
+        supervisingBCBA: "",
+      } as ClientData
+    }
+    return clientData
+  }, [clientData])
+
   const renderActiveView = () => {
     console.log("[v0] renderActiveView called with activeView:", activeView)
 
@@ -161,11 +187,11 @@ export function Dashboard() {
         )
       case "background":
         console.log("[v0] Rendering BackgroundHistory for view:", activeView)
-        return <BackgroundHistory clientData={clientData} onSave={() => markStepComplete("background")} />
+        return <BackgroundHistory clientData={safeClientData} onSave={() => markStepComplete("background")} />
       case "assessment":
         return (
           <AssessmentForm
-            clientId={clientData?.id ?? ""}
+            clientId={safeClientData.id}
             assessmentData={assessmentData}
             onSave={(data) => {
               setAssessmentData(data)
@@ -178,11 +204,11 @@ export function Dashboard() {
       case "abc":
         return <ABCObservation onSave={() => markStepComplete("abc")} />
       case "risk":
-        return <RiskAssessment clientData={clientData} onSave={() => markStepComplete("risk")} />
+        return <RiskAssessment clientData={safeClientData} onSave={() => markStepComplete("risk")} />
       case "reassessment":
         return (
           <ReassessmentForm
-            clientData={clientData}
+            clientData={safeClientData}
             previousAssessment={assessmentData}
             onSave={(data) => {
               setReassessmentData(data)
@@ -191,21 +217,25 @@ export function Dashboard() {
           />
         )
       case "progressdashboard":
-        return <ProgressDashboard clientData={clientData} assessmentData={assessmentData} />
+        return <ProgressDashboard clientData={safeClientData} assessmentData={assessmentData} />
       case "integration":
         return (
-          <DataIntegration clientData={clientData} onDataImport={(data) => setAgencyData(data)} onSkip={handleNext} />
+          <DataIntegration
+            clientData={safeClientData}
+            onDataImport={(data) => setAgencyData(data)}
+            onSkip={handleNext}
+          />
         )
       case "goals":
         return (
           <GoalBankBrowser
-            clientData={clientData}
+            clientData={safeClientData}
             onGoalSelect={(goal) => setSelectedGoals((prev) => [...prev, goal])}
             selectedGoals={selectedGoals}
           />
         )
       case "goalstracker":
-        return <GoalsTracker clientData={clientData} onSave={() => markStepComplete("goalstracker")} />
+        return <GoalsTracker clientData={safeClientData} onSave={() => markStepComplete("goalstracker")} />
       case "interventions":
         return <InterventionsLibrary onSave={() => markStepComplete("interventions")} />
       case "protocols":
@@ -215,13 +245,13 @@ export function Dashboard() {
       case "schedule":
         return <ServiceSchedule onSave={() => markStepComplete("schedule")} />
       case "cptauth":
-        return <CPTAuthorizationRequest clientData={clientData} onSave={() => markStepComplete("cptauth")} />
+        return <CPTAuthorizationRequest clientData={safeClientData} onSave={() => markStepComplete("cptauth")} />
       case "consent":
-        return <ConsentForm clientData={clientData} onSave={() => markStepComplete("consent")} />
+        return <ConsentForm clientData={safeClientData} onSave={() => markStepComplete("consent")} />
       case "medicalnecessity":
         return (
           <MedicalNecessityGenerator
-            clientData={clientData}
+            clientData={safeClientData}
             assessmentData={assessmentData}
             onSave={() => markStepComplete("medicalnecessity")}
           />
@@ -229,7 +259,6 @@ export function Dashboard() {
       case "report":
         return <AIReportGenerator />
       case "progressreport":
-        // Import ProgressReportPage component
         const ProgressReportPage = require("@/app/assessment/progress-report/page").default
         return <ProgressReportPage />
       case "timesaved":
@@ -237,7 +266,7 @@ export function Dashboard() {
       case "support":
         return <ComplianceSupport />
       default:
-        return <ClientForm clientData={clientData} onSave={(data) => setClientData(data)} />
+        return <ClientForm clientData={clientData} onSave={(data) => setClientData(data)} onNext={handleNext} />
     }
   }
 
@@ -299,6 +328,17 @@ export function Dashboard() {
     console.log("[v0] activeView changed to:", activeView)
   }, [activeView])
 
+  const isReady = useMemo(() => {
+    const requiredFields = [
+      clientData?.name || clientData?.firstName,
+      clientData?.dateOfBirth,
+      clientData?.diagnosis,
+      assessmentData?.domains?.length,
+      selectedGoals?.length,
+    ]
+    return requiredFields.every((field) => Boolean(field))
+  }, [clientData, assessmentData, selectedGoals])
+
   const handleSaveAll = async () => {
     try {
       setIsSaving(true)
@@ -342,17 +382,6 @@ export function Dashboard() {
       setIsSaving(false)
     }
   }
-
-  const isReady = useMemo(() => {
-    const requiredFields = [
-      clientData?.name,
-      clientData?.dateOfBirth,
-      clientData?.diagnosis,
-      assessmentData?.domains,
-      selectedGoals?.length > 0,
-    ]
-    return requiredFields.every((field) => Boolean(field))
-  }, [clientData, assessmentData, selectedGoals])
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">

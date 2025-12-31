@@ -10,8 +10,8 @@ export async function createAssessment(userId: string, clientData: any) {
     .from("assessments")
     .insert({
       user_id: userId,
-      title: `${clientData.name} - ${clientData.diagnosis}`,
-      evaluation_type: clientData.assessmentType || "Initial Assessment",
+      title: `${clientData?.name || "Unnamed Client"} - ${clientData?.diagnosis || "Unknown"}`,
+      evaluation_type: clientData?.assessmentType || "Initial Assessment",
       status: "draft",
       data: clientData,
     })

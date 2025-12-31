@@ -116,7 +116,18 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
   })
 
   const [formData, setFormData] = useState<ExtendedClientData>(
-    clientData ? { ...getDefaultFormData(), ...clientData } : getDefaultFormData(),
+    clientData
+      ? {
+          ...getDefaultFormData(),
+          ...clientData,
+          // Ensure critical fields always have values
+          name: clientData.name || "",
+          firstName: clientData.firstName || "",
+          lastName: clientData.lastName || "",
+          dateOfBirth: clientData.dateOfBirth || "",
+          diagnosis: clientData.diagnosis || "",
+        }
+      : getDefaultFormData(),
   )
 
   useEffect(() => {
