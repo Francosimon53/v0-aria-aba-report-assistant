@@ -582,20 +582,14 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
                     onChange={(e) => setEditedText(e.target.value)}
                     onFocus={() => setActiveField(null)}
                     fieldName="Medical Necessity Statement"
-                    className="min-h-[400px] font-mono text-sm leading-relaxed"
+                    className="min-h-[400px] font-sans text-base leading-relaxed"
                     placeholder="Generated medical necessity statement will appear here..."
                   />
 
-                  {/* Highlighted Preview */}
-                  <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-                    <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                      Key phrases highlighted
-                    </div>
-                    <div
-                      className="prose prose-sm dark:prose-invert max-w-none"
-                      dangerouslySetInnerHTML={{ __html: highlightKeyPhrases(editedText) }}
-                    />
+                  {/* Key phrases indicator below the textarea */}
+                  <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                    Key phrases highlighted
                   </div>
                 </ScrollArea>
 
