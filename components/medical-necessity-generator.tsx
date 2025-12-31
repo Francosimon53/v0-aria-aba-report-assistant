@@ -10,7 +10,9 @@ import { AITextarea } from "@/components/ui/ai-textarea"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SparklesIcon, CheckIcon, AlertCircleIcon, FileTextIcon, CopyIcon, FileDownIcon } from "@/components/icons"
+import { Loader2, FileDown } from "lucide-react"
 import type { ClientData, AssessmentData } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
 
 interface MedicalNecessityGeneratorProps {
   clientData?: ClientData | null
@@ -40,7 +42,10 @@ export function MedicalNecessityGenerator({
   assessmentData,
   behaviors = [],
 }: MedicalNecessityGeneratorProps) {
+  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [isAutoFilling, setIsAutoFilling] = useState(false)
+  const [isSmartFilling, setIsSmartFilling] = useState(false)
   const [generatedText, setGeneratedText] = useState("")
   const [editedText, setEditedText] = useState("")
   const [template, setTemplate] = useState<string>("moderate")
@@ -249,6 +254,115 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
     }
   }
 
+  const handleAutoFill = async () => {
+    setIsAutoFilling(true)
+
+    try {
+      // Load data from localStorage
+      const clientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
+      const abcObservations = JSON.parse(localStorage.getItem("aria-abc-observations") || "[]")
+      const goals = JSON.parse(localStorage.getItem("aria-goals") || "[]")
+      const interventions = JSON.parse(localStorage.getItem("aria-interventions") || "[]")
+      const riskAssessment = JSON.parse(localStorage.getItem("aria-risk-assessment") || "{}")
+
+      // Auto-fill diagnosis
+      if (clientInfo.diagnosis) {
+        setDiagnosis(clientInfo.diagnosis)
+      }
+
+      // Auto-fill target behaviors from ABC observations
+      if (abcObservations.length > 0) {
+        const behaviors = abcObservations.map((obs: any) => obs.behavior).filter(Boolean)
+        const uniqueBehaviors = [...new Set(behaviors)].slice(0, 3)
+        setTargetBehaviors(uniqueBehaviors.join(", "))
+      }
+
+      // Auto-fill severity from ABC data
+      if (abcObservations.length > 0) {
+        const severityText = `${abcObservations.length} incidents documented. Behaviors occur multiple times daily requiring constant supervision and intervention.`
+        setSeverity(severityText)
+      }
+
+      // Auto-fill functional impact from goals
+      if (goals.length > 0) {
+        const domains = goals.map((g: any) => g.domain).filter(Boolean)
+        const uniqueDomains = [...new Set(domains)]
+        const impactText = `Deficits impact ${uniqueDomains.join(", ")}. Client requires intensive support for daily living skills, communication, and social interaction.`
+        setFunctionalImpact(impactText)
+      }
+
+      // Auto-fill environmental factors from risk assessment
+      if (riskAssessment.environmentalFactors) {
+        setEnvironmentalFactors(riskAssessment.environmentalFactors)
+      }
+
+      toast({
+        title: "Data Imported",
+        description: "Fields populated from your assessment data. Review and edit as needed.",
+      })
+    } catch (error) {
+      console.error("Auto-fill error:", error)
+      toast({
+        title: "Import Failed",
+        description: "Could not load assessment data. Fill fields manually.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAutoFilling(false)
+    }
+  }
+
+  const handleAISmartFill = async () => {
+    setIsSmartFilling(true)
+
+    try {
+      // Gather all assessment data
+      const clientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
+      const abcObservations = JSON.parse(localStorage.getItem("aria-abc-observations") || "[]")
+      const goals = JSON.parse(localStorage.getItem("aria-goals") || "[]")
+      const interventions = JSON.parse(localStorage.getItem("aria-interventions") || "[]")
+
+      const response = await fetch("/api/smart-fill-medical-necessity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientInfo,
+          abcObservations,
+          goals,
+          interventions,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to generate smart fill")
+      }
+
+      const data = await response.json()
+
+      // Fill all fields with AI-optimized content
+      setDiagnosis(data.diagnosis || diagnosis)
+      setTargetBehaviors(data.targetBehaviors || targetBehaviors)
+      setSeverity(data.severityFrequency || severity)
+      setFunctionalImpact(data.functionalImpact || functionalImpact)
+      setPreviousTreatments(data.previousTreatment || previousTreatments)
+      setEnvironmentalFactors(data.environmentalFactors || environmentalFactors)
+
+      toast({
+        title: "Smart Fill Complete",
+        description: "AI has optimized all fields for insurance approval",
+      })
+    } catch (error) {
+      console.error("Smart fill error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to generate smart fill. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSmartFilling(false)
+    }
+  }
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-6 pb-24 bg-gray-50 dark:bg-gray-950 min-h-full">
@@ -288,6 +402,45 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <Button
+                onClick={handleAISmartFill}
+                disabled={isSmartFilling || isAutoFilling}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                {isSmartFilling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    AI Generating...
+                  </>
+                ) : (
+                  <>
+                    <SparklesIcon className="h-4 w-4 mr-2" />
+                    AI Smart Fill (Recommended)
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={handleAutoFill}
+                disabled={isAutoFilling || isSmartFilling}
+                variant="outline"
+                className="w-full border-teal-200 text-teal-700 hover:bg-teal-50 bg-transparent"
+              >
+                {isAutoFilling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Auto-fill from Assessment Data
+                  </>
+                )}
+              </Button>
             </div>
 
             <ScrollArea className="flex-1 pr-4">
