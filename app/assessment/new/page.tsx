@@ -12,6 +12,7 @@ class AssessmentErrorBoundary extends Component<{ children: ReactNode }, { hasEr
   }
 
   static getDerivedStateFromError(error: Error) {
+    console.error("[v0] Error boundary caught error:", error)
     return { hasError: true, error }
   }
 
@@ -29,8 +30,14 @@ class AssessmentErrorBoundary extends Component<{ children: ReactNode }, { hasEr
               <h2 className="text-lg font-semibold">Something went wrong</h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              The assessment page encountered an error. Your data has been auto-saved.
+              The assessment page encountered an error. Your data has been auto-saved and will be restored when you
+              reload.
             </p>
+            {this.state.error && (
+              <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                <strong>Error:</strong> {this.state.error.message}
+              </div>
+            )}
             <div className="flex gap-2">
               <Button
                 onClick={() => {
@@ -41,8 +48,8 @@ class AssessmentErrorBoundary extends Component<{ children: ReactNode }, { hasEr
               >
                 Reload Page
               </Button>
-              <Button variant="outline" onClick={() => (window.location.href = "/")} className="flex-1">
-                Go Home
+              <Button variant="outline" onClick={() => (window.location.href = "/dashboard")} className="flex-1">
+                Go to Dashboard
               </Button>
             </div>
           </div>
