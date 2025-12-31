@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -196,83 +196,109 @@ export function ParentTrainingTracker() {
     }
   }, [])
 
+  const handleSaveAll = useCallback(
+    async (silent = false) => {
+      console.log("[v0] Save All clicked", { silent, isSaving })
+
+      if (isSaving) {
+        console.log("[v0] Already saving, skipping...")
+        return
+      }
+
+      setIsSaving(true)
+
+      try {
+        const dataToSave = {
+          modules,
+          moduleContent,
+          newFidelityScores,
+          selectedModule,
+          lastSaved: new Date().toISOString(),
+        }
+
+        console.log("[v0] Data to save:", {
+          modulesCount: modules.length,
+          contentKeys: Object.keys(moduleContent),
+          fidelityScores: newFidelityScores,
+        })
+
+        // Save to localStorage as backup/cache
+        localStorage.setItem("aria-parent-training-data", JSON.stringify(dataToSave))
+        console.log("[v0] Saved to localStorage")
+
+        // Save to Supabase cloud
+        let cloudSaveSuccess = false
+        try {
+          const user = await getCurrentUser()
+          console.log("[v0] Current user:", user ? "Found" : "Not found")
+
+          if (user) {
+            // Get or create assessment ID from URL or localStorage
+            const urlParams = new URLSearchParams(window.location.search)
+            const assessmentId = urlParams.get("assessmentId") || localStorage.getItem("aria-current-assessment-id")
+            console.log("[v0] Assessment ID:", assessmentId)
+
+            if (assessmentId) {
+              // Save each module's progress to Supabase
+              for (const module of modules) {
+                await saveParentTrainingProgress(assessmentId, {
+                  moduleName: module.name,
+                  status: module.status,
+                  fidelityScore: module.fidelityScore,
+                  sessionNotes: module.notes || "",
+                  aiContent: moduleContent[module.name] || null,
+                })
+              }
+
+              cloudSaveSuccess = true
+              console.log("[v0] Parent training data saved to Supabase successfully")
+            } else {
+              console.log("[v0] No assessment ID found")
+            }
+          }
+        } catch (dbError) {
+          console.error("[v0] Supabase save failed, data saved to localStorage only:", dbError)
+          // Continue - we still have localStorage backup
+        }
+
+        if (!silent) {
+          setSaveSuccess(true)
+          toast({
+            title: "Saved Successfully",
+            description: cloudSaveSuccess
+              ? "All parent training data has been saved to cloud ☁️"
+              : "Data saved locally (cloud sync unavailable)",
+          })
+
+          setTimeout(() => {
+            setSaveSuccess(false)
+          }, 2000)
+        }
+
+        console.log("[v0] Parent training data saved successfully")
+      } catch (e) {
+        console.error("[v0] Error saving parent training data:", e)
+        if (!silent) {
+          toast({
+            title: "Save Failed",
+            description: e instanceof Error ? e.message : "There was an error saving your data.",
+            variant: "destructive",
+          })
+        }
+      } finally {
+        setIsSaving(false)
+      }
+    },
+    [modules, moduleContent, newFidelityScores, selectedModule, isSaving, toast],
+  )
+
   useEffect(() => {
     const autoSaveInterval = setInterval(() => {
       handleSaveAll(true) // true = silent save (no toast)
     }, 30000)
 
     return () => clearInterval(autoSaveInterval)
-  }, [modules, moduleContent, newFidelityScores, selectedModule])
-
-  const handleSaveAll = async (silent = false) => {
-    setIsSaving(true)
-
-    try {
-      const dataToSave = {
-        modules,
-        moduleContent,
-        newFidelityScores,
-        selectedModule,
-        lastSaved: new Date().toISOString(),
-      }
-
-      // Save to localStorage as backup/cache
-      localStorage.setItem("aria-parent-training-data", JSON.stringify(dataToSave))
-
-      // Save to Supabase cloud
-      try {
-        const user = await getCurrentUser()
-        if (user) {
-          // Get or create assessment ID from URL or localStorage
-          const urlParams = new URLSearchParams(window.location.search)
-          const assessmentId = urlParams.get("assessmentId") || localStorage.getItem("aria-current-assessment-id")
-
-          if (assessmentId) {
-            // Save each module's progress to Supabase
-            for (const module of modules) {
-              await saveParentTrainingProgress(assessmentId, {
-                moduleName: module.name,
-                status: module.status,
-                fidelityScore: module.fidelityScore,
-                sessionNotes: module.notes || "",
-                aiContent: moduleContent[module.name] || null,
-              })
-            }
-
-            console.log("[v0] Parent training data saved to Supabase")
-          }
-        }
-      } catch (dbError) {
-        console.error("[v0] Supabase save failed, data saved to localStorage only:", dbError)
-        // Continue - we still have localStorage backup
-      }
-
-      if (!silent) {
-        setSaveSuccess(true)
-        toast({
-          title: "Saved Successfully",
-          description: "All parent training data has been saved to cloud ☁️",
-        })
-
-        setTimeout(() => {
-          setSaveSuccess(false)
-        }, 2000)
-      }
-
-      console.log("[v0] Parent training data saved")
-    } catch (e) {
-      console.error("[v0] Error saving parent training data:", e)
-      if (!silent) {
-        toast({
-          title: "Save Failed",
-          description: "There was an error saving your data.",
-          variant: "destructive",
-        })
-      }
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  }, [handleSaveAll])
 
   const handleGenerateModuleContent = async (moduleName: string) => {
     console.log("[v0] Starting generation for:", moduleName)
@@ -420,10 +446,17 @@ export function ParentTrainingTracker() {
           {/* Save All button with visual feedback */}
           <div className="flex gap-3">
             <Button
-              className={`transition-all duration-300 ${
-                saveSuccess ? "bg-green-600 hover:bg-green-700" : "bg-[#0D9488] hover:bg-[#0F766E]"
+              className={`transition-all duration-300 cursor-pointer hover:shadow-lg active:scale-95 ${
+                saveSuccess
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : isSaving
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#0D9488] hover:bg-[#0F766E] text-white"
               }`}
-              onClick={() => handleSaveAll()}
+              onClick={() => {
+                console.log("Save All clicked")
+                handleSaveAll()
+              }}
               disabled={isSaving}
             >
               {isSaving ? (
@@ -434,7 +467,7 @@ export function ParentTrainingTracker() {
               ) : saveSuccess ? (
                 <>
                   <CheckCircle2Icon className="h-4 w-4 mr-2" />
-                  Saved!
+                  Saved ☁️
                 </>
               ) : (
                 <>
