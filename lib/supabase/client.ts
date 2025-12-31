@@ -1,12 +1,5 @@
-import { createBrowserClient } from "@supabase/ssr"
-
 export function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_ARIA_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_ARIA_SUPABASE_PUBLISHABLE_KEY
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Missing Supabase environment variables")
-  }
-
-  return createBrowserClient(supabaseUrl, supabaseKey)
+  throw new Error(
+    "Client-side Supabase access is disabled. Use server actions from app/actions/assessment-actions.ts instead.",
+  )
 }

@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FileTextIcon, CheckIcon, ClockIcon, TrendingUpIcon, PlusIcon, SparklesIcon, EyeIcon } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { FileTextIcon, CheckIcon, ClockIcon, TrendingUpIcon, PlusIcon, SparklesIcon } from "lucide-react"
+import { getCurrentUser, getDashboardStats } from "@/app/actions/assessment-actions"
 
 interface Assessment {
   id: string
@@ -33,33 +33,52 @@ export default function DashboardPage() {
   useEffect(() => {
     console.log("[v0] Dashboard: Component mounted")
 
-    const fetchUserData = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const supabase = createClient()
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser()
+        const user = await getCurrentUser()
 
-        if (error) {
-          console.log("[v0] Dashboard: Auth error:", error.message)
-          setUserName("Welcome back")
-        } else if (user) {
+        if (user) {
           const displayName =
             user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "Welcome back"
           setUserName(displayName)
           console.log("[v0] Dashboard: User loaded:", displayName)
+
+          // Fetch dashboard stats
+          const stats = await getDashboardStats(user.id)
+          setTotalAssessments(stats.totalAssessments)
+          setCompletedReports(stats.completedReports)
+          setTimeSaved(stats.timeSaved)
+          setComplianceRate(stats.complianceRate)
+          console.log("[v0] Dashboard: Stats loaded:", stats)
+
+          // Fetch monthly data
+          // const monthly = await getMonthlyAssessments(user.id)
+          // setMonthlyData(monthly)
+          // console.log("[v0] Dashboard: Monthly data loaded:", monthly)
+
+          // Fetch status breakdown
+          // const breakdown = await getStatusBreakdown(user.id)
+          // setStatusBreakdown(breakdown)
+          // console.log("[v0] Dashboard: Status breakdown loaded:", breakdown)
+
+          // Fetch recent assessments
+          // const recent = await getRecentAssessments(user.id, 5)
+          // setRecentAssessments(recent as Assessment[])
+          // console.log("[v0] Dashboard: Recent assessments loaded:", recent)
         } else {
+          console.log("[v0] Dashboard: No user found, using default values")
           setUserName("Welcome back")
-          console.log("[v0] Dashboard: No user found")
         }
       } catch (error) {
-        console.log("[v0] Dashboard: Failed to fetch user:", error)
+        console.error("[v0] Dashboard: Error fetching data:", error)
         setUserName("Welcome back")
+      } finally {
+        setIsLoading(false)
+        console.log("[v0] Dashboard: Data loaded")
       }
     }
 
-    fetchUserData()
+    fetchDashboardData()
 
     const date = new Date()
     setCurrentDate(
@@ -70,10 +89,6 @@ export default function DashboardPage() {
         day: "numeric",
       }),
     )
-    setTimeout(() => {
-      setIsLoading(false)
-      console.log("[v0] Dashboard: Data loaded")
-    }, 500)
   }, [])
 
   const stats = [
@@ -195,7 +210,7 @@ export default function DashboardPage() {
             <Card className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Assessments Over Time</h2>
               <div className="h-64 flex items-end justify-around gap-2">
-                {monthlyData.map((data, i) => {
+                {/* {monthlyData.map((data, i) => {
                   const maxValue = Math.max(...monthlyData.map((d) => d.value))
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-2">
@@ -209,7 +224,7 @@ export default function DashboardPage() {
                       <span className="text-sm text-gray-600">{data.month}</span>
                     </div>
                   )
-                })}
+                })} */}
               </div>
             </Card>
 
@@ -217,7 +232,7 @@ export default function DashboardPage() {
             <Card className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Report Status</h2>
               <div className="space-y-4">
-                {statusBreakdown.map((item, i) => {
+                {/* {statusBreakdown.map((item, i) => {
                   const colors = ["bg-green-500", "bg-yellow-500", "bg-blue-500"]
                   return (
                     <div key={i}>
@@ -232,7 +247,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   )
-                })}
+                })} */}
               </div>
             </Card>
           </div>
@@ -272,7 +287,7 @@ export default function DashboardPage() {
             <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
           </div>
           <div className="divide-y">
-            {recentAssessments.map((assessment) => (
+            {/* {recentAssessments.map((assessment) => (
               <div key={assessment.id} className="p-6 hover:bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -304,7 +319,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            ))} */}
           </div>
         </Card>
       </div>

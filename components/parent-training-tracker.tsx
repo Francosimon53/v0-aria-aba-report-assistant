@@ -23,7 +23,7 @@ import {
   ClipboardCheckIcon,
   SaveIcon,
 } from "@/components/icons"
-import { saveParentTrainingProgress, getCurrentUser } from "@/lib/supabase-db"
+import { saveParentTrainingProgress, getCurrentUser } from "@/app/actions/assessment-actions"
 
 interface TrainingModule {
   id: string
