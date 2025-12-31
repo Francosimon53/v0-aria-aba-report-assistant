@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
 import {
   UserIcon,
   ClipboardListIcon,
@@ -50,6 +49,7 @@ type ActiveView =
   | "medicalnecessity" // Added medical necessity view type
   | "progressdashboard" // Added progress dashboard view type
   | "cptauth" // Added cptauth view type
+  | "dashboard" // Added dashboard view type
 
 interface SidebarProps {
   activeView: ActiveView
@@ -71,6 +71,13 @@ export function Sidebar({
   selectedGoalsCount,
 }: SidebarProps) {
   const navItems = [
+    {
+      id: "dashboard" as const,
+      label: "Dashboard",
+      icon: HomeIcon,
+      description: "Overview & quick actions",
+      completed: false,
+    },
     {
       id: "client" as const,
       label: "Client Info",
@@ -212,7 +219,7 @@ export function Sidebar({
     >
       <div className="flex items-center justify-between p-4 border-b border-border">
         {!collapsed && (
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <div className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
               A
             </div>
@@ -220,7 +227,7 @@ export function Sidebar({
               <h1 className="font-semibold text-foreground">ARIA</h1>
               <p className="text-xs text-muted-foreground">ABA Assistant</p>
             </div>
-          </Link>
+          </div>
         )}
         <Button variant="ghost" size="icon" onClick={onToggleCollapse} className="h-8 w-8">
           {collapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
@@ -229,21 +236,6 @@ export function Sidebar({
 
       <div className="flex-1 overflow-y-auto p-2">
         <nav className="space-y-1">
-          <Link href="/">
-            <Button
-              variant="ghost"
-              className={cn("w-full justify-start gap-3 h-auto py-3 mb-2 border-b", collapsed && "justify-center px-2")}
-            >
-              <HomeIcon className="h-5 w-5 text-muted-foreground" />
-              {!collapsed && (
-                <div className="flex-1 text-left">
-                  <span className="text-sm font-medium text-muted-foreground">Back to Home</span>
-                  <span className="text-xs text-muted-foreground block">Return to landing page</span>
-                </div>
-              )}
-            </Button>
-          </Link>
-
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = activeView === item.id
@@ -254,7 +246,13 @@ export function Sidebar({
                 key={item.id}
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn("w-full justify-start gap-3 h-auto py-3", collapsed && "justify-center px-2")}
-                onClick={() => onViewChange(item.id)}
+                onClick={() => {
+                  if (item.id === "dashboard") {
+                    window.location.href = "/dashboard"
+                  } else {
+                    onViewChange(item.id)
+                  }
+                }}
               >
                 <div className="relative">
                   <Icon className={cn("h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />

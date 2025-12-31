@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,6 +20,7 @@ interface ProgressSection {
 }
 
 export default function ProgressReportPage() {
+  const router = useRouter()
   const { toast } = useToast()
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
@@ -182,6 +184,9 @@ export default function ProgressReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
+          <Button variant="ghost" size="sm" className="mb-2" onClick={() => router.push("/dashboard")}>
+            ← Back to Dashboard
+          </Button>
           <h1 className="text-2xl font-bold">Progress Report</h1>
           <p className="text-gray-600">Generate progress updates for insurance re-authorization</p>
         </div>
@@ -323,7 +328,10 @@ export default function ProgressReportPage() {
       </div>
 
       {/* Export Button */}
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-between items-center">
+        <Button variant="outline" size="lg" onClick={() => router.push("/dashboard")}>
+          ← Back to Dashboard
+        </Button>
         <Button variant="outline" size="lg" className="gap-2 bg-transparent">
           <FileDown className="h-4 w-4" />
           Export Progress Report
