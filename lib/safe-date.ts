@@ -49,3 +49,25 @@ export function safeDateForStorage(date: Date | string | null | undefined): stri
 export function isValidDate(dateValue: any): boolean {
   return safeParseDate(dateValue) !== null
 }
+
+/**
+ * Safely formats a date for display
+ * Returns a formatted date string or null if invalid
+ */
+export function safeFormatDate(
+  dateValue: any,
+  options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  },
+): string | null {
+  const parsed = safeParseDate(dateValue)
+  if (!parsed) return null
+
+  try {
+    return parsed.toLocaleDateString("en-US", options)
+  } catch {
+    return null
+  }
+}

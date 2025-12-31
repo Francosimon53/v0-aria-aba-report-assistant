@@ -113,7 +113,7 @@ export default function DashboardPage() {
               </Button>
             </Link>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Link href="/assessment/new">
+              <Link href="/assessments">
                 <Button variant="outline" className="w-full bg-transparent">
                   View All Assessments
                 </Button>
