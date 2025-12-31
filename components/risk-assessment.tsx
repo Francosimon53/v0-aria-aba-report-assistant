@@ -56,7 +56,7 @@ interface RiskAssessmentProps {
 
 type RiskLevel = "low" | "medium" | "high"
 
-export function RiskAssessment({ clientData, onSave }: RiskAssessmentProps) {
+function RiskAssessment({ clientData, onSave }: RiskAssessmentProps) {
   const [riskFactors, setRiskFactors] = useState<RiskFactor[]>([
     { id: "self-injury", label: "Self-Injurious behavior", checked: false, severity: "high" },
     { id: "aggression", label: "Aggressive Behavior", checked: false, severity: "high" },
@@ -82,6 +82,7 @@ export function RiskAssessment({ clientData, onSave }: RiskAssessmentProps) {
   ])
   const [riskLevel, setRiskLevel] = useState<RiskLevel>("low")
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false)
+  const [isGeneratingEmergency, setIsGeneratingEmergency] = useState(false)
   const [crisisPlan, setCrisisPlan] = useState<any>(null)
   const { toast } = useToast()
 
@@ -243,6 +244,41 @@ ${data.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
     }
   }
 
+  const handleGenerateEmergencyProcedures = async () => {
+    setIsGeneratingEmergency(true)
+
+    try {
+      const response = await fetch("/api/generate-emergency-procedures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName: safeClientData.name,
+          age: safeClientData.age,
+          diagnosis: "ASD", // Default diagnosis
+          selectedRiskFactors: riskFactors.filter((r) => r.checked).map((r) => r.label),
+          otherRisk: otherRisk,
+        }),
+      })
+
+      if (!response.ok) throw new Error("Failed to generate")
+
+      const data = await response.json()
+      setEmergencyProcedures(data.procedures)
+      toast({
+        title: "Generated Successfully",
+        description: "Emergency procedures have been created based on risk factors",
+      })
+    } catch (error) {
+      toast({
+        title: "Generation Failed",
+        description: "Unable to generate emergency procedures. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGeneratingEmergency(false)
+    }
+  }
+
   const copyFullPlan = (plan: any) => {
     const text = `
 CRISIS PLAN
@@ -301,7 +337,7 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
   const totalCount = riskFactors.length
 
   return (
-    <div className="max-w-5xl mx-auto p-8 space-y-6">
+    <div className="space-y-8 max-w-6xl mx-auto p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -494,49 +530,36 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
 
           {/* Emergency Procedures */}
           <Card className="bg-red-50 border border-red-200 p-4">
-            <h4 className="font-semibold mb-3 flex items-center gap-2 text-red-800">
-              <AlertCircle className="h-5 w-5" />
-              Emergency Procedures
-            </h4>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-white p-3 rounded-lg border border-red-100">
-                <h5 className="font-medium text-red-900 mb-2">Immediate Actions</h5>
-                <ul className="text-sm space-y-1">
-                  {crisisPlan.emergencyProcedures.immediateActions.map((action: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-red-500">•</span>
-                      <span>{action}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="bg-white p-3 rounded-lg border border-red-100">
-                <h5 className="font-medium text-red-900 mb-2">Safety Measures</h5>
-                <ul className="text-sm space-y-1">
-                  {crisisPlan.emergencyProcedures.safetyMeasures.map((measure: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-red-500">•</span>
-                      <span>{measure}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Emergency Procedures</h2>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateEmergencyProcedures}
+                disabled={isGeneratingEmergency}
+                className="text-purple-600 border-purple-200 hover:bg-purple-50 bg-transparent"
+              >
+                {isGeneratingEmergency ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    AI Generate
+                  </>
+                )}
+              </Button>
             </div>
-
-            {crisisPlan.emergencyProcedures.restrictedItems?.length > 0 && (
-              <div className="mt-3 bg-white p-3 rounded-lg border border-red-100">
-                <h5 className="font-medium text-red-900 mb-2">⚠️ Items to Secure/Remove</h5>
-                <div className="flex flex-wrap gap-2">
-                  {crisisPlan.emergencyProcedures.restrictedItems.map((item: string, i: number) => (
-                    <span key={i} className="px-2 py-1 bg-red-100 text-red-800 rounded text-sm">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+            <Textarea
+              placeholder="Describe step-by-step emergency procedures, de-escalation strategies, when to call 911, safe places, etc."
+              value={emergencyProcedures}
+              onChange={(e) => setEmergencyProcedures(e.target.value)}
+              rows={8}
+              className="resize-none"
+            />
           </Card>
 
           {/* When to Call 911 */}
@@ -671,18 +694,6 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
         </div>
       </Card>
 
-      {/* Emergency Procedures */}
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Emergency Procedures</h2>
-        <Textarea
-          placeholder="Describe step-by-step emergency procedures, de-escalation strategies, when to call 911, safe places, etc."
-          value={emergencyProcedures}
-          onChange={(e) => setEmergencyProcedures(e.target.value)}
-          rows={8}
-          className="resize-none"
-        />
-      </Card>
-
       {/* Assessment Dates */}
       <Card className="p-6">
         <h2 className="text-xl font-semibold mb-4">Assessment Timeline</h2>
@@ -759,3 +770,5 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
     </div>
   )
 }
+
+export { RiskAssessment }
