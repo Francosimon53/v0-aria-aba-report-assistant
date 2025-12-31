@@ -1,13 +1,12 @@
 "use client"
 
 import { useState } from "react"
-
-import { useSectionData } from "@/hooks/use-section-data"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useSectionData } from "@/hooks/use-section-data"
+import { useToast } from "@/hooks/use-toast"
 import {
   PlusIcon,
   XIcon,
@@ -26,17 +25,15 @@ import {
   ArrowLeftIcon,
   AlertTriangleIcon,
 } from "@/components/icons"
-import { premiumToast } from "@/components/ui/premium-toast"
 
 interface ABCObservation {
   id: string
-  timestamp: Date
+  dateTime: Date
   antecedent: string
   behavior: string
   consequence: string
   function: "attention" | "escape" | "tangible" | "automatic" | ""
-  functionReasoning?: string
-  collapsed: boolean
+  timestamp: Date
 }
 
 interface PatternAnalysis {
@@ -53,7 +50,12 @@ interface PatternAnalysis {
   minimumObservationsMet: boolean
 }
 
-export function ABCObservation() {
+interface ABCObservationProps {
+  onSave: () => void
+}
+
+export function ABCObservation({ onSave }: ABCObservationProps) {
+  const { toast } = useToast()
   const {
     data: observations,
     setData: setObservations,
@@ -61,12 +63,12 @@ export function ABCObservation() {
   } = useSectionData<ABCObservation[]>("abc-observations", [
     {
       id: "1",
-      timestamp: new Date(),
+      dateTime: new Date(),
       antecedent: "",
       behavior: "",
       consequence: "",
       function: "",
-      collapsed: false,
+      timestamp: new Date(),
     },
   ])
 
@@ -86,24 +88,34 @@ export function ABCObservation() {
   const addObservation = () => {
     const newObservation: ABCObservation = {
       id: Date.now().toString(),
-      timestamp: new Date(),
+      dateTime: new Date(),
       antecedent: "",
       behavior: "",
       consequence: "",
       function: "",
-      collapsed: false,
+      timestamp: new Date(),
     }
     setObservations([...observations, newObservation])
-    premiumToast.success("New observation added")
+    toast({
+      title: "Success",
+      description: "New observation added",
+    })
   }
 
   const removeObservation = (id: string) => {
     if (observations.length === 1) {
-      premiumToast.error("Cannot remove the last observation")
+      toast({
+        title: "Error",
+        description: "Cannot remove the last observation",
+        variant: "destructive",
+      })
       return
     }
     setObservations(observations.filter((obs) => obs.id !== id))
-    premiumToast.success("Observation removed")
+    toast({
+      title: "Success",
+      description: "Observation removed",
+    })
   }
 
   const updateObservation = (id: string, field: keyof ABCObservation, value: string | boolean) => {
@@ -116,18 +128,21 @@ export function ABCObservation() {
 
   const handleAnalyzeFunction = async (observationId: string) => {
     const observation = observations.find((obs) => obs.id === observationId)
-
     if (!observation) return
 
     if (!observation.antecedent?.trim() || !observation.behavior?.trim() || !observation.consequence?.trim()) {
-      premiumToast.error("Please fill in Antecedent, Behavior, and Consequence first")
+      toast({
+        title: "Error",
+        description: "Please fill in Antecedent, Behavior, and Consequence first",
+        variant: "destructive",
+      })
       return
     }
 
     setIsAnalyzingFunction(observationId)
 
     try {
-      const response = await fetch("/api/analyze-behavior-function", {
+      const response = await fetch("/api/analyze-abc-function", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -137,30 +152,34 @@ export function ABCObservation() {
         }),
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        throw new Error(data.error || "Analysis failed")
+        throw new Error("Failed to analyze function")
       }
+
+      const data = await response.json()
 
       setObservations(
         observations.map((obs) =>
           obs.id === observationId
             ? {
                 ...obs,
-                function: data.function.toLowerCase() as ABCObservation["function"],
-                functionReasoning: `${data.reasoning} (${data.confidence || "medium"} confidence)`,
+                function: data.function,
               }
             : obs,
         ),
       )
 
-      premiumToast.success(`AI suggests: ${data.function} function`, {
-        description: data.reasoning,
+      toast({
+        title: "Success",
+        description: `AI suggests: ${data.function} function - ${data.reasoning}`,
       })
     } catch (error) {
       console.error("Error:", error)
-      premiumToast.error(error instanceof Error ? error.message : "Could not analyze behavior function")
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Could not analyze behavior function",
+        variant: "destructive",
+      })
     } finally {
       setIsAnalyzingFunction(null)
     }
@@ -178,7 +197,7 @@ export function ABCObservation() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           field,
-          existingData: {
+          context: {
             antecedent: observation.antecedent,
             behavior: observation.behavior,
             consequence: observation.consequence,
@@ -186,20 +205,25 @@ export function ABCObservation() {
         }),
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        throw new Error(data.error || "Generation failed")
+        throw new Error("Failed to generate content")
       }
+
+      const data = await response.json()
 
       setObservations(observations.map((obs) => (obs.id === observationId ? { ...obs, [field]: data.text } : obs)))
 
-      premiumToast.success("Generated!", {
+      toast({
+        title: "Success",
         description: `${field.charAt(0).toUpperCase() + field.slice(1)} has been filled with AI-generated content`,
       })
     } catch (error) {
       console.error("Error:", error)
-      premiumToast.error(error instanceof Error ? error.message : "Could not generate content")
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Could not generate content",
+        variant: "destructive",
+      })
     } finally {
       setGeneratingField(null)
     }
@@ -211,8 +235,10 @@ export function ABCObservation() {
     )
 
     if (validObservations.length < 2) {
-      premiumToast.error("More observations needed", {
+      toast({
+        title: "Error",
         description: "Please add at least 2 observations with data",
+        variant: "destructive",
       })
       return
     }
@@ -226,20 +252,25 @@ export function ABCObservation() {
         body: JSON.stringify({ observations: validObservations }),
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        throw new Error(data.error || "Analysis failed")
+        throw new Error("Failed to analyze patterns")
       }
+
+      const data = await response.json()
 
       setPatternAnalysis(data)
 
-      premiumToast.success("Pattern Analysis Complete", {
-        description: `Primary function: ${data.primaryFunction}`,
+      toast({
+        title: "Success",
+        description: `Pattern Analysis Complete - Primary function: ${data.primaryFunction}`,
       })
     } catch (error) {
       console.error("Error:", error)
-      premiumToast.error(error instanceof Error ? error.message : "Could not analyze patterns")
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Could not analyze patterns",
+        variant: "destructive",
+      })
     } finally {
       setIsAnalyzingPattern(false)
     }
@@ -247,7 +278,8 @@ export function ABCObservation() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    premiumToast.success("Copied!", {
+    toast({
+      title: "Success",
       description: "Summary copied to clipboard",
     })
   }
@@ -271,7 +303,7 @@ export function ABCObservation() {
 
       <div className="space-y-4">
         {observations.map((observation, index) => (
-          <Card
+          <div
             key={observation.id}
             className="overflow-hidden border-2 hover:border-[#0D9488]/30 transition-all duration-300 ease-out"
             style={{
@@ -292,7 +324,7 @@ export function ABCObservation() {
                   <h3 className="text-lg font-semibold text-foreground">Observation {index + 1}</h3>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <ClockIcon className="h-4 w-4" />
-                    {formatTimestamp(observation.timestamp)}
+                    {formatTimestamp(observation.dateTime)}
                   </div>
                 </div>
               </button>
@@ -472,18 +504,11 @@ export function ABCObservation() {
                         <SelectItem value="automatic">Automatic/Sensory - For internal sensory stimulation</SelectItem>
                       </SelectContent>
                     </Select>
-
-                    {observation.functionReasoning && (
-                      <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm mt-2">
-                        <Sparkles className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-purple-800">{observation.functionReasoning}</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
             )}
-          </Card>
+          </div>
         ))}
       </div>
 
@@ -645,7 +670,7 @@ export function ABCObservation() {
         )}
       </div>
 
-      <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
         <div className="p-6">
           <h3 className="font-semibold text-foreground mb-3">ABC Analysis Guidelines</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
@@ -675,7 +700,7 @@ export function ABCObservation() {
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       <style jsx>{`
         @keyframes slideIn {

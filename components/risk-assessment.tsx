@@ -1,5 +1,7 @@
 "use client"
 
+import { Checkbox } from "@/components/ui/checkbox"
+
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,7 +27,6 @@ import {
   CheckCircle2,
   Copy,
 } from "@/components/icons"
-import { premiumToast } from "@/components/ui/premium-toast"
 import { useToast } from "@/hooks/use-toast"
 
 interface RiskFactor {
@@ -42,9 +43,20 @@ interface CrisisContact {
   relationship: string
 }
 
+interface ClientData {
+  name: string
+  age: number
+  gender: string
+}
+
+interface RiskAssessmentProps {
+  clientData: ClientData
+  onSave: (plan: any) => void
+}
+
 type RiskLevel = "low" | "medium" | "high"
 
-export function RiskAssessment() {
+export function RiskAssessment({ clientData, onSave }: RiskAssessmentProps) {
   const [riskFactors, setRiskFactors] = useState<RiskFactor[]>([
     { id: "self-injury", label: "Self-Injurious behavior", checked: false, severity: "high" },
     { id: "aggression", label: "Aggressive Behavior", checked: false, severity: "high" },
@@ -104,13 +116,19 @@ export function RiskAssessment() {
     setCrisisContacts(crisisContacts.map((c) => (c.id === id ? { ...c, [field]: value } : c)))
   }
 
-  const exportToPDF = () => {
-    premiumToast.success("Crisis plan exported to PDF")
+  const exportCrisisPlan = () => {
+    toast({
+      title: "Success",
+      description: "Crisis plan exported to PDF",
+    })
   }
 
   const printCrisisPlan = () => {
     window.print()
-    premiumToast.success("Crisis plan sent to printer")
+    toast({
+      title: "Success",
+      description: "Crisis plan sent to printer",
+    })
   }
 
   const handleGenerateCrisisPlan = async () => {
@@ -283,7 +301,7 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
         <div>
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             <AlertTriangleIcon className="h-8 w-8 text-red-500" />
-            Risk Assessment & Crisis Plan
+            Risk Assessment & Crisis Plan for {clientData.name}
           </h1>
           <p className="text-muted-foreground">Comprehensive safety evaluation and emergency planning</p>
         </div>
@@ -292,7 +310,7 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
             <PrinterIcon className="h-4 w-4 mr-2" />
             Print
           </Button>
-          <Button onClick={exportToPDF}>
+          <Button onClick={exportCrisisPlan}>
             <DownloadIcon className="h-4 w-4 mr-2" />
             Export PDF
           </Button>
@@ -348,10 +366,9 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
                   : "border-gray-200"
               }`}
             >
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={factor.checked}
-                onChange={() => handleToggleRisk(factor.id)}
+                onCheckedChange={() => handleToggleRisk(factor.id)}
                 className="h-5 w-5 rounded border-gray-300 text-[#0D9488] focus:ring-[#0D9488]"
               />
               <span className={`flex-1 ${factor.checked ? "font-medium" : ""}`}>{factor.label}</span>
@@ -361,7 +378,7 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
 
           {/* Other Risk Factor */}
           <div className="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-200">
-            <input type="checkbox" className="h-5 w-5 rounded border-gray-300 text-[#0D9488] focus:ring-[#0D9488]" />
+            <Checkbox className="h-5 w-5 rounded border-gray-300 text-[#0D9488] focus:ring-[#0D9488]" />
             <Input
               placeholder="Other risk factor (specify)..."
               value={otherRisk}

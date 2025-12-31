@@ -8,7 +8,7 @@ import { GoalBankBrowser } from "./goal-bank-browser"
 import { ReportPreviewTool } from "./report-preview-tool"
 import { CPTAuthorizationRequest } from "./cpt-authorization-request"
 import type { ClientData, AssessmentData, SelectedGoal } from "@/lib/types"
-import { premiumToast } from "@/components/ui/premium-toast"
+import { useToast } from "@/hooks/use-toast"
 import { ABCObservation } from "./abc-observation"
 import { InterventionsLibrary } from "./interventions-library"
 import { TeachingProtocolBuilder } from "./teaching-protocol-builder"
@@ -52,6 +52,7 @@ export function ModernDashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [completedSteps, setCompletedSteps] = useState<ActiveView[]>([])
   const [currentField, setCurrentField] = useState<string | undefined>()
+  const { toast } = useToast()
 
   useEffect(() => {
     const saved = localStorage.getItem("aria_completed_steps")
@@ -71,7 +72,10 @@ export function ModernDashboard() {
   const markStepComplete = (step: ActiveView) => {
     if (!completedSteps.includes(step)) {
       setCompletedSteps((prev) => [...prev, step])
-      premiumToast.success("Step completed", `${step} has been saved`)
+      toast({
+        title: "Success",
+        description: `${step} has been saved`,
+      })
     }
   }
 

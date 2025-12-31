@@ -10,7 +10,7 @@ import type { ClientData, AssessmentData, SelectedGoal, ReassessmentData, Agency
 import { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useAutoSave } from "@/hooks/use-auto-save"
-import { premiumToast } from "@/components/ui/premium-toast"
+import { useToast } from "@/hooks/use-toast"
 import { TimeSavedTracker } from "./time-saved-tracker"
 import { ABCObservation } from "./abc-observation"
 import { InterventionsLibrary } from "./interventions-library"
@@ -73,6 +73,7 @@ export function Dashboard() {
   const [completedSteps, setCompletedSteps] = useState<ActiveView[]>([])
   const [activeField, setActiveField] = useState<string | undefined>()
   const [aiMessages, setAiMessages] = useState<{ role: string; content: string }[]>([])
+  const { toast } = useToast()
 
   useEffect(() => {
     const saved = localStorage.getItem("aria_completed_steps")
@@ -98,7 +99,11 @@ export function Dashboard() {
   const markStepComplete = (step: ActiveView) => {
     if (!completedSteps.includes(step)) {
       setCompletedSteps((prev) => [...prev, step])
-      premiumToast.success("Step completed", `${step} has been saved`)
+      toast({
+        title: "Success",
+        description: `${step} has been saved`,
+        variant: "default",
+      })
     }
   }
 
@@ -315,7 +320,7 @@ export function Dashboard() {
       setSaveStatus("saved")
       setLastSaved(new Date())
 
-      premiumToast({
+      toast({
         title: "Success",
         description: "All data saved successfully",
         variant: "default",
@@ -326,7 +331,7 @@ export function Dashboard() {
       console.error("[v0] Save error:", error)
       setSaveStatus("error")
 
-      premiumToast({
+      toast({
         title: "Error",
         description: "Failed to save data. Please try again.",
         variant: "destructive",
