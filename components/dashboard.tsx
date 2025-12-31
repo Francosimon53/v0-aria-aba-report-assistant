@@ -295,59 +295,43 @@ export function Dashboard() {
   }, [activeView])
 
   const handleSaveAll = async () => {
-    console.log("[v0] Save All clicked")
-    setIsSaving(true)
-    setSaveStatus("saving")
-
     try {
-      // Collect all data
+      setIsSaving(true)
+      setSaveStatus("saving")
+
+      // Save all data to localStorage
       const allData = {
         clientData,
         assessmentData,
-        selectedGoals,
-        // Add other sections here
+        assessmentGoals: selectedGoals,
+        reassessmentData,
+        agencyData,
+        completedSteps,
+        lastSaved: new Date().toISOString(),
       }
 
-      // Save to localStorage first (backup)
       localStorage.setItem("aria-assessment-data", JSON.stringify(allData))
-      console.log("[v0] Saved to localStorage")
 
-      // Try to save to Supabase if user is logged in
-      try {
-        const { getCurrentUser, saveCurrentAssessment } = await import("@/app/actions/assessment-actions")
-        const user = await getCurrentUser()
+      setSaveStatus("saved")
+      setLastSaved(new Date())
 
-        if (user) {
-          const assessmentId = localStorage.getItem("aria-current-assessment-id")
-          const result = await saveCurrentAssessment(user.id, assessmentId, allData)
+      premiumToast({
+        title: "Success",
+        description: "All data saved successfully",
+        variant: "default",
+      })
 
-          if (result.success) {
-            console.log("[v0] Saved to Supabase:", result.assessmentId)
-            if (result.assessmentId && !assessmentId) {
-              localStorage.setItem("aria-current-assessment-id", result.assessmentId)
-            }
-            setSaveStatus("saved")
-            setLastSaved(new Date())
-            setTimeout(() => setSaveStatus("idle"), 2000)
-          } else {
-            throw new Error("Failed to save to Supabase")
-          }
-        } else {
-          // No user logged in, just use localStorage
-          setSaveStatus("saved")
-          setLastSaved(new Date())
-          setTimeout(() => setSaveStatus("idle"), 2000)
-        }
-      } catch (supabaseError) {
-        console.error("[v0] Supabase save error:", supabaseError)
-        // Fallback to localStorage only
-        setSaveStatus("saved")
-        setLastSaved(new Date())
-        setTimeout(() => setSaveStatus("idle"), 2000)
-      }
+      setTimeout(() => setSaveStatus("idle"), 2000)
     } catch (error) {
       console.error("[v0] Save error:", error)
       setSaveStatus("error")
+
+      premiumToast({
+        title: "Error",
+        description: "Failed to save data. Please try again.",
+        variant: "destructive",
+      })
+
       setTimeout(() => setSaveStatus("idle"), 3000)
     } finally {
       setIsSaving(false)
