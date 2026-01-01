@@ -32,6 +32,8 @@ export function MessageCircleIcon({ className }: { className?: string }) {
   )
 }
 
+export const MessageCircle = MessageCircleIcon
+
 export function UserIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -261,6 +263,8 @@ export function SendIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+
+export const Send = SendIcon
 
 export function BotIcon({ className }: { className?: string }) {
   return (
@@ -575,6 +579,8 @@ export function HelpCircleIcon({ className }: { className?: string }) {
   )
 }
 
+export const HelpCircle = HelpCircleIcon
+
 export function AlertTriangleIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -797,7 +803,7 @@ export function ArchiveIcon({ className }: { className?: string }) {
       className={className}
     >
       <rect width="20" height="5" x="2" y="3" rx="1" />
-      <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+      <path d="M4 8v11a2 2 0 0 0 2 2H7c4 0 4-3 4-3h4c0 3 0 3-4 3H7c-4 0-4-3-4-3V8" />
       <path d="M10 12h4" />
     </svg>
   )
@@ -1328,7 +1334,7 @@ export function PenToolIcon({ className }: { className?: string }) {
       className={className}
     >
       <path d="m12 19 7-7 3 3-7 7-3-3z" />
-      <path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+      <path d="m21 13-1.5-7.5L3 13" />
       <path d="m2 2 7.586 7.586" />
       <circle cx="11" cy="11" r="2" />
     </svg>
@@ -1495,7 +1501,7 @@ export function SettingsIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43-.25a2 2 0 0 1 1-1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0-.73 2.73l-.15.1a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 .73-2.73l.22-.39a2 2 0 0 0 .73-2.73l.15.08a2 2 0 0 1 2 0l.43-.25a2 2 0 0 1 1-1.73V4a2 2 0 0 0 2-2z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
   )
