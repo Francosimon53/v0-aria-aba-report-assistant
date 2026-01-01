@@ -12,6 +12,7 @@ import { DailyScheduleTable } from "@/components/daily-schedule-table"
 import { CheckCircle2Icon, DownloadIcon, FileTextIcon, SaveIcon, ArrowRightIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 
 interface BackgroundHistoryData {
   reasonForReferral: string
@@ -166,9 +167,12 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Background & History</h1>
-          <p className="text-muted-foreground mt-1">Comprehensive developmental and clinical history</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Background & History</h1>
+            <p className="text-muted-foreground mt-1">Comprehensive developmental and clinical history</p>
+          </div>
+          <AssessmentTypeBadge />
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={handleImport} className="gap-2 bg-transparent">

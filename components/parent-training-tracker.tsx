@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 import {
   CheckIcon,
   CheckCircle2Icon,
@@ -432,16 +433,19 @@ export function ParentTrainingTracker() {
       <Card className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#0D9488] to-[#0F766E] flex items-center justify-center">
-                <UsersIcon className="h-6 w-6 text-white" />
-              </div>
-              Parent Training Curriculum
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Track parent competency and fidelity of implementation
-            </p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#0D9488] to-[#0F766E] flex items-center justify-center">
+                  <UsersIcon className="h-6 w-6 text-white" />
+                </div>
+                Parent Training Curriculum
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
+                Track parent competency and fidelity of implementation
+              </p>
+            </div>
+            <AssessmentTypeBadge />
           </div>
           {/* Save All button with visual feedback */}
           <div className="flex gap-3">

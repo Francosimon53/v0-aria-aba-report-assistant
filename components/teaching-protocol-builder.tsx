@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 import {
   PlusIcon,
   XIcon,
@@ -500,6 +501,7 @@ export function TeachingProtocolBuilder() {
                 Create detailed, evidence-based teaching protocols for ABA programs
               </p>
             </div>
+            <AssessmentTypeBadge />
           </div>
         </div>
 

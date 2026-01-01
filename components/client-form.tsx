@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast"
 import { ImportDataModal } from "./import-data-modal" // Import AI Import Modal
 import { DailyScheduleTable } from "./daily-schedule-table"
 import { cn } from "@/lib/utils" // Import cn for conditional styling
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 
 interface ExtendedClientData extends ClientData {
   assessmentType?: "initial" | "reassessment"
@@ -266,6 +267,8 @@ export function ClientForm({ clientData, onSave }: ClientFormProps) {
               <h2 className="font-semibold text-foreground">Client Information</h2>
               <p className="text-sm text-muted-foreground">Enter client demographics and insurance details</p>
             </div>
+            {/* Assessment Type Badge */}
+            <AssessmentTypeBadge assessmentType={formData.assessmentType} />
           </div>
           <div className="flex gap-2">
             {/* AI Import button */}

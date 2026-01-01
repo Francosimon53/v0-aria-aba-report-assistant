@@ -2930,7 +2930,22 @@ Ensure notes reflect data-driven decision-making and client-centered care. Use c
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Report Header */}
           <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-8 text-center">
-            <h1 className="text-2xl font-bold mb-2">ABA Assessment Report</h1>
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <h1 className="text-2xl font-bold">ABA Assessment Report</h1>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium bg-white/10 text-white border-white/20">
+                {assessmentData.clientInfo?.assessmentType === "initial" ? (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    <span>Initial Assessment</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    <span>Reassessment</span>
+                  </>
+                )}
+              </div>
+            </div>
             <p className="text-gray-300">
               {assessmentData.clientInfo?.firstName} {assessmentData.clientInfo?.lastName}
             </p>

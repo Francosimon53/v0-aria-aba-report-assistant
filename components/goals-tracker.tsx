@@ -24,6 +24,7 @@ import {
   Loader2,
 } from "./icons"
 import { cn } from "@/lib/utils"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 
 type GoalStatus = "not-started" | "in-progress" | "mastery" | "discontinued"
 type GoalType = "behavior-reduction" | "skill-acquisition" | "parent-training"
@@ -315,9 +316,12 @@ export function GoalsTracker() {
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Goals & Objectives Tracker</h1>
-          <p className="text-muted-foreground mt-2">Monitor progress across all treatment goals and objectives</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Goals & Objectives Tracker</h1>
+            <p className="text-muted-foreground mt-2">Monitor progress across all treatment goals and objectives</p>
+          </div>
+          <AssessmentTypeBadge />
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="gap-2 bg-transparent" onClick={handleExport}>

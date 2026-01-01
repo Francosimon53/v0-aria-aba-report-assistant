@@ -20,6 +20,7 @@ import {
   X,
   PlusIcon,
 } from "@/components/icons"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 
 interface Intervention {
   id: string
@@ -684,12 +685,15 @@ export function InterventionsLibrary() {
       <div className="bg-white border-b border-gray-200 p-6">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Intervention Library</h1>
-              <p className="text-sm text-gray-600">
-                Evidence-based interventions organized by behavioral function. Select interventions to add to your
-                client's treatment plan.
-              </p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Intervention Library</h1>
+                <p className="text-sm text-gray-600">
+                  Evidence-based interventions organized by behavioral function. Select interventions to add to your
+                  client's treatment plan.
+                </p>
+              </div>
+              <AssessmentTypeBadge />
             </div>
             <Button
               onClick={handleAISuggest}

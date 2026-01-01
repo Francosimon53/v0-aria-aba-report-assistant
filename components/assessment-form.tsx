@@ -32,6 +32,7 @@ import { behaviorLibrary, behaviorCategories } from "@/lib/data/behavior-library
 import { useToast } from "@/hooks/use-toast"
 import { ImportDataModal } from "./import-data-modal"
 import { AITextarea } from "@/components/ui/ai-textarea"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 
 interface AssessmentFormProps {
   clientId?: string
@@ -662,6 +663,7 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
             <h2 className="font-semibold text-foreground">Assessment Data</h2>
             <p className="text-sm text-muted-foreground">Enter assessment results and clinical findings</p>
           </div>
+          <AssessmentTypeBadge />
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="gap-2">

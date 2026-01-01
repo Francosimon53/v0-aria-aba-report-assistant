@@ -13,6 +13,7 @@ import { SparklesIcon, CheckIcon, AlertCircleIcon, FileTextIcon, CopyIcon, FileD
 import { Loader2, FileDown } from "lucide-react"
 import type { ClientData, AssessmentData } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 
 interface MedicalNecessityGeneratorProps {
   clientData?: ClientData | null
@@ -378,6 +379,7 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
                 AI-powered insurance justification for ABA services
               </p>
             </div>
+            <AssessmentTypeBadge />
           </div>
         </div>
 

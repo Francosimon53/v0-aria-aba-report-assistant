@@ -10,6 +10,7 @@ import { PlusIcon, TrashIcon, DownloadIcon, PrinterIcon, SparklesIcon, Loader2Ic
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 
 type CPTCode = "97153" | "97155" | "97155HN" | "97156" | "97156HN"
 type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"
@@ -196,9 +197,12 @@ export function ServiceSchedule() {
     <div className="container mx-auto p-6 max-w-7xl space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Weekly Service Schedule</h1>
-          <p className="text-muted-foreground">Plan and track therapy sessions with CPT code tracking</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Weekly Service Schedule</h1>
+            <p className="text-muted-foreground">Plan and track therapy sessions with CPT code tracking</p>
+          </div>
+          <AssessmentTypeBadge />
         </div>
         <div className="flex gap-2">
           {/* AI Suggest Schedule button */}
