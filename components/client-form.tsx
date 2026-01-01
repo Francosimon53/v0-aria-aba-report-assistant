@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Sparkles } from "@/components/icons" // Import Sparkles icon for AI Import button
 import {
   UserIcon,
   ShieldIcon,
   UsersIcon,
-  ArrowRightIcon,
   SaveIcon,
   FileTextIcon,
   CheckCircle2Icon,
@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast"
 import { ImportDialog } from "./import-dialog"
 import { parseClientDataFile } from "@/lib/import-parsers"
 import { DailyScheduleTable } from "./daily-schedule-table"
+import { ImportDataModal } from "./import-data-modal" // Import AI Import Modal
 
 interface ExtendedClientData extends ClientData {
   assessmentType?: "initial" | "reassessment"
@@ -50,12 +51,14 @@ interface ExtendedClientData extends ClientData {
   bcbaName?: string
   bcbaLicense?: string
   bcabaName?: string
+  age?: number
+  gender?: string
+  address?: string
 }
 
 interface ClientFormProps {
   clientData: ClientData | null
   onSave: (data: ClientData) => void
-  onNext: () => void
 }
 
 const diagnosisToICD10: Record<string, string> = {
@@ -70,7 +73,7 @@ const diagnosisToICD10: Record<string, string> = {
   "Global Developmental Delay": "F88",
 }
 
-export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
+export function ClientForm({ clientData, onSave }: ClientFormProps) {
   const { toast } = useToast()
 
   const getDefaultFormData = (): ExtendedClientData => ({
@@ -113,6 +116,9 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
     bcbaName: "",
     bcbaLicense: "",
     bcabaName: "",
+    age: undefined,
+    gender: undefined,
+    address: undefined,
   })
 
   const [formData, setFormData] = useState<ExtendedClientData>(
@@ -141,6 +147,7 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
   }, [clientData])
 
   const [secondaryDiagnosisInput, setSecondaryDiagnosisInput] = useState("")
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false) // State for AI-powered import modal
 
   const handleChange = (field: keyof ExtendedClientData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -192,11 +199,6 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
     toast({ title: "Success", description: "Client information saved" })
   }
 
-  const handleSaveAndNext = () => {
-    handleSave()
-    onNext()
-  }
-
   const handleImportData = (importedData: Partial<ClientData>) => {
     const newFormData = {
       ...formData,
@@ -209,6 +211,40 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
     toast({
       title: "Data Imported",
       description: "Client information has been imported and saved successfully",
+    })
+  }
+
+  const handleAIDataExtracted = (data: any) => {
+    const updates: Partial<ExtendedClientData> = {}
+
+    // Map AI-extracted fields to form fields
+    if (data.firstName) updates.firstName = data.firstName
+    if (data.lastName) updates.lastName = data.lastName
+    if (data.dateOfBirth) updates.dateOfBirth = data.dateOfBirth
+    if (data.age) updates.age = data.age
+    if (data.gender) updates.gender = data.gender
+    if (data.diagnosis) updates.diagnosis = data.diagnosis
+    if (data.diagnosisCode) updates.diagnosisCode = data.diagnosisCode
+    if (data.insuranceProvider) updates.insuranceProvider = data.insuranceProvider
+    if (data.insuranceId) updates.insuranceId = data.insuranceId
+    if (data.guardianName) updates.guardianName = data.guardianName
+    if (data.guardianPhone) updates.guardianPhone = data.guardianPhone
+    if (data.guardianEmail) updates.guardianEmail = data.guardianEmail
+    if (data.address) updates.address = data.address
+    if (data.referralSource) updates.referralSource = data.referralSource
+    if (data.referralDate) updates.referralDate = data.referralDate
+
+    const newFormData = {
+      ...formData,
+      ...updates,
+    }
+
+    setFormData(newFormData)
+    onSave(newFormData as ClientData)
+
+    toast({
+      title: "Import Complete!",
+      description: "Client information has been populated from the document",
     })
   }
 
@@ -233,6 +269,15 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
           </div>
         </div>
         <div className="flex gap-2">
+          {/* AI Import button */}
+          <Button
+            variant="outline"
+            onClick={() => setIsImportModalOpen(true)}
+            className="border-teal-500 text-teal-600 hover:bg-teal-50"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            AI Import
+          </Button>
           <ImportDialog
             title="Import Client Data"
             description="Import client information from previous assessments, insurance forms, or referral documents. Supported formats: JSON, CSV, PDF, TXT"
@@ -243,10 +288,6 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
           <Button variant="outline" onClick={handleSave}>
             <SaveIcon className="h-4 w-4 mr-2" />
             Save
-          </Button>
-          <Button onClick={handleSaveAndNext}>
-            Continue
-            <ArrowRightIcon className="h-4 w-4 ml-2" />
           </Button>
         </div>
       </div>
@@ -404,6 +445,25 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
                       type="date"
                       value={formData.dateOfBirth}
                       onChange={(e) => handleChange("dateOfBirth", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Age</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      value={formData.age}
+                      onChange={(e) => handleChange("age", Number.parseInt(e.target.value))}
+                      placeholder="Enter age"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Gender</Label>
+                    <Input
+                      id="gender"
+                      value={formData.gender}
+                      onChange={(e) => handleChange("gender", e.target.value)}
+                      placeholder="Enter gender"
                     />
                   </div>
                 </CardContent>
@@ -703,101 +763,14 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
                       placeholder="guardian@email.com"
                     />
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Assessment Details</CardTitle>
-                    {isSectionComplete(["evaluationStartDate", "bcbaName", "bcbaLicense"]) && (
-                      <CheckCircle2Icon className="h-5 w-5 text-green-600" />
-                    )}
-                  </div>
-                  <CardDescription>Information about the assessment session and responsible staff</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="evaluationStartDate">
-                        Date(s) of Evaluation - Start <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="evaluationStartDate"
-                        type="date"
-                        value={formData.evaluationStartDate}
-                        onChange={(e) => handleChange("evaluationStartDate", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="evaluationEndDate">End Date (if multi-day)</Label>
-                      <Input
-                        id="evaluationEndDate"
-                        type="date"
-                        value={formData.evaluationEndDate}
-                        onChange={(e) => handleChange("evaluationEndDate", e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3">Responsible Supervisor(s)</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="bcbaName">
-                          BCBA Name <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="bcbaName"
-                          value={formData.bcbaName}
-                          onChange={(e) => handleChange("bcbaName", e.target.value)}
-                          placeholder="Enter BCBA name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bcbaLicense">
-                          BCBA License # <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="bcbaLicense"
-                          value={formData.bcbaLicense}
-                          onChange={(e) => handleChange("bcbaLicense", e.target.value)}
-                          placeholder="Enter license number"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bcabaName">BCaBA Name (if applicable)</Label>
-                        <Input
-                          id="bcabaName"
-                          value={formData.bcabaName}
-                          onChange={(e) => handleChange("bcabaName", e.target.value)}
-                          placeholder="Enter BCaBA name"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="referralDate">Referral Date</Label>
-                        <Input
-                          id="referralDate"
-                          type="date"
-                          value={formData.referralDate}
-                          onChange={(e) => handleChange("referralDate", e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="referralSource">Referral Source</Label>
-                        <Input
-                          id="referralSource"
-                          value={formData.referralSource}
-                          onChange={(e) => handleChange("referralSource", e.target.value)}
-                          placeholder="e.g., Pediatrician, School, Self-referred"
-                        />
-                      </div>
-                    </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => handleChange("address", e.target.value)}
+                      placeholder="Enter address"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -816,6 +789,14 @@ export function ClientForm({ clientData, onSave, onNext }: ClientFormProps) {
           </div>
         </ScrollArea>
       </div>
+
+      {/* AI Import Modal */}
+      <ImportDataModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        targetSection="clientInfo"
+        onDataExtracted={handleAIDataExtracted}
+      />
     </div>
   )
 }
