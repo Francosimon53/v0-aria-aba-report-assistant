@@ -11,7 +11,6 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CheckCircle2Icon,
-  RepeatIcon,
   DatabaseIcon,
   HelpCircleIcon,
   ClockIcon,
@@ -29,12 +28,6 @@ type ActiveView =
   | "chat"
   | "client"
   | "assessment"
-  | "reassessment"
-  | "goals"
-  | "report"
-  | "integration"
-  | "support"
-  | "timesaved"
   | "abc" // Added ABC observation view type
   | "interventions" // Added interventions view type
   | "protocols" // Added protocols view type
@@ -94,13 +87,6 @@ export function Sidebar({
       icon: ClipboardListIcon,
       description: "Enter assessment data",
       completed: !!assessmentData,
-    },
-    {
-      id: "reassessment" as const,
-      label: "Reassessment",
-      icon: RepeatIcon,
-      description: "Track progress & update",
-      completed: false,
     },
     {
       id: "abc" as const,
