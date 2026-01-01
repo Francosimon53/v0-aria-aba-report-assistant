@@ -86,7 +86,7 @@ export function Sidebar({
       completed: !!clientData,
     },
     {
-      id: "background" as const, // Added Background & History nav item
+      id: "background" as const,
       label: "Background & History",
       icon: FileIcon,
       description: "Developmental & clinical history",
@@ -106,7 +106,7 @@ export function Sidebar({
       completed: false,
     },
     {
-      id: "progressdashboard" as const, // Added Progress Dashboard nav item
+      id: "progressdashboard" as const,
       label: "Progress Dashboard",
       icon: BarChart3Icon,
       description: "Visual outcomes & comparison",
@@ -167,28 +167,16 @@ export function Sidebar({
       description: "Weekly CPT code planning",
     },
     {
-      id: "cptauth" as const, // Added CPT Authorization Request nav item
+      id: "cptauth" as const,
       label: "CPT Auth Request",
       icon: FileTextIcon,
       description: "Service request & justification",
     },
     {
-      id: "consent" as const, // Added consent form navigation item
+      id: "consent" as const,
       label: "Consent Forms",
       icon: EditIcon,
       description: "Digital signatures & legal docs",
-    },
-    {
-      id: "report" as const,
-      label: "Generate Report",
-      icon: FileTextIcon,
-      description: "Generate & export",
-    },
-    {
-      id: "progressreport" as const, // Added Progress Report menu item after Generate Report
-      label: "Progress Report",
-      icon: TrendingUpIcon,
-      description: "Re-authorization updates",
     },
     {
       id: "timesaved" as const,
@@ -203,10 +191,22 @@ export function Sidebar({
       description: "HIPAA, regulations & FAQs",
     },
     {
-      id: "medicalnecessity" as const, // Added medical necessity nav item
+      id: "medicalnecessity" as const,
       label: "Medical Necessity",
       icon: FileTextIcon,
       description: "AI-powered justification writer",
+    },
+    {
+      id: "report" as const,
+      label: "Generate Report",
+      icon: FileTextIcon,
+      description: "Generate & export",
+    },
+    {
+      id: "progressreport" as const,
+      label: "Progress Report",
+      icon: TrendingUpIcon,
+      description: "Re-authorization updates",
     },
   ]
 
