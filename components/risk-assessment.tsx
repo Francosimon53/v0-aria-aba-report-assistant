@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   Copy,
+  ChevronRightIcon,
 } from "@/components/icons"
 import { useToast } from "@/hooks/use-toast"
 
@@ -767,6 +768,13 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
           </div>
         </Card>
       )}
+
+      <div className="flex justify-end gap-3 mt-6">
+        <Button onClick={() => onSave({})} size="lg" className="gap-2 bg-[#0D9488] hover:bg-[#0F766E]">
+          Save & Continue
+          <ChevronRightIcon className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   )
 }

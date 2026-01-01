@@ -34,6 +34,7 @@ interface ABCObservation {
   consequence: string
   function: "attention" | "escape" | "tangible" | "automatic" | ""
   timestamp: Date
+  collapsed?: boolean
 }
 
 interface PatternAnalysis {
@@ -668,6 +669,13 @@ export function ABCObservation({ onSave }: ABCObservationProps) {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="flex justify-end gap-3 pt-6 border-t">
+        <Button onClick={onSave} size="lg" className="gap-2 bg-[#0D9488] hover:bg-[#0F766E]">
+          Save & Continue
+          <ArrowRightIcon className="h-4 w-4" />
+        </Button>
       </div>
 
       <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">

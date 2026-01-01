@@ -14,7 +14,6 @@ import {
   RepeatIcon,
   DatabaseIcon,
   HelpCircleIcon,
-  HomeIcon,
   ClockIcon,
   AlertTriangleIcon,
   TrendingUpIcon,
@@ -22,7 +21,8 @@ import {
   CalendarIcon,
   EditIcon,
   FileIcon,
-} from "@/components/icons"
+  LayoutDashboard,
+} from "lucide-react"
 import type { ClientData, AssessmentData } from "@/lib/types"
 
 type ActiveView =
@@ -71,7 +71,7 @@ export function Sidebar({
     {
       id: "dashboard" as const,
       label: "Dashboard",
-      icon: HomeIcon,
+      icon: LayoutDashboard, // Changed from HomeIcon to LayoutDashboard
       description: "Overview & quick actions",
       completed: false,
     },

@@ -28,9 +28,10 @@ interface DataIntegrationProps {
   clientData: ClientData | null
   onDataImport: (data: AgencyData) => void
   onSkip?: () => void // Added optional onSkip prop
+  onSave?: () => void // Added onSave prop to save data and navigate to next step
 }
 
-export function DataIntegration({ clientData, onDataImport, onSkip }: DataIntegrationProps) {
+export function DataIntegration({ clientData, onDataImport, onSkip, onSave }: DataIntegrationProps) {
   const [activeTab, setActiveTab] = useState("import")
   const [integrations, setIntegrations] = useState<APIIntegration[]>([
     {
@@ -410,6 +411,17 @@ export function DataIntegration({ clientData, onDataImport, onSkip }: DataIntegr
           </div>
         </ScrollArea>
       </div>
+
+      {onSave && (
+        <div className="shrink-0 p-6 border-t border-border bg-background">
+          <div className="flex justify-end gap-3">
+            <Button onClick={onSave} className="gap-2 bg-[#0D9488] hover:bg-[#0F766E]">
+              Save & Continue
+              <ChevronRightIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

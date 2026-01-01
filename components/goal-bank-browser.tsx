@@ -32,6 +32,7 @@ interface GoalBankBrowserProps {
   onGoalSelect: (goal: SelectedGoal) => void
   onGoalRemove: (goalId: string) => void
   selectedGoals?: SelectedGoal[]
+  onSave?: () => void
 }
 
 interface BaselineData {
@@ -61,7 +62,7 @@ interface BaselineData {
   notes?: string
 }
 
-export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = [] }: GoalBankBrowserProps) {
+export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = [], onSave }: GoalBankBrowserProps) {
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedDomain, setSelectedDomain] = useState<string>("all")
@@ -507,6 +508,23 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
           </div>
         </ScrollArea>
       </div>
+
+      {/* Footer with Save & Continue button */}
+      {onSave && (
+        <div className="shrink-0 bg-white border-t border-gray-200 p-6">
+          <div className="max-w-5xl mx-auto flex justify-between items-center">
+            <p className="text-sm text-muted-foreground">
+              {(selectedGoals?.length ?? 0) > 0
+                ? `${selectedGoals?.length} goal${(selectedGoals?.length ?? 0) !== 1 ? "s" : ""} selected`
+                : "No goals selected yet"}
+            </p>
+            <Button onClick={onSave} size="lg" className="gap-2 bg-[#0D9488] hover:bg-[#0F766E]">
+              Save & Continue
+              <ChevronRightIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Add Goal Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
