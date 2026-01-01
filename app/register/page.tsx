@@ -4,6 +4,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -121,6 +122,7 @@ function UserIcon({ className }: { className?: string }) {
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -136,8 +138,17 @@ export default function RegisterPage() {
     e.preventDefault()
     setError("")
 
+    console.log("[v0] Attempting registration with:", { email, fullName })
+    console.log("[v0] Supabase URL:", process.env.NEXT_PUBLIC_ARIA_SUPABASE_URL)
+
+    // Validate inputs
     if (password !== confirmPassword) {
       setError("Passwords do not match")
+      return
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters")
       return
     }
 
@@ -150,7 +161,7 @@ export default function RegisterPage() {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -162,15 +173,35 @@ export default function RegisterPage() {
         },
       })
 
-      if (error) {
-        setError(error.message)
+      if (signUpError) {
+        // Handle specific Supabase errors
+        console.error("[v0] Supabase auth error:", signUpError)
+
+        if (signUpError.message.includes("already registered")) {
+          setError("This email is already registered. Please sign in instead.")
+        } else if (signUpError.message.includes("valid email")) {
+          setError("Please enter a valid email address.")
+        } else if (signUpError.message.includes("password")) {
+          setError("Password is too weak. Use at least 8 characters with numbers and symbols.")
+        } else {
+          setError(signUpError.message)
+        }
         setIsLoading(false)
         return
       }
 
-      router.push("/register/success")
-    } catch (err) {
-      setError("An error occurred. Please try again.")
+      if (data.user) {
+        console.log("[v0] Registration successful:", data.user.id)
+        toast({
+          title: "Account created!",
+          description: "Please check your email to verify your account.",
+        })
+        router.push("/login?message=Check your email to verify your account")
+      }
+    } catch (err: any) {
+      console.error("[v0] Registration error:", err)
+      setError(err.message || "An unexpected error occurred. Please try again.")
+    } finally {
       setIsLoading(false)
     }
   }

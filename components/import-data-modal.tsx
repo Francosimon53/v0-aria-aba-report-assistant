@@ -30,6 +30,7 @@ export function ImportDataModal({ isOpen, onClose, targetSection, onDataExtracte
   const [extractionStatus, setExtractionStatus] = useState<"idle" | "reading" | "extracting" | "success" | "error">(
     "idle",
   )
+  const [errorMessage, setErrorMessage] = useState<string>("")
   const { toast } = useToast()
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,39 +40,58 @@ export function ImportDataModal({ isOpen, onClose, targetSection, onDataExtracte
     setFile(selectedFile)
     setExtractionStatus("reading")
     setExtractedData(null)
+    setErrorMessage("")
 
     try {
-      let content = ""
+      const formData = new FormData()
+      formData.append("file", selectedFile)
 
-      if (selectedFile.type === "application/pdf") {
-        // Send to PDF extraction API
-        const formData = new FormData()
-        formData.append("file", selectedFile)
+      const response = await fetch("/api/extract-pdf-text", {
+        method: "POST",
+        body: formData,
+      })
 
-        const response = await fetch("/api/extract-pdf-text", {
-          method: "POST",
-          body: formData,
-        })
+      const data = await response.json()
 
-        const data = await response.json()
-        content = data.text || ""
-      } else {
-        // Read text files directly
-        content = await selectedFile.text()
+      if (!response.ok || data.error) {
+        throw new Error(data.error || data.suggestion || "Failed to read file")
       }
 
-      setFileContent(content)
+      if (!data.text || data.text.trim().length < 50) {
+        throw new Error("File appears to be empty or contains no readable text")
+      }
+
+      setFileContent(data.text)
+      console.log("[v0] Extracted text length:", data.text.length)
 
       // Auto-extract with AI
-      await extractWithAI(content, selectedFile.type)
-    } catch (error) {
-      console.error("File read error:", error)
+      await extractWithAI(data.text, data.type || selectedFile.type)
+    } catch (error: any) {
+      console.error("[v0] File read error:", error)
       setExtractionStatus("error")
-      toast({ title: "Error", description: "Failed to read file", variant: "destructive" })
+      setErrorMessage(error.message)
+      toast({
+        title: "Error Reading File",
+        description: error.message,
+        variant: "destructive",
+      })
     }
   }
 
   const extractWithAI = async (content: string, fileType: string) => {
+    if (!content || content.trim().length < 50) {
+      setExtractionStatus("error")
+      setErrorMessage(
+        "Could not read file content. The PDF may be scanned or image-based. Try a different file or convert to text format.",
+      )
+      toast({
+        title: "Extraction Failed",
+        description: "Could not read text from file. Try a text-based PDF or TXT/JSON file.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsExtracting(true)
     setExtractionStatus("extracting")
 
@@ -81,27 +101,37 @@ export function ImportDataModal({ isOpen, onClose, targetSection, onDataExtracte
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           documentContent: content,
-          documentType: fileType.includes("pdf") ? "PDF" : "Text",
+          documentType: fileType,
           targetSection,
         }),
       })
 
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
       const data = await response.json()
 
-      if (data.success) {
+      if (data.success && data.data) {
         setExtractedData(data.data)
         setExtractionStatus("success")
+        setErrorMessage("")
         toast({
           title: "Data Extracted!",
-          description: `Successfully extracted ${data.fieldsExtracted} fields from document`,
+          description: `Successfully extracted ${data.fieldsExtracted} fields`,
         })
       } else {
-        throw new Error(data.error)
+        throw new Error(data.error || "No data extracted")
       }
-    } catch (error) {
-      console.error("Extraction error:", error)
+    } catch (error: any) {
+      console.error("[v0] Extraction error:", error)
       setExtractionStatus("error")
-      toast({ title: "Extraction Failed", description: "Could not extract data from document", variant: "destructive" })
+      setErrorMessage(error.message)
+      toast({
+        title: "Extraction Failed",
+        description: error.message || "Could not extract data",
+        variant: "destructive",
+      })
     } finally {
       setIsExtracting(false)
     }
@@ -181,32 +211,43 @@ export function ImportDataModal({ isOpen, onClose, targetSection, onDataExtracte
                     : "bg-blue-50 border border-blue-200"
               }`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 {extractionStatus === "reading" && (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-500 mt-0.5" />
                     <span className="text-blue-700">Reading document...</span>
                   </>
                 )}
                 {extractionStatus === "extracting" && (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-500 mt-0.5" />
                     <span className="text-blue-700">AI is extracting data...</span>
                   </>
                 )}
                 {extractionStatus === "success" && (
                   <>
-                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
                     <span className="text-green-700">
                       Extracted {filled} of {total} fields successfully!
                     </span>
                   </>
                 )}
                 {extractionStatus === "error" && (
-                  <>
-                    <AlertCircle className="h-5 w-5 text-red-500" />
-                    <span className="text-red-700">Extraction failed. Try a different file.</span>
-                  </>
+                  <div className="flex-1">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                      <div>
+                        <p className="text-red-700 font-medium">Extraction Failed</p>
+                        <p className="text-red-600 text-sm mt-1">
+                          {errorMessage || "Could not extract data from document"}
+                        </p>
+                        <p className="text-red-500 text-xs mt-2">
+                          Tip: If this is a scanned PDF, try converting it to text first using an OCR tool, or upload a
+                          JSON/TXT file instead.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
