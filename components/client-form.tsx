@@ -21,10 +21,8 @@ import {
 import type { ClientData } from "@/lib/types"
 import { insuranceTemplates } from "@/lib/data/insurance-templates"
 import { useToast } from "@/hooks/use-toast"
-import { ImportDialog } from "./import-dialog"
-import { parseClientDataFile } from "@/lib/import-parsers"
-import { DailyScheduleTable } from "./daily-schedule-table"
 import { ImportDataModal } from "./import-data-modal" // Import AI Import Modal
+import { DailyScheduleTable } from "./daily-schedule-table"
 
 interface ExtendedClientData extends ClientData {
   assessmentType?: "initial" | "reassessment"
@@ -270,21 +268,10 @@ export function ClientForm({ clientData, onSave }: ClientFormProps) {
         </div>
         <div className="flex gap-2">
           {/* AI Import button */}
-          <Button
-            variant="outline"
-            onClick={() => setIsImportModalOpen(true)}
-            className="border-teal-500 text-teal-600 hover:bg-teal-50"
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            AI Import
+          <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Import Data
           </Button>
-          <ImportDialog
-            title="Import Client Data"
-            description="Import client information from previous assessments, insurance forms, or referral documents. Supported formats: JSON, CSV, PDF, TXT"
-            acceptedFormats={[".json", ".csv", ".pdf", ".txt"]}
-            onImport={handleImportData}
-            parseFunction={parseClientDataFile}
-          />
           <Button variant="outline" onClick={handleSave}>
             <SaveIcon className="h-4 w-4 mr-2" />
             Save

@@ -16,12 +16,12 @@ import {
   SaveIcon,
   AlertCircleIcon,
   ClipboardListIcon,
-  UploadIcon,
+  Sparkles,
 } from "@/components/icons"
 import type { ReassessmentData, AssessmentData, ClientData } from "@/lib/types"
 import { assessmentTypes } from "@/lib/data/assessment-types"
 import { useToast } from "@/hooks/use-toast"
-import { ImportDialog } from "@/components/import-dialog"
+import { ImportDataModal } from "./import-data-modal"
 import { parseReassessmentDataFile } from "@/lib/import-parsers"
 
 interface ReassessmentFormProps {
@@ -61,7 +61,7 @@ export function ReassessmentForm({
   )
 
   const [selectedAssessmentType, setSelectedAssessmentType] = useState<string>(reassessmentData?.reassessmentType || "")
-  const [showImportDialog, setShowImportDialog] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [importType, setImportType] = useState<"scores" | "progress" | "graphs">("scores")
 
   const handleSave = () => {
@@ -108,12 +108,25 @@ export function ReassessmentForm({
         description: `Successfully imported ${importType} data from ${file.name}`,
       })
 
-      setShowImportDialog(false)
+      setIsImportModalOpen(false)
     } catch (error) {
       toast({
         title: "Import Failed",
         description: error instanceof Error ? error.message : "Failed to import data",
         variant: "destructive",
+      })
+    }
+  }
+
+  const handleAIDataExtracted = (extractedData: any) => {
+    if (extractedData.reassessmentData) {
+      setFormData({
+        ...formData,
+        ...extractedData.reassessmentData,
+      })
+      toast({
+        title: "Data Imported",
+        description: "Reassessment data has been imported successfully.",
       })
     }
   }
@@ -127,8 +140,8 @@ export function ReassessmentForm({
             <p className="text-sm text-muted-foreground mt-1">Track progress and update treatment recommendations</p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)} className="gap-2">
-              <UploadIcon className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={() => setIsImportModalOpen(true)} className="gap-2">
+              <Sparkles className="h-4 w-4" />
               Import Data
             </Button>
             {previousAssessment && (
@@ -320,11 +333,11 @@ export function ReassessmentForm({
                           size="sm"
                           onClick={() => {
                             setImportType("scores")
-                            setShowImportDialog(true)
+                            setIsImportModalOpen(true)
                           }}
                           className="gap-2"
                         >
-                          <UploadIcon className="h-4 w-4" />
+                          <Sparkles className="h-4 w-4" />
                           Import Scores
                         </Button>
                       </div>
@@ -399,21 +412,12 @@ export function ReassessmentForm({
         </div>
       </div>
 
-      {/* Import Dialog */}
-      <ImportDialog
-        open={showImportDialog}
-        onOpenChange={setShowImportDialog}
-        onImport={handleImport}
-        title={`Import ${importType.charAt(0).toUpperCase() + importType.slice(1)} Data`}
-        description={
-          importType === "scores"
-            ? "Upload a file containing reassessment scores (CSV, JSON, or PDF report)"
-            : importType === "progress"
-              ? "Upload progress tracking data or goal completion reports"
-              : "Upload graph images or chart data from previous assessments"
-        }
-        acceptedFormats={[".csv", ".json", ".pdf", ".png", ".jpg", ".jpeg"]}
-        parseFunction={async (file) => await parseReassessmentDataFile(file, importType)}
+      {/* Import Modal */}
+      <ImportDataModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        targetSection="reassessmentData"
+        onDataExtracted={handleAIDataExtracted}
       />
     </div>
   )

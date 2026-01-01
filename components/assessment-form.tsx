@@ -30,8 +30,7 @@ import type { AssessmentData, DomainScore, BehaviorReduction } from "@/lib/types
 import { assessmentTypes } from "@/lib/data/assessment-types"
 import { behaviorLibrary, behaviorCategories } from "@/lib/data/behavior-library"
 import { useToast } from "@/hooks/use-toast"
-import { ImportDialog } from "./import-dialog"
-import { parseAssessmentDataFile } from "@/lib/import-parsers"
+import { ImportDataModal } from "./import-data-modal"
 import { AITextarea } from "@/components/ui/ai-textarea"
 
 interface AssessmentFormProps {
@@ -93,6 +92,8 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
   const [showSuggestions, setShowSuggestions] = useState(false)
 
   const [generatingBehaviorField, setGeneratingBehaviorField] = useState<string | null>(null)
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   const filteredBehaviors = behaviorLibrary.filter((behavior) => {
     const matchesSearch =
@@ -375,15 +376,17 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
     onNext?.() // Use optional chaining for safety
   }
 
-  const handleImportAssessmentData = (importedData: Partial<AssessmentData>) => {
-    setFormData((prev) => ({
-      ...prev,
-      ...importedData,
-    }))
-    toast({
-      title: "Success",
-      description: "Assessment data imported successfully. Please review domain scores and adjust as needed.",
-    })
+  const handleAIDataExtracted = (extractedData: any) => {
+    if (extractedData.assessmentScores) {
+      setFormData({
+        ...formData,
+        ...extractedData.assessmentScores,
+      })
+      toast({
+        title: "Data Imported",
+        description: "Assessment data has been imported successfully.",
+      })
+    }
   }
 
   const addCustomBehavior = () => {
@@ -661,13 +664,10 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
           </div>
         </div>
         <div className="flex gap-2">
-          <ImportDialog
-            title="Import Assessment Data"
-            description="Import VB-MAPP, ABLLS-R, or other assessment scores from previous reports or test results. Supported formats: JSON, CSV"
-            acceptedFormats={[".json", ".csv"]}
-            onImport={handleImportAssessmentData}
-            parseFunction={parseAssessmentDataFile}
-          />
+          <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Import Data
+          </Button>
           <Button
             onClick={handleAutoFillAll}
             disabled={isAutoFilling}
@@ -1877,6 +1877,13 @@ export function AssessmentForm({ clientId, assessmentData, onSave, onNext, onBac
           </div>
         </ScrollArea>
       </div>
+
+      <ImportDataModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        targetSection="assessmentData"
+        onDataExtracted={handleAIDataExtracted}
+      />
     </div>
   )
 }
