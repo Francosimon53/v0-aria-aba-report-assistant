@@ -3,6 +3,12 @@ import { NextResponse } from "next/server"
 export const runtime = "nodejs"
 export const maxDuration = 30
 
+const getPdfParser = async () => {
+  // Import from lib/pdf-parse.js to avoid test file loading issue
+  const pdfParse = await import("pdf-parse/lib/pdf-parse.js")
+  return pdfParse.default
+}
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()
@@ -26,8 +32,7 @@ export async function POST(request: Request) {
         const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
-        // Dynamic import of pdf-parse
-        const pdfParse = (await import("pdf-parse")).default
+        const pdfParse = await getPdfParser()
         const data = await pdfParse(buffer)
 
         console.log("[v0] Extracted", data.numpages, "pages,", data.text.length, "characters")
