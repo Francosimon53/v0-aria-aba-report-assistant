@@ -70,6 +70,8 @@ interface AssessmentData {
     address?: string
     caregiver?: string
     phone?: string
+    assessmentType?: "initial" | "reassessment" // Added assessmentType field
+    assessmentSubType?: string // Added assessmentSubType field
   }
   providerInfo?: {
     name?: string
@@ -517,9 +519,15 @@ INSURANCE:
 - Policy #: ${data.insurance?.policyNumber || "[Policy #]"}
 - Authorization #: ${data.insurance?.authNumber || "[Auth #]"}
 
-Assessment Type: Initial Assessment
+Assessment Type: ${data.clientInfo?.assessmentType === "reassessment" ? "Reassessment (6-month review)" : "Initial Assessment"}
 Assessment Dates: ${data.assessmentDates || "[Assessment Dates]"}
 Report Date: ${new Date().toLocaleDateString()}
+
+${
+  data.clientInfo?.assessmentType === "reassessment"
+    ? "\nThis is a REASSESSMENT report. Include references to previous treatment progress and outcomes where appropriate."
+    : ""
+}
 
 Format this as a professional header with clearly organized recipient info, provider info, and assessment details. Use proper formatting with labels and values.`,
 
@@ -1871,7 +1879,9 @@ Ensure notes reflect data-driven decision-making and client-centered care. Use c
                     : ""
                 }
                 <h1>ABA COMPREHENSIVE ASSESSMENT REPORT</h1>
-                <div class="subtitle">Applied Behavior Analysis Initial Assessment</div>
+                <div class="subtitle">Applied Behavior Analysis ${
+                  assessmentData.clientInfo?.assessmentType === "reassessment" ? "Reassessment" : "Initial Assessment"
+                }</div>
               </div>
 
               <div class="client-info-box">
@@ -1961,7 +1971,12 @@ Ensure notes reflect data-driven decision-making and client-centered care. Use c
           doc.text("ABA COMPREHENSIVE ASSESSMENT REPORT", pageWidth / 2, 35, { align: "center" })
           doc.setFontSize(10)
           doc.setFont("helvetica", "normal")
-          doc.text("Applied Behavior Analysis Initial Assessment", pageWidth / 2, 55, { align: "center" })
+          doc.text(
+            `Applied Behavior Analysis ${assessmentData.clientInfo?.assessmentType === "reassessment" ? "Reassessment" : "Initial Assessment"}`,
+            pageWidth / 2,
+            55,
+            { align: "center" },
+          )
 
           yPosition = 105
 

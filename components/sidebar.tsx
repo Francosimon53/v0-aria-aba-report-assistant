@@ -22,7 +22,6 @@ import {
   CalendarIcon,
   EditIcon,
   FileIcon,
-  BarChart3Icon, // Added BarChart3Icon for Progress Dashboard
 } from "@/components/icons"
 import type { ClientData, AssessmentData } from "@/lib/types"
 
@@ -33,7 +32,6 @@ type ActiveView =
   | "reassessment"
   | "goals"
   | "report"
-  | "progressreport" // Added progressreport view type
   | "integration"
   | "support"
   | "timesaved"
@@ -47,7 +45,6 @@ type ActiveView =
   | "consent" // Added consent view type
   | "background" // Added background view type
   | "medicalnecessity" // Added medical necessity view type
-  | "progressdashboard" // Added progress dashboard view type
   | "cptauth" // Added cptauth view type
   | "dashboard" // Added dashboard view type
 
@@ -104,12 +101,6 @@ export function Sidebar({
       icon: RepeatIcon,
       description: "Track progress & update",
       completed: false,
-    },
-    {
-      id: "progressdashboard" as const,
-      label: "Progress Dashboard",
-      icon: BarChart3Icon,
-      description: "Visual outcomes & comparison",
     },
     {
       id: "abc" as const,
@@ -201,12 +192,6 @@ export function Sidebar({
       label: "Generate Report",
       icon: FileTextIcon,
       description: "Generate & export",
-    },
-    {
-      id: "progressreport" as const,
-      label: "Progress Report",
-      icon: TrendingUpIcon,
-      description: "Re-authorization updates",
     },
   ]
 
