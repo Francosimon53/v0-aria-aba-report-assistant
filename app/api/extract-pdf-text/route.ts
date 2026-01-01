@@ -22,47 +22,41 @@ export async function POST(request: Request) {
     }
 
     if (fileName.endsWith(".pdf")) {
-      const arrayBuffer = await file.arrayBuffer()
+      try {
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
 
-      // Use pdf.js for extraction
-      const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
+        // Dynamic import of pdf-parse
+        const pdfParse = (await import("pdf-parse")).default
+        const data = await pdfParse(buffer)
 
-      const loadingTask = pdfjsLib.getDocument({
-        data: new Uint8Array(arrayBuffer),
-        useSystemFonts: true,
-      })
+        console.log("[v0] Extracted", data.numpages, "pages,", data.text.length, "characters")
 
-      const pdf = await loadingTask.promise
-      let fullText = ""
+        if (data.text.trim().length < 50) {
+          return NextResponse.json(
+            {
+              error: "PDF appears to be empty or image-based. Try a text-based PDF or OCR tool.",
+              text: "",
+              pages: data.numpages,
+            },
+            { status: 422 },
+          )
+        }
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i)
-        const textContent = await page.getTextContent()
-        const pageText = textContent.items
-          .filter((item: any) => item.str)
-          .map((item: any) => item.str)
-          .join(" ")
-        fullText += pageText + "\n\n"
-      }
-
-      console.log("[v0] Extracted", pdf.numPages, "pages,", fullText.length, "characters")
-
-      if (fullText.trim().length < 50) {
+        return NextResponse.json({
+          text: data.text.trim(),
+          type: "pdf",
+          pages: data.numpages,
+        })
+      } catch (pdfError: any) {
+        console.error("[v0] PDF parsing error:", pdfError.message)
         return NextResponse.json(
           {
-            error: "PDF appears to be empty or image-based. Try a text-based PDF.",
-            text: "",
-            pages: pdf.numPages,
+            error: "Could not parse PDF: " + pdfError.message,
           },
-          { status: 422 },
+          { status: 500 },
         )
       }
-
-      return NextResponse.json({
-        text: fullText.trim(),
-        type: "pdf",
-        pages: pdf.numPages,
-      })
     }
 
     return NextResponse.json({ error: "Unsupported file type. Use PDF, TXT, JSON, or CSV." }, { status: 400 })
