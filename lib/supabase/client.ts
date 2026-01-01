@@ -1,5 +1,8 @@
+import { createBrowserClient } from "@supabase/ssr"
+
 export function createClient() {
-  throw new Error(
-    "Client-side Supabase access is disabled. Use server actions from app/actions/assessment-actions.ts instead.",
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_ARIA_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_ARIA_SUPABASE_ANON_KEY!,
   )
 }

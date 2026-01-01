@@ -117,6 +117,8 @@ export default function LoginPage() {
     setError("")
     setIsLoading(true)
 
+    console.log("[v0] Login attempt starting")
+
     try {
       const supabase = createClient()
 
@@ -126,20 +128,24 @@ export default function LoginPage() {
       })
 
       if (authError) {
+        console.log("[v0] Login error:", authError.message)
         setError(authError.message)
         setIsLoading(false)
         return
       }
 
       if (data?.user) {
+        console.log("[v0] Login successful, user:", data.user.email)
         localStorage.setItem("aria_user", JSON.stringify({ email: data.user.email, id: data.user.id }))
-        router.push("/assessment/new")
+        router.push("/dashboard")
         router.refresh()
       } else {
+        console.log("[v0] Login failed - no user data returned")
         setError("Login failed. Please check your credentials.")
         setIsLoading(false)
       }
     } catch (err) {
+      console.error("[v0] Unexpected login error:", err)
       setError("An unexpected error occurred. Please try again.")
       setIsLoading(false)
     }
