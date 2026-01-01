@@ -40,6 +40,11 @@ type ActiveView =
   | "medicalnecessity" // Added medical necessity view type
   | "cptauth" // Added cptauth view type
   | "dashboard" // Added dashboard view type
+  | "integration"
+  | "goals"
+  | "timesaved"
+  | "support"
+  | "report"
 
 interface SidebarProps {
   activeView: ActiveView
