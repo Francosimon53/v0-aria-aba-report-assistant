@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PlusIcon, DownloadIcon, PrinterIcon, AlertCircleIcon, CheckCircle2Icon, XIcon } from "@/components/icons"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 type CPTCode = "97153" | "97155" | "97155HN" | "97156" | "97156HN"
 type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"
@@ -44,11 +45,16 @@ const CPT_CODES: { code: CPTCode; label: string; fullLabel: string; color: strin
   { code: "97156HN", label: "BCaBA - Family", fullLabel: "Family Training Assistant", color: "bg-cyan-500" },
 ]
 
-export function CPTAuthorizationRequest() {
+interface CPTAuthorizationRequestProps {
+  clientData?: any
+  onSave?: () => void
+}
+
+export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorizationRequestProps) {
   const [schedule, setSchedule] = useState<ServiceSchedule>({})
   const [justification, setJustification] = useState("")
   const [selectedCell, setSelectedCell] = useState<{ day: DayOfWeek; code: CPTCode } | null>(null)
-  const [showAddSlot, setShowAddSlot] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [newSlot, setNewSlot] = useState<{ startTime: string; endTime: string; location: Location }>({
     startTime: "",
     endTime: "",
@@ -83,7 +89,19 @@ export function CPTAuthorizationRequest() {
   }
 
   const addTimeSlot = () => {
-    if (!selectedCell || !newSlot.startTime || !newSlot.endTime) return
+    console.log("[v0] addTimeSlot called, selectedCell:", selectedCell, "newSlot:", newSlot)
+
+    if (!selectedCell || !newSlot.startTime || !newSlot.endTime) {
+      console.log(
+        "[v0] Missing data - selectedCell:",
+        selectedCell,
+        "startTime:",
+        newSlot.startTime,
+        "endTime:",
+        newSlot.endTime,
+      )
+      return
+    }
 
     const { day, code } = selectedCell
 
@@ -113,8 +131,10 @@ export function CPTAuthorizationRequest() {
       },
     }))
 
+    console.log("[v0] Slot added successfully:", slot)
+
     setNewSlot({ startTime: "", endTime: "", location: "Home" })
-    setShowAddSlot(false)
+    setIsDialogOpen(false)
     setSelectedCell(null)
   }
 
@@ -157,14 +177,13 @@ export function CPTAuthorizationRequest() {
     }, 0)
   }
 
-  // Validation checks
+  const warnings = []
   const totalWeeklyHours = getTotalWeeklyHours()
   const rbtHours = getTotalHoursByCode("97153")
   const bcbaHours = getTotalHoursByCode("97155") + getTotalHoursByCode("97155HN")
   const familyTrainingHours = getTotalHoursByCode("97156") + getTotalHoursByCode("97156HN")
   const supervisionRatio = rbtHours > 0 ? (bcbaHours / rbtHours) * 100 : 0
 
-  const warnings = []
   if (totalWeeklyHours > 40) {
     warnings.push({ type: "error", message: "Total weekly hours exceed 40 (insurance red flag)" })
   }
@@ -201,6 +220,13 @@ export function CPTAuthorizationRequest() {
   }
 
   const wordCount = justification.trim().split(/\s+/).filter(Boolean).length
+
+  const handleAddSlotClick = (day: DayOfWeek, code: CPTCode) => {
+    console.log("[v0] Add Slot clicked - day:", day, "code:", code)
+    setSelectedCell({ day, code })
+    setNewSlot({ startTime: "", endTime: "", location: "Home" })
+    setIsDialogOpen(true)
+  }
 
   return (
     <div className="container mx-auto p-6 max-w-7xl space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
@@ -324,10 +350,7 @@ export function CPTAuthorizationRequest() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setSelectedCell({ day, code })
-                                setShowAddSlot(true)
-                              }}
+                              onClick={() => handleAddSlotClick(day, code)}
                               className="w-full h-8 text-xs border-dashed hover:bg-[#0D9488]/10 hover:border-[#0D9488] transition-all duration-300"
                             >
                               <PlusIcon className="h-3 w-3 mr-1" />
@@ -348,31 +371,17 @@ export function CPTAuthorizationRequest() {
         </CardContent>
       </Card>
 
-      {/* Add Time Slot Modal */}
-      {showAddSlot && selectedCell && (
-        <Card className="border-[#0D9488] border-2 shadow-xl animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
-          <CardHeader className="bg-[#0D9488]/10">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">Add Session - {selectedCell.day}</CardTitle>
-                <CardDescription className="mt-1">
-                  {CPT_CODES.find((c) => c.code === selectedCell.code)?.code} -{" "}
-                  {CPT_CODES.find((c) => c.code === selectedCell.code)?.fullLabel}
-                </CardDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setShowAddSlot(false)
-                  setSelectedCell(null)
-                }}
-              >
-                <XIcon className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-6">
+      {/* Dialog for Adding Time Slot */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Session - {selectedCell?.day}</DialogTitle>
+            <DialogDescription>
+              {selectedCell && CPT_CODES.find((c) => c.code === selectedCell.code)?.code} -{" "}
+              {selectedCell && CPT_CODES.find((c) => c.code === selectedCell.code)?.fullLabel}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="startTime" className="text-sm font-semibold">
@@ -437,16 +446,16 @@ export function CPTAuthorizationRequest() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setShowAddSlot(false)
+                  setIsDialogOpen(false)
                   setSelectedCell(null)
                 }}
               >
                 Cancel
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Service Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
