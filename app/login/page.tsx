@@ -137,8 +137,7 @@ export default function LoginPage() {
       if (data?.user) {
         console.log("[v0] Login successful, user:", data.user.email)
         localStorage.setItem("aria_user", JSON.stringify({ email: data.user.email, id: data.user.id }))
-        router.push("/dashboard")
-        router.refresh()
+        window.location.href = "/dashboard"
       } else {
         console.log("[v0] Login failed - no user data returned")
         setError("Login failed. Please check your credentials.")
