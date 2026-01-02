@@ -300,7 +300,7 @@ Generate ONE well-crafted SMART goal following this format.`
     ).length
     const hasBehaviors = data.behavioralConcerns.length > 0
 
-    return `Recommend appropriate ABA service hours and provide clinical justification.
+    return `Write a professional clinical justification for ABA service hours.
 
 ASSESSMENT DATA:
 ${data.impairmentScores.map((score) => `- ${score.domain}: ${score.score} (${score.severity})`).join("\n")}
@@ -315,19 +315,24 @@ ANALYSIS FACTORS:
 - Behavioral concerns present: ${hasBehaviors ? "Yes" : "No"}
 - Age considerations: ${data.clientAge < 5 ? "Early intervention critical period" : "School-age considerations"}
 
-PROVIDE:
-1. Recommended hours per week (comprehensive or focused)
-2. Clinical rationale based on severity and needs
-3. Breakdown by service type (1:1 direct, parent training, supervision)
-4. Expected frequency of sessions
-5. Duration of initial authorization period
-6. Justification for intensity level
+CRITICAL FORMATTING RULES:
+1. Write in PLAIN TEXT only - NO Markdown formatting
+2. DO NOT use asterisks (*), pound signs (#), or any special characters
+3. DO NOT use bullet points with dashes or asterisks
+4. Write in flowing paragraphs with professional clinical language
+5. Use natural sentence structure, not lists
+6. Keep between 150-300 words
+7. Write as if this is going directly on an insurance form
 
-Consider insurance typical maximums:
-- Comprehensive: 30-40 hours/week
-- Focused: 20-25 hours/week
+CONTENT TO INCLUDE:
+- Clinical severity statement based on assessment data
+- Impact on daily functioning in home, school, and community
+- Why intensive ABA services are medically necessary
+- Recommended hours per week with rationale
+- Why less intensive services would be insufficient
+- Brief mention of parent training component
 
-Be specific and data-driven in your recommendation.`
+Write a compelling, professional justification that reads like a formal clinical document. Use complete sentences and proper paragraph structure. Do not use any formatting characters.`
   },
 
   /**
