@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Clock, Trash2, Sparkles, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import ReactMarkdown from "react-markdown"
 
 type CPTCode = "97153" | "97155" | "97155HN" | "97156" | "97156HN"
 type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"
@@ -62,6 +63,7 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
     location: "Home",
   })
   const [isGeneratingJustification, setIsGeneratingJustification] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   const parseTime = (timeStr: string): Date => {
     const [hours, minutes] = timeStr.split(":").map(Number)
@@ -679,33 +681,63 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
                 Provide detailed rationale for the requested service hours. Aim for 150-300 words.
               </CardDescription>
             </div>
-            <Button
-              onClick={handleAIGenerateJustification}
-              disabled={isGeneratingJustification}
-              className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white"
-            >
-              {isGeneratingJustification ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  AI Generate
-                </>
+            <div className="flex items-center gap-2">
+              {justification && (
+                <div className="flex items-center border rounded-lg overflow-hidden">
+                  <Button
+                    variant={!showPreview ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setShowPreview(false)}
+                    className={!showPreview ? "bg-teal-600 hover:bg-teal-700 rounded-none" : "rounded-none"}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant={showPreview ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setShowPreview(true)}
+                    className={showPreview ? "bg-teal-600 hover:bg-teal-700 rounded-none" : "rounded-none"}
+                  >
+                    Preview
+                  </Button>
+                </div>
               )}
-            </Button>
+              <Button
+                onClick={handleAIGenerateJustification}
+                disabled={isGeneratingJustification}
+                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white"
+              >
+                {isGeneratingJustification ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    AI Generate
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Textarea
-            value={justification}
-            onChange={(e) => setJustification(e.target.value)}
-            placeholder="Based on the severity of [specific behaviors], occurring at a frequency of [X times per day/week], the client requires intensive intervention across multiple settings. The proposed service hours are medically necessary to address [target behaviors/deficits] and achieve the following treatment goals: [list goals]. Research supports intensive intervention for [diagnosis/presentation] with outcomes showing [evidence]. The client's current level of functioning, including [specific deficits], necessitates this service intensity to prevent [risks] and promote [desired outcomes]..."
-            rows={10}
-            className="text-sm leading-relaxed"
-          />
+          {showPreview && justification ? (
+            <div className="min-h-[240px] p-4 border rounded-lg bg-white">
+              <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-h2:text-lg prose-h2:mt-4 prose-h2:mb-2 prose-h3:text-base prose-h3:mt-3 prose-h3:mb-1 prose-p:text-gray-700 prose-p:leading-relaxed prose-ul:my-2 prose-li:my-0.5 prose-strong:text-gray-900">
+                <ReactMarkdown>{justification}</ReactMarkdown>
+              </div>
+            </div>
+          ) : (
+            <Textarea
+              value={justification}
+              onChange={(e) => setJustification(e.target.value)}
+              placeholder="Based on the severity of [specific behaviors], occurring at a frequency of [X times per day/week], the client requires intensive intervention across multiple settings. The proposed service hours are medically necessary to address [target behaviors/deficits] and achieve the following treatment goals: [list goals]. Research supports intensive intervention for [diagnosis/presentation] with outcomes showing [evidence]. The client's current level of functioning, including [specific deficits], necessitates this service intensity to prevent [risks] and promote [desired outcomes]..."
+              rows={10}
+              className="text-sm leading-relaxed"
+            />
+          )}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-4">
               <span
@@ -723,11 +755,11 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
             </div>
             <div>
               {wordCount < 150 ? (
-                <span className="text-yellow-600">⚠ Add more detail</span>
+                <span className="text-yellow-600">Add more detail</span>
               ) : wordCount > 300 ? (
-                <span className="text-red-600">⚠ Too lengthy</span>
+                <span className="text-red-600">Too lengthy</span>
               ) : (
-                <span className="text-green-600">✓ Good length</span>
+                <span className="text-green-600">Good length</span>
               )}
             </div>
           </div>
