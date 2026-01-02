@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusIcon, DownloadIcon, PrinterIcon, AlertCircleIcon, CheckCircle2Icon, XIcon } from "@/components/icons"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, Clock, Trash2, Sparkles, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 type CPTCode = "97153" | "97155" | "97155HN" | "97156" | "97156HN"
 type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"
@@ -60,6 +61,7 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
     endTime: "",
     location: "Home",
   })
+  const [isGeneratingJustification, setIsGeneratingJustification] = useState(false)
 
   const parseTime = (timeStr: string): Date => {
     const [hours, minutes] = timeStr.split(":").map(Number)
@@ -228,6 +230,150 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
     setIsDialogOpen(true)
   }
 
+  const handleAIGenerateJustification = async () => {
+    setIsGeneratingJustification(true)
+
+    try {
+      // Load all client data from localStorage
+      const clientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
+      const backgroundHistory = JSON.parse(localStorage.getItem("aria-background-history") || "{}")
+      const assessmentData = JSON.parse(localStorage.getItem("aria-assessment-data") || "{}")
+      const abcObservations = JSON.parse(localStorage.getItem("aria-abc-observations") || "{}")
+      const goalsData = JSON.parse(localStorage.getItem("aria-goals") || "[]")
+
+      // Build impairment scores from assessment data
+      const impairmentScores = []
+
+      // Add communication score
+      if (assessmentData.communicationLevel) {
+        const commScore =
+          assessmentData.communicationLevel === "nonverbal"
+            ? 1
+            : assessmentData.communicationLevel === "limited"
+              ? 2
+              : assessmentData.communicationLevel === "functional"
+                ? 3
+                : 4
+        impairmentScores.push({
+          domain: "Communication",
+          score: commScore,
+          severity: commScore <= 2 ? "severe" : commScore <= 3 ? "moderate" : "mild",
+        })
+      }
+
+      // Add social skills score
+      if (assessmentData.socialSkillsLevel) {
+        const socialScore =
+          assessmentData.socialSkillsLevel === "minimal"
+            ? 1
+            : assessmentData.socialSkillsLevel === "emerging"
+              ? 2
+              : assessmentData.socialSkillsLevel === "developing"
+                ? 3
+                : 4
+        impairmentScores.push({
+          domain: "Social Skills",
+          score: socialScore,
+          severity: socialScore <= 2 ? "severe" : socialScore <= 3 ? "moderate" : "mild",
+        })
+      }
+
+      // Add adaptive behavior score
+      if (assessmentData.adaptiveBehaviorLevel) {
+        const adaptiveScore =
+          assessmentData.adaptiveBehaviorLevel === "severe"
+            ? 1
+            : assessmentData.adaptiveBehaviorLevel === "moderate"
+              ? 2
+              : assessmentData.adaptiveBehaviorLevel === "mild"
+                ? 3
+                : 4
+        impairmentScores.push({
+          domain: "Adaptive Behavior",
+          score: adaptiveScore,
+          severity: adaptiveScore <= 2 ? "severe" : adaptiveScore <= 3 ? "moderate" : "mild",
+        })
+      }
+
+      // Default scores if none found
+      if (impairmentScores.length === 0) {
+        impairmentScores.push(
+          { domain: "Communication", score: 2, severity: "moderate" },
+          { domain: "Social Skills", score: 2, severity: "moderate" },
+          { domain: "Adaptive Behavior", score: 2, severity: "moderate" },
+        )
+      }
+
+      // Build behavioral concerns from ABC observations and assessment
+      const behavioralConcerns: string[] = []
+      if (abcObservations.targetBehaviors) {
+        behavioralConcerns.push(...abcObservations.targetBehaviors)
+      }
+      if (assessmentData.behaviorConcerns) {
+        if (Array.isArray(assessmentData.behaviorConcerns)) {
+          behavioralConcerns.push(...assessmentData.behaviorConcerns)
+        } else if (typeof assessmentData.behaviorConcerns === "string") {
+          behavioralConcerns.push(assessmentData.behaviorConcerns)
+        }
+      }
+      if (backgroundHistory.behaviorHistory) {
+        behavioralConcerns.push(backgroundHistory.behaviorHistory)
+      }
+
+      // Calculate client age
+      let clientAge = 5 // default
+      if (clientInfo.dateOfBirth) {
+        const today = new Date()
+        const birthDate = new Date(clientInfo.dateOfBirth)
+        clientAge = today.getFullYear() - birthDate.getFullYear()
+        const monthDiff = today.getMonth() - birthDate.getMonth()
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          clientAge--
+        }
+      }
+
+      const response = await fetch("/api/generate-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "hoursJustification",
+          data: {
+            impairmentScores,
+            behavioralConcerns:
+              behavioralConcerns.length > 0 ? behavioralConcerns : ["Skill deficits requiring intervention"],
+            clientAge,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to generate justification")
+      }
+
+      const data = await response.json()
+      setJustification(data.content)
+      toast.success("Justification generated successfully")
+    } catch (error) {
+      console.error("Error generating justification:", error)
+      toast.error("Failed to generate justification. Please try again.")
+    } finally {
+      setIsGeneratingJustification(false)
+    }
+  }
+
+  // Helper function to calculate age
+  const calculateAge = (dateOfBirth: string): number => {
+    const today = new Date()
+    const birthDate = new Date(dateOfBirth)
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
+
   return (
     <div className="container mx-auto p-6 max-w-7xl space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
       {/* Header */}
@@ -238,11 +384,11 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={copyAsTable}>
-            <DownloadIcon className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" />
             Copy Table
           </Button>
           <Button variant="outline" onClick={exportToPDF}>
-            <PrinterIcon className="h-4 w-4 mr-2" />
+            <Clock className="h-4 w-4 mr-2" />
             Export PDF
           </Button>
         </div>
@@ -264,11 +410,11 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
               style={{ animationDelay: `${idx * 100}ms` }}
             >
               {warning.type === "error" ? (
-                <AlertCircleIcon className="h-5 w-5 flex-shrink-0" />
+                <Plus className="h-5 w-5 flex-shrink-0" />
               ) : warning.type === "warning" ? (
-                <AlertCircleIcon className="h-5 w-5 flex-shrink-0" />
+                <Plus className="h-5 w-5 flex-shrink-0" />
               ) : (
-                <CheckCircle2Icon className="h-5 w-5 flex-shrink-0" />
+                <Plus className="h-5 w-5 flex-shrink-0" />
               )}
               <span className="text-sm font-medium">{warning.message}</span>
             </div>
@@ -338,7 +484,7 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
                                     }}
                                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/50 rounded"
                                   >
-                                    <XIcon className="h-3 w-3 text-red-500" />
+                                    <Trash2 className="h-3 w-3 text-red-500" />
                                   </button>
                                 </div>
                                 <Badge variant="outline" className="mt-1 text-[9px] h-4 px-1">
@@ -353,7 +499,7 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
                               onClick={() => handleAddSlotClick(day, code)}
                               className="w-full h-8 text-xs border-dashed hover:bg-[#0D9488]/10 hover:border-[#0D9488] transition-all duration-300"
                             >
-                              <PlusIcon className="h-3 w-3 mr-1" />
+                              <Plus className="h-3 w-3 mr-1" />
                               Add Slot
                             </Button>
                           </div>
@@ -440,7 +586,7 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
                 className="flex-1 bg-[#0D9488] hover:bg-[#0F766E] transition-all duration-300"
                 disabled={!newSlot.startTime || !newSlot.endTime}
               >
-                <PlusIcon className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 mr-2" />
                 Add Session
               </Button>
               <Button
@@ -526,10 +672,31 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
       {/* Justification for Hours */}
       <Card>
         <CardHeader>
-          <CardTitle>Justification for Hours</CardTitle>
-          <CardDescription>
-            Provide detailed rationale for the requested service hours. Aim for 150-300 words.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Justification for Hours</CardTitle>
+              <CardDescription>
+                Provide detailed rationale for the requested service hours. Aim for 150-300 words.
+              </CardDescription>
+            </div>
+            <Button
+              onClick={handleAIGenerateJustification}
+              disabled={isGeneratingJustification}
+              className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white"
+            >
+              {isGeneratingJustification ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  AI Generate
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
