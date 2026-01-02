@@ -4,7 +4,16 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { PlusIcon, FileTextIcon, CheckCircleIcon, ClockIcon } from "@/components/icons"
+import {
+  FileTextIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  RefreshCwIcon,
+  TrendingUpIcon,
+  TargetIcon,
+  FileCheckIcon,
+  UserPlusIcon,
+} from "@/components/icons"
 import { safeParseDate } from "@/lib/safe-date"
 
 export default function DashboardPage() {
@@ -27,7 +36,7 @@ export default function DashboardPage() {
             if (a.createdAt) {
               return safeParseDate(a.createdAt) !== null
             }
-            return true // Keep assessments without dates
+            return true
           })
 
           setStats({
@@ -99,33 +108,133 @@ export default function DashboardPage() {
           </Card>
         </div>
 
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Start New Assessment</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+            {/* Initial Assessment Card */}
+            <Link href="/assessment/initial/new">
+              <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-teal-500 hover:scale-[1.02] h-full">
+                <CardHeader>
+                  <div className="h-14 w-14 bg-gradient-to-br from-teal-100 to-teal-200 rounded-xl flex items-center justify-center mb-4 shadow-sm">
+                    <UserPlusIcon className="h-7 w-7 text-teal-600" />
+                  </div>
+                  <CardTitle className="text-xl text-teal-700">Initial Assessment</CardTitle>
+                  <CardDescription className="text-base">
+                    Comprehensive first-time evaluation for new clients
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 text-sm text-gray-600">
+                    <li className="flex items-center gap-3">
+                      <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
+                        <CheckCircleIcon className="h-3 w-3 text-teal-600" />
+                      </div>
+                      Complete diagnostic evaluation
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
+                        <CheckCircleIcon className="h-3 w-3 text-teal-600" />
+                      </div>
+                      Baseline skill assessment
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
+                        <CheckCircleIcon className="h-3 w-3 text-teal-600" />
+                      </div>
+                      Initial treatment plan
+                    </li>
+                  </ul>
+                  <div className="flex justify-between items-center mt-6 pt-4 border-t border-teal-100">
+                    <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-1 rounded">NEW CLIENT</span>
+                    <span className="text-sm font-semibold text-teal-600 flex items-center gap-1">
+                      First Evaluation
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* Reassessment Card */}
+            <Link href="/assessment/reassessment/new">
+              <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-orange-500 hover:scale-[1.02] h-full">
+                <CardHeader>
+                  <div className="h-14 w-14 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center mb-4 shadow-sm">
+                    <RefreshCwIcon className="h-7 w-7 text-orange-600" />
+                  </div>
+                  <CardTitle className="text-xl text-orange-600">Reassessment</CardTitle>
+                  <CardDescription className="text-base">
+                    Periodic review to measure progress and update treatment
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 text-sm text-gray-600">
+                    <li className="flex items-center gap-3">
+                      <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
+                        <TrendingUpIcon className="h-3 w-3 text-orange-600" />
+                      </div>
+                      Progress analysis & comparison
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
+                        <TargetIcon className="h-3 w-3 text-orange-600" />
+                      </div>
+                      Goal achievement review
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
+                        <FileCheckIcon className="h-3 w-3 text-orange-600" />
+                      </div>
+                      Authorization renewal
+                    </li>
+                  </ul>
+                  <div className="flex justify-between items-center mt-6 pt-4 border-t border-orange-100">
+                    <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                      EXISTING CLIENT
+                    </span>
+                    <span className="text-sm font-semibold text-orange-600 flex items-center gap-1">
+                      6-Month Review
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+        {/* End CHANGE */}
+
         {/* Quick Actions */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Get started with your ABA reporting workflow</CardDescription>
+            <CardDescription>Access your recent work</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Link href="/assessment/new">
-              <Button size="lg" className="w-full bg-teal-600 hover:bg-teal-700">
-                <PlusIcon className="mr-2 h-5 w-5" />
-                Create New Assessment
-              </Button>
-            </Link>
+          <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Link href="/assessments">
                 <Button variant="outline" className="w-full bg-transparent">
                   View All Assessments
                 </Button>
               </Link>
-              <Link href="/assessment/new">
-                <Button variant="outline" className="w-full bg-transparent">
-                  Generate Report
+              <Link href="/assessment/initial/new">
+                <Button
+                  variant="outline"
+                  className="w-full bg-transparent border-teal-200 text-teal-700 hover:bg-teal-50"
+                >
+                  Continue Initial
                 </Button>
               </Link>
-              <Link href="/assessment/new">
-                <Button variant="outline" className="w-full bg-transparent">
-                  Parent Training
+              <Link href="/assessment/reassessment/new">
+                <Button
+                  variant="outline"
+                  className="w-full bg-transparent border-orange-200 text-orange-700 hover:bg-orange-50"
+                >
+                  Continue Reassessment
                 </Button>
               </Link>
             </div>
@@ -139,13 +248,15 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Welcome to ARIA, your AI-powered ABA reporting assistant. Create your first assessment to get started.
+              Welcome to ARIA, your AI-powered ABA reporting assistant. Choose an assessment type above to get started.
             </p>
             <ul className="list-disc list-inside space-y-1 mt-2">
-              <li>Complete client information</li>
-              <li>Perform assessments and observations</li>
-              <li>Generate comprehensive reports with AI assistance</li>
-              <li>Track goals and monitor progress</li>
+              <li>
+                <strong>Initial Assessment:</strong> For new clients requiring comprehensive evaluation
+              </li>
+              <li>
+                <strong>Reassessment:</strong> For existing clients at 6-month review periods
+              </li>
             </ul>
           </CardContent>
         </Card>
