@@ -30,7 +30,10 @@ import {
   ChevronDown,
   Edit3,
   FileDown,
-  TrendingUp,
+  BarChart,
+  TrendingDown,
+  AlertTriangle,
+  Repeat,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -222,7 +225,7 @@ const REPORT_SECTIONS = [
     title: "Reason for Referral",
     order: 3,
     icon: <ClipboardList className="h-4 w-4" />,
-    estimatedWords: "150-200",
+    estimatedWords: "200-300",
   },
   {
     id: "background",
@@ -239,95 +242,116 @@ const REPORT_SECTIONS = [
     estimatedWords: "200-300",
   },
   {
+    id: "standardized_assessments",
+    title: "Standardized Assessment Results",
+    order: 6,
+    icon: <BarChart className="h-4 w-4" />,
+    estimatedWords: "400-600",
+  },
+  {
     id: "abc_observations",
     title: "ABC Observations",
-    order: 6,
+    order: 7,
     icon: <Eye className="h-4 w-4" />,
     estimatedWords: "400-600",
   },
   {
     id: "preference_assessment",
     title: "Preference Assessment",
-    order: 7,
+    order: 8,
     icon: <Heart className="h-4 w-4" />,
     estimatedWords: "150-200",
   },
   {
     id: "maladaptive_behaviors",
     title: "Maladaptive Behaviors",
-    order: 8,
+    order: 9,
     icon: <AlertCircle className="h-4 w-4" />,
     estimatedWords: "600-1000",
   },
   {
     id: "hypothesis_interventions",
     title: "Hypothesis-Based Interventions",
-    order: 9,
+    order: 10,
     icon: <Brain className="h-4 w-4" />,
     estimatedWords: "800-1200",
   },
   {
     id: "intervention_descriptions",
     title: "Description of Interventions",
-    order: 10,
+    order: 11,
     icon: <Target className="h-4 w-4" />,
     estimatedWords: "600-800",
   },
   {
     id: "teaching_procedures",
     title: "Teaching Procedures",
-    order: 11,
+    order: 12,
     icon: <BookOpen className="h-4 w-4" />,
     estimatedWords: "800-1200",
   },
   {
     id: "skill_acquisition_goals",
     title: "Skill Acquisition Goals",
-    order: 12,
+    order: 13,
     icon: <Target className="h-4 w-4" />,
     estimatedWords: "600-1000",
   },
   {
     id: "behavior_reduction_goals",
     title: "Behavior Reduction Goals",
-    order: 13,
+    order: 14,
     icon: <Shield className="h-4 w-4" />,
     estimatedWords: "400-600",
   },
   {
     id: "caregiver_goals",
     title: "Caregiver Training Goals",
-    order: 14,
+    order: 15,
     icon: <Users className="h-4 w-4" />,
     estimatedWords: "300-400",
   },
   {
     id: "parent_training_progress",
     title: "Parent Training Progress",
-    order: 15,
+    order: 16,
     icon: <Users className="h-4 w-4" />,
     estimatedWords: "400-600",
   },
   {
     id: "medical_necessity",
     title: "Medical Necessity Statement",
-    order: 16,
+    order: 17,
     icon: <FileText className="h-4 w-4" />,
     estimatedWords: "250-350",
   },
   {
-    id: "additional_sections",
-    title: "Additional Required Sections",
-    order: 17,
-    icon: <FileCheck className="h-4 w-4" />,
-    estimatedWords: "600-800",
+    id: "fade_plan",
+    title: "Fade Plan & Discharge Criteria",
+    order: 18,
+    icon: <TrendingDown className="h-4 w-4" />,
+    estimatedWords: "300-400",
   },
   {
-    id: "progress_notes", // Added section for Progress Notes
-    title: "Progress Notes",
-    order: 18,
-    icon: <TrendingUp className="h-4 w-4" />,
-    estimatedWords: "500-800",
+    id: "barriers_treatment",
+    title: "Barriers to Treatment",
+    order: 19,
+    icon: <AlertTriangle className="h-4 w-4" />,
+    estimatedWords: "200-300",
+  },
+  {
+    id: "generalization_maintenance",
+    title: "Generalization & Maintenance",
+    order: 20,
+    icon: <Repeat className="h-4 w-4" />,
+    estimatedWords: "200-300",
+  },
+  {
+    id: "crisis_plan",
+    title: "Crisis Plan & Coordination of Care",
+    order: 21,
+    icon: <Shield className="h-4 w-4" />,
+    estimatedWords: "400-600",
   },
 ] as const
 
@@ -484,6 +508,7 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
     const icd10 = data.clientInfo?.icd10Code || "F84.0" // Corrected from icd10 to icd10Code
     const age = data.clientInfo?.age || "[Age]"
     const dob = data.clientInfo?.dob || "[DOB]"
+    const clientAge = age // Alias for clarity in prompts
 
     const behaviors = data.behaviors || []
     const goals = data.goals || []
@@ -494,7 +519,8 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
     const bcbaHours = data.recommendations?.bcbaHours || 4
     const parentHours = data.recommendations?.parentTrainingHours || "2 hours/week"
 
-    const prompts: Record<string, string> = {
+    // Add prompts for new sections
+    const prompts: Record<string, string | (() => string)> = {
       header: `Write the HEADER & CLIENT INFORMATION section for a professional ABA assessment report.
 
 CLIENT INFORMATION:
@@ -547,7 +573,7 @@ Recommended Duration: ${data.recommendations?.duration || "12 months"}
 
 Include a brief paragraph explaining the service model and rationale for the recommended hours. Reference evidence-based practices supporting intensive ABA therapy.`,
 
-      referral: `Write the REASON FOR REFERRAL section (150-200 words) for a professional ABA assessment report.
+      referral: `Write the REASON FOR REFERRAL section (200-300 words) for a professional ABA assessment report.
 
 Client: ${clientName}, Age: ${age}
 Diagnosis: ${diagnosis} (${icd10})
@@ -641,6 +667,126 @@ Write a comprehensive section that:
 3. Lists all documents and records reviewed
 4. Explains the purpose of each assessment tool used
 5. Notes any limitations or considerations in the assessment process`,
+
+      // Prompt for new section: Standardized Assessment Results
+      standardized_assessments: (() => {
+        // Load all standardized assessment data from localStorage
+        const ablls = JSON.parse(localStorage.getItem("aria-ablls-r") || "null")
+        const vinelandParent = JSON.parse(localStorage.getItem("aria-vineland-parent") || "null")
+        const vinelandTeacher = JSON.parse(localStorage.getItem("aria-vineland-teacher") || "null")
+        const srs2 = JSON.parse(localStorage.getItem("aria-srs2") || "null")
+        const mas = JSON.parse(localStorage.getItem("aria-mas") || "null")
+
+        // Also try alternative keys
+        const standardizedData = JSON.parse(localStorage.getItem("aria-standardized-assessments") || "null")
+
+        let assessmentDataStr = ""
+
+        if (standardizedData) {
+          assessmentDataStr = `
+STANDARDIZED ASSESSMENT DATA FROM STORAGE:
+${JSON.stringify(standardizedData, null, 2)}`
+        }
+
+        if (ablls) {
+          assessmentDataStr += `
+ABLLS-R DATA:
+${JSON.stringify(ablls, null, 2)}`
+        }
+
+        if (vinelandParent) {
+          assessmentDataStr += `
+VINELAND-3 PARENT DATA:
+${JSON.stringify(vinelandParent, null, 2)}`
+        }
+
+        if (vinelandTeacher) {
+          assessmentDataStr += `
+VINELAND-3 TEACHER DATA:
+${JSON.stringify(vinelandTeacher, null, 2)}`
+        }
+
+        if (srs2) {
+          assessmentDataStr += `
+SRS-2 DATA:
+${JSON.stringify(srs2, null, 2)}`
+        }
+
+        if (mas) {
+          assessmentDataStr += `
+MAS (MOTIVATION ASSESSMENT SCALE) DATA:
+${JSON.stringify(mas, null, 2)}`
+        }
+
+        return `Write the STANDARDIZED ASSESSMENT RESULTS section for a professional ABA assessment report.
+
+CLIENT: ${clientName}, Age: ${clientAge}
+DIAGNOSIS: ${diagnosis}
+
+${assessmentDataStr || "No standardized assessment data found in storage. Generate a comprehensive section with typical assessment structure."}
+
+FORMAT REQUIREMENTS:
+1. Start with a brief introduction paragraph stating which assessments were administered
+2. Present each assessment with:
+   - Assessment name and date administered
+   - Formatted results table with domains, raw scores, standard scores, and percentiles
+   - Brief interpretation paragraph
+
+REQUIRED ASSESSMENTS TO INCLUDE:
+
+**ABLLS-R (Assessment of Basic Language and Learning Skills - Revised)**
+| Domain | Score | Max Score | Percentage |
+|--------|-------|-----------|------------|
+| Cooperation & Reinforcer Effectiveness | [score] | [max] | [%] |
+| Visual Performance | [score] | [max] | [%] |
+| Receptive Language | [score] | [max] | [%] |
+| Motor Imitation | [score] | [max] | [%] |
+| Vocal Imitation | [score] | [max] | [%] |
+| Requests (Mands) | [score] | [max] | [%] |
+| Labeling (Tacts) | [score] | [max] | [%] |
+| Intraverbals | [score] | [max] | [%] |
+| Spontaneous Vocalizations | [score] | [max] | [%] |
+| Syntax & Grammar | [score] | [max] | [%] |
+| Play & Leisure | [score] | [max] | [%] |
+| Social Interaction | [score] | [max] | [%] |
+
+[Interpretation paragraph]
+
+**VINELAND-3 ADAPTIVE BEHAVIOR SCALES**
+| Domain | Standard Score | Percentile | Adaptive Level |
+|--------|---------------|------------|----------------|
+| Communication | [score] | [%ile] | [level] |
+| Daily Living Skills | [score] | [%ile] | [level] |
+| Socialization | [score] | [%ile] | [level] |
+| Motor Skills | [score] | [%ile] | [level] |
+| Adaptive Behavior Composite | [score] | [%ile] | [level] |
+
+[Interpretation paragraph]
+
+**SRS-2 (Social Responsiveness Scale, Second Edition)**
+| Subscale | T-Score | Severity |
+|----------|---------|----------|
+| Social Awareness | [score] | [severity] |
+| Social Cognition | [score] | [severity] |
+| Social Communication | [score] | [severity] |
+| Social Motivation | [score] | [severity] |
+| Restricted/Repetitive Behaviors | [score] | [severity] |
+| Total Score | [score] | [severity] |
+
+[Interpretation paragraph]
+
+**MAS (MOTIVATION ASSESSMENT SCALE)**
+| Function | Mean Score | Rank |
+|----------|------------|------|
+| Sensory | [score] | [rank] |
+| Escape | [score] | [rank] |
+| Attention | [score] | [rank] |
+| Tangible | [score] | [rank] |
+
+[Interpretation paragraph including primary hypothesized function]
+
+End with a SUMMARY paragraph synthesizing findings across all assessments and their implications for treatment planning.`
+      })(),
 
       abc_observations: `Write the ABC OBSERVATIONS section for a professional ABA assessment report.
 
@@ -1358,143 +1504,256 @@ Paragraph 4: Treatment Justification
 - Explain why this level of service is medically necessary
 - State expected outcomes with treatment`,
 
-      additional_sections: `Write the ADDITIONAL REQUIRED SECTIONS for a professional ABA assessment report.
+      // Prompts for new sections: Fade Plan, Barriers, Generalization
+      fade_plan: (() => {
+        const fadePlanData = JSON.parse(localStorage.getItem("aria-fade-plan") || "null")
 
-Include all of the following sections:
+        let fadeDataStr = ""
+        if (fadePlanData) {
+          fadeDataStr = `
+FADE PLAN DATA FROM STORAGE:
+${JSON.stringify(fadePlanData, null, 2)}`
+        }
 
----
+        return `Write the FADE PLAN & DISCHARGE CRITERIA section for a professional ABA assessment report.
 
-**GENERALIZATION & MAINTENANCE PLAN**
+CLIENT: ${clientName}, Age: ${clientAge}
+DIAGNOSIS: ${diagnosis}
 
-Generalization Strategies:
-1. Train across multiple settings (home, community, school)
-2. Train across multiple people (RBTs, caregivers, teachers)
-3. Train with varied materials and stimuli
-4. Program for natural contingencies
-5. Teach self-monitoring skills
+${fadeDataStr || "No fade plan data found. Generate a comprehensive fade plan based on typical ABA treatment progression."}
 
-Maintenance Procedures:
-1. Thin reinforcement schedules systematically
-2. Conduct periodic maintenance probes
-3. Provide booster sessions as needed
-4. Train caregivers for long-term maintenance
+REQUIRED CONTENT:
 
----
+## Fade Plan
 
-**RISK ASSESSMENT**
+**Treatment Phase Progression**
 
-Extinction Burst Considerations:
-${data.riskAssessment?.extinctionBurst || "- Potential for temporary increase in frequency/intensity of target behaviors\n- Safety protocols in place for escalation\n- Crisis intervention procedures established"}
+| Phase | Hours/Week | Focus Areas | Duration |
+|-----------|------------|-------------|----------|
+| Intensive | 30-40 hrs | Initial skill building, behavior stabilization | 6-12 months |
+| Moderate | 20-30 hrs | Skill generalization, reduced prompting | 6-12 months |
+| Focused | 10-20 hrs | Independence, maintenance | 6-12 months |
+| Maintenance | 5-10 hrs | Monitoring, caregiver support | Ongoing |
+| Discharge | 0 hrs | Community resources, school supports | N/A |
 
-Safety Protocols:
-${data.riskAssessment?.safetyProtocols || "- Environmental safety measures\n- Response blocking procedures\n- Crisis de-escalation techniques\n- When to contact emergency services"}
+**Criteria for Phase Transitions**
+1. [Specific measurable criteria for moving from Intensive to Moderate]
+2. [Criteria for Moderate to Focused]
+3. [Criteria for Focused to Maintenance]
+4. [Criteria for Maintenance to Discharge]
 
----
+## Discharge Criteria
 
-**DISCHARGE CRITERIA**
+The following criteria must be met for discharge from ABA services:
 
-Phase 1 (Intensive - Current):
-- ${weeklyHours} hours/week
-- Duration: 6-12 months
-- Criteria: 70% of goals met
+| Criterion | Target | Current Status |
+|-----------|--------|----------------|
+| Skill acquisition goals mastered | 80% of goals | [status] |
+| Behavior reduction targets met | 80% reduction | [status] |
+| Caregiver training completed | 90% fidelity | [status] |
+| Generalization demonstrated | 3+ settings | [status] |
+| Maintenance of skills | 3+ months | [status] |
 
-Phase 2 (Moderate):
-- ${Math.round(weeklyHours * 0.7)} hours/week
-- Duration: 6 months
-- Criteria: 85% of goals met
+**Discharge Planning Considerations:**
+- Transition to school-based services
+- Community resources and supports
+- Follow-up assessment schedule
+- Caregiver maintenance training
 
-Phase 3 (Maintenance):
-- ${Math.round(weeklyHours * 0.4)} hours/week
-- Duration: 3-6 months
-- Criteria: 95% of goals met, caregiver independence
+Write in professional clinical language, approximately 300-400 words.`
+      })(),
 
-Phase 4 (Discharge):
-- Consultation only
-- All goals met and maintained
-- Caregiver demonstrates 90% fidelity independently
+      barriers_treatment: (() => {
+        const barriersData = JSON.parse(localStorage.getItem("aria-barriers") || "null")
 
----
+        let barriersStr = ""
+        if (barriersData) {
+          barriersStr = `
+BARRIERS DATA FROM STORAGE:
+${JSON.stringify(barriersData, null, 2)}`
+        }
+
+        return `Write the BARRIERS TO TREATMENT section for a professional ABA assessment report.
+
+CLIENT: ${clientName}, Age: ${clientAge}
+DIAGNOSIS: ${diagnosis}
+
+${barriersStr || "No barriers data found. Generate a comprehensive barriers section based on common treatment barriers."}
+
+REQUIRED CONTENT:
+
+## Identified Barriers to Treatment
+
+**Client-Related Barriers:**
+| Barrier | Impact Level | Mitigation Strategy |
+|---------|--------------|---------------------|
+| Medical conditions affecting participation | [High/Med/Low] | [strategy] |
+| Sensory sensitivities | [level] | [strategy] |
+| Sleep disturbances | [level] | [strategy] |
+| Medication side effects | [level] | [strategy] |
+| Communication limitations | [level] | [strategy] |
+
+**Environmental Barriers:**
+| Barrier | Impact Level | Mitigation Strategy |
+|---------|--------------|---------------------|
+| Transportation limitations | [level] | [strategy] |
+| Limited treatment space | [level] | [strategy] |
+| Sibling/family needs | [level] | [strategy] |
+| School schedule conflicts | [level] | [strategy] |
+
+**Family/Caregiver Barriers:**
+| Barrier | Impact Level | Mitigation Strategy |
+|---------|--------------|---------------------|
+| Work schedules | [level] | [strategy] |
+| Language barriers | [level] | [strategy] |
+| Understanding of ABA | [level] | [strategy] |
+| Caregiver stress/burnout | [level] | [strategy] |
+
+**Systemic Barriers:**
+| Barrier | Impact Level | Mitigation Strategy |
+|---------|--------------|---------------------|
+| Insurance limitations | [level] | [strategy] |
+| Staffing availability | [level] | [strategy] |
+| Service area limitations | [level] | [strategy] |
+
+## Mitigation Plan Summary
+
+[2-3 paragraph summary of how the treatment team will address identified barriers, including specific accommodations, schedule modifications, and family support strategies]
+
+Write in professional clinical language, approximately 200-300 words.`
+      })(),
+
+      generalization_maintenance: (() => {
+        const generalizationData = JSON.parse(localStorage.getItem("aria-generalization") || "null")
+
+        let genStr = ""
+        if (generalizationData) {
+          genStr = `
+GENERALIZATION DATA FROM STORAGE:
+${JSON.stringify(generalizationData, null, 2)}`
+        }
+
+        return `Write the GENERALIZATION & MAINTENANCE section for a professional ABA assessment report.
+
+CLIENT: ${clientName}, Age: ${clientAge}
+DIAGNOSIS: ${diagnosis}
+
+${genStr || "No generalization data found. Generate a comprehensive generalization plan based on ABA best practices."}
+
+REQUIRED CONTENT:
+
+## Generalization Plan
+
+**Stimulus Generalization Strategies:**
+| Strategy | Implementation | Settings |
+|----------|---------------|----------|
+| Multiple exemplar training | Vary materials, instructions | Home, school, clinic |
+| General case programming | Teach range of examples | All environments |
+| Natural environment teaching | Embed in daily routines | Community, home |
+
+**Response Generalization Strategies:**
+| Strategy | Implementation | Target Behaviors |
+|----------|---------------|-----------------|
+| Teaching functionally equivalent responses | Multiple communication forms | Requesting, commenting |
+| Training sufficient examples | Various response forms | All skill domains |
+| Reinforcing response variability | Reward novel appropriate responses | Play, social skills |
+
+**Settings for Generalization:**
+- [ ] Home environment
+- [ ] School/classroom
+- [ ] Community (stores, restaurants, parks)
+- [ ] Therapy clinic
+- [ ] Extended family settings
+- [ ] Peer interactions
+
+**People for Generalization:**
+- [ ] Parents/primary caregivers
+- [ ] Siblings
+- [ ] Teachers/school staff
+- [ ] Peers
+- [ ] Extended family
+- [ ] Community members
+
+## Maintenance Plan
+
+**Strategies for Long-Term Maintenance:**
+1. Intermittent reinforcement schedules
+2. Natural contingencies in environment
+3. Self-management training
+4. Periodic booster sessions
+5. Caregiver maintenance training
+
+**Monitoring Schedule:**
+| Timeframe | Assessment Type | Responsible Party |
+|-----------|-----------------|-------------------|
+| Weekly | Data review | BCBA/RBT |
+| Monthly | Generalization probes | BCBA |
+| Quarterly | Formal assessment | BCBA |
+| Annually | Comprehensive review | Treatment team |
+
+Write in professional clinical language, approximately 200-300 words.`
+      })(),
+
+      crisis_plan: `Write the CRISIS PLAN & COORDINATION OF CARE section for a professional ABA assessment report.
 
 **CRISIS PLAN**
 
-De-escalation Techniques:
-1. Reduce demands immediately
-2. Provide space and reduce stimulation
-3. Offer calming activities/items
-4. Use calm, neutral tone
-5. Avoid prolonged eye contact
+This plan outlines steps to be taken in the event of a crisis situation involving the client. A crisis is defined as any event that poses an immediate risk of harm to the client or others, or results in significant disruption to safety and well-being.
 
-Emergency Contacts:
-${data.riskAssessment?.emergencyContacts || "- Primary Caregiver: [Phone]\n- BCBA: [Phone]\n- Emergency Services: 911\n- Crisis Line: [Number]"}
+**DE-ESCALATION TECHNIQUES:**
 
-When to Seek Emergency Help:
-- Risk of serious injury to self or others
-- Medical emergency
-- Client is missing/eloped
+The following techniques will be employed to de-escalate potential crisis situations:
 
----
+1.  **Reduce Demands:** Immediately remove or reduce any demands or aversive stimuli that may be contributing to the escalation.
+2.  **Provide Space:** Allow the client personal space and avoid excessive proximity unless safety requires intervention.
+3.  **Reduce Sensory Input:** Minimize auditory, visual, and tactile stimulation in the environment.
+4.  **Use Calm, Neutral Tone:** Speak in a soft, low-pitched, and non-confrontational voice.
+5.  **Offer Choices:** Provide limited, acceptable choices to give the client a sense of control (e.g., "Would you like to take a break in the quiet room or on the couch?").
+6.  **Re-direct:** Gently redirect the client's attention to a more appropriate activity or item once they begin to calm.
+7.  **Reinforce Calm Behavior:** Provide praise and positive reinforcement for any instances of calm behavior or reduced intensity.
+8.  **Visual Supports:** Utilize calming visuals or social stories if the client responds well to them.
+
+**IDENTIFYING AND RESPONDING TO EARLY WARNING SIGNS:**
+[List specific early warning signs for this client, e.g., pacing, increased vocalizations, furrowed brow, rigidity in body posture, avoidance behaviors, specific verbalizations.]
+
+**LEVELS OF INTERVENTION:**
+*   **Level 1 (Mild Escalation):** Use verbal redirection, planned ignoring (if appropriate for function), and offer a break.
+*   **Level 2 (Moderate Escalation):** Implement sensory strategies, offer choices, utilize de-escalation techniques, and increase supervision.
+*   **Level 3 (Severe Escalation/Crisis):** Implement safety protocols, use blocking procedures if necessary, involve crisis intervention team, and contact emergency services if immediate danger exists.
+
+**EMERGENCY CONTACTS:**
+*   **Primary Caregiver:** ${data.clientInfo?.caregiver || "[Caregiver Name]"} - Phone: ${data.clientInfo?.phone || "[Caregiver Phone]"}
+*   **BCBA Supervisor:** ${data.providerInfo?.bcbaName || "[BCBA Name]"} - Phone: ${data.providerInfo?.bcbaPhone || "[BCBA Phone]"}
+*   **Emergency Services:** 911
+*   **Local Crisis Line:** [Insert Local Crisis Line Number]
+*   **Client's Physician:** [Physician Name & Phone]
+
+**WHEN TO SEEK EMERGENCY HELP:**
+*   Imminent risk of serious harm to self or others.
+*   Client elopes and cannot be immediately located.
+*   Client experiences a medical emergency.
+*   Significant property destruction that poses a safety risk.
 
 **COORDINATION OF CARE**
 
-This treatment plan will be coordinated with:
-- Primary Care Physician: [Name]
-- School/Educational Team: [Contact]
-- Speech-Language Pathologist: [Name] (if applicable)
-- Occupational Therapist: [Name] (if applicable)
-- Other providers: [List]
+Effective treatment requires collaboration with all relevant parties involved in the client's care.
 
-Communication will occur via [written reports, team meetings, phone consultations] at minimum [monthly/quarterly].
+**Key Stakeholders:**
+*   **Client and Family/Caregivers:** Central to all decision-making and implementation.
+*   **Behavior Technicians (RBTs):** Provide direct services and collect data.
+*   **BCBA Supervisor:** Oversees treatment plan, provides supervision and training.
+*   **Medical Professionals:** Primary Care Physician, specialists (e.g., neurologist, psychiatrist) for co-occurring conditions.
+*   **Educational Team:** Teachers, school psychologists, school psychologists, special education staff.
+*   **Other Therapists:** Speech-Language Pathologists (SLP), Occupational Therapists (OT), Physical Therapists (PT), mental health counselors.
 
----
+**Communication Plan:**
+*   **Regular Team Meetings:** Scheduled [e.g., monthly] to discuss progress, challenges, and treatment plan adjustments.
+*   **Written Reports:** Progress reports will be shared with designated stakeholders [e.g., quarterly, or as required by funding sources].
+*   **Phone Consultations:** Available for urgent matters and coordination between sessions.
+*   **Caregiver Training:** Integrated into therapy sessions and dedicated training appointments.
+*   **School Collaboration:** If applicable, with parental consent, communication will occur with school staff to ensure consistency of services and support.
 
-**CONSENT TO TREATMENT**
-
-By signing below, the caregiver acknowledges:
-1. Review of this assessment and treatment plan
-2. Understanding of proposed ABA services
-3. Consent to treatment as described
-4. Understanding of rights toחסר or discontinue services
-5. Agreement to participate in parent training
-
-_________________________________    ______________
-Caregiver Signature                 Date
-
-_________________________________    ______________
-${data.providerInfo?.bcbaName || "BCBA Name"}, ${data.providerInfo?.bcbaLicense || "BCBA License #"}    Date
-Board Certified Behavior Analyst`,
-
-      progress_notes: `Write the PROGRESS NOTES section for a professional ABA assessment report.
-
-Client: ${clientName}
-Dates of Service: ${data.assessmentDates || "[Dates]"}
-
-Create progress notes for the past 4 weeks, detailing client progress, challenges, and adjustments to the treatment plan. Each note should include:
-
-- Date of Service
-- Session Duration
-- Target Behaviors Addressed
-- Skills Targeted
-- Interventions Implemented
-- Client Response/Progress
-- Challenges Encountered
-- Recommendations/Plan for Next Session
-
-Format each weekly summary as follows:
-
-**Week of [Date]**
-
-**[Day of Week], [Date] - [Session Duration, e.g., 2 hours]**
-- Target Behaviors: [List behaviors]
-- Skills Targeted: [List skills]
-- Interventions: [Describe interventions]
-- Client Response: [Describe progress, e.g., "Client independently requested a break 3 times today with 80% accuracy."]
-- Challenges: [Describe challenges, e.g., "Client displayed increased aggression when demands were presented."]
-- Plan: [Describe next steps, e.g., "Continue FCT for break requests. Implement DRA for appropriate requests."]
-
-**Week of [Date]**
-... and so on for 4 weeks.
-
-Ensure notes reflect data-driven decision-making and client-centered care. Use clinical language and maintain a professional tone.`,
+This collaborative approach ensures a holistic and consistent intervention plan, maximizing the client's potential for growth and success.`,
     }
 
     return prompts[sectionId] || `Write the "${sectionId}" section for an ABA assessment report.`
