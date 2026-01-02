@@ -22,6 +22,8 @@ import {
   SaveIcon,
   ClockIcon,
   Loader2Icon,
+  TrendingDownIcon,
+  AlertTriangleIcon,
 } from "@/components/icons"
 
 // Import all the form components
@@ -40,11 +42,17 @@ import { MedicalNecessityGenerator } from "@/components/medical-necessity-genera
 import { CPTAuthorizationRequest } from "@/components/cpt-authorization-request"
 import { ConsentFormsManager } from "@/components/consent-forms-manager"
 import { AIReportGenerator } from "@/components/ai-report-generator"
+import { ReasonForReferral } from "@/components/reason-for-referral"
+import { StandardizedAssessments } from "@/components/standardized-assessments"
+import { FadePlan } from "@/components/fade-plan"
+import { BarriersGeneralization } from "@/components/barriers-generalization"
 import { Card, CardContent } from "@/components/ui/card"
 
 type ActiveView =
   | "client"
   | "background"
+  | "referral"
+  | "standardized"
   | "assessment"
   | "abc"
   | "risk"
@@ -56,6 +64,8 @@ type ActiveView =
   | "schedule"
   | "medical"
   | "cptauth"
+  | "fadeplan"
+  | "barriers"
   | "consent"
   | "report"
 
@@ -77,16 +87,22 @@ const phases = [
         icon: BookOpenIcon,
         description: "Medical & developmental history",
       },
+      {
+        id: "referral" as ActiveView,
+        label: "Reason for Referral",
+        icon: FileTextIcon,
+        description: "Presenting concerns & goals",
+      },
     ],
   },
   {
     title: "Assessment",
     items: [
       {
-        id: "assessment" as ActiveView,
-        label: "Assessment Data",
+        id: "standardized" as ActiveView,
+        label: "Standardized Assessments",
         icon: ClipboardListIcon,
-        description: "Skills & behavior evaluation",
+        description: "ABLLS-R, Vineland, SRS-2, MAS",
       },
       {
         id: "abc" as ActiveView,
@@ -137,6 +153,18 @@ const phases = [
         label: "CPT Authorization",
         icon: ClipboardListIcon,
         description: "CPT codes & authorization",
+      },
+      {
+        id: "fadeplan" as ActiveView,
+        label: "Fade Plan",
+        icon: TrendingDownIcon,
+        description: "Service reduction criteria",
+      },
+      {
+        id: "barriers" as ActiveView,
+        label: "Barriers & Generalization",
+        icon: AlertTriangleIcon,
+        description: "Treatment barriers & strategies",
       },
       { id: "consent" as ActiveView, label: "Consent Forms", icon: FileTextIcon, description: "Required consents" },
       { id: "report" as ActiveView, label: "Generate Report", icon: FileTextIcon, description: "Create final report" },
@@ -424,6 +452,10 @@ export function InitialAssessmentDashboard() {
         return <ClientForm onSave={() => markStepComplete("client")} assessmentType="initial" />
       case "background":
         return <BackgroundHistory onSave={() => markStepComplete("background")} />
+      case "referral":
+        return <ReasonForReferral onSave={() => markStepComplete("referral")} />
+      case "standardized":
+        return <StandardizedAssessments onSave={() => markStepComplete("standardized")} />
       case "assessment":
         return <AssessmentForm onSave={() => markStepComplete("assessment")} />
       case "abc":
@@ -446,6 +478,10 @@ export function InitialAssessmentDashboard() {
         return <MedicalNecessityGenerator onSave={() => markStepComplete("medical")} />
       case "cptauth":
         return <CPTAuthorizationRequest clientData={safeClientData} onSave={() => markStepComplete("cptauth")} />
+      case "fadeplan":
+        return <FadePlan onSave={() => markStepComplete("fadeplan")} />
+      case "barriers":
+        return <BarriersGeneralization onSave={() => markStepComplete("barriers")} />
       case "consent":
         return <ConsentFormsManager clientData={safeClientData} onSave={() => markStepComplete("consent")} />
       case "report":
