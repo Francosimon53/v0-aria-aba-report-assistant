@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { FileText, RefreshCw } from "lucide-react"
+import { UserPlus, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function AssessmentTypeBadge({ className }: { className?: string }) {
@@ -25,21 +25,21 @@ export function AssessmentTypeBadge({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium",
+        "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow-sm",
         assessmentType === "initial"
-          ? "bg-blue-50 text-blue-700 border-blue-200"
-          : "bg-purple-50 text-purple-700 border-purple-200",
+          ? "bg-gradient-to-r from-[#0D9488] to-[#0D9488]/80 text-white border border-[#0D9488]/20"
+          : "bg-gradient-to-r from-amber-500 to-amber-500/80 text-white border border-amber-500/20",
         className,
       )}
     >
       {assessmentType === "initial" ? (
         <>
-          <FileText className="h-4 w-4" />
+          <UserPlus className="h-4 w-4" />
           <span>Initial Assessment</span>
         </>
       ) : (
         <>
-          <RefreshCw className="h-4 w-4" />
+          <TrendingUp className="h-4 w-4" />
           <span>Reassessment</span>
         </>
       )}
