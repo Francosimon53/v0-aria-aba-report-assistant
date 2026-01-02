@@ -64,7 +64,8 @@ interface ExtendedClientData extends ClientData {
 
 interface ClientFormProps {
   clientData: ClientData | null
-  onSave: (data: ClientData) => void
+  onSave?: () => void
+  assessmentType?: "initial" | "reassessment"
 }
 
 const diagnosisToICD10: Record<string, string> = {
@@ -79,7 +80,7 @@ const diagnosisToICD10: Record<string, string> = {
   "Global Developmental Delay": "F88",
 }
 
-export function ClientForm({ clientData, onSave }: ClientFormProps) {
+export function ClientForm({ clientData, onSave, assessmentType: propAssessmentType }: ClientFormProps) {
   const { toast } = useToast()
 
   const getDefaultFormData = (): ExtendedClientData => ({
@@ -201,7 +202,7 @@ export function ClientForm({ clientData, onSave }: ClientFormProps) {
       toast({ title: "Error", description: "Please fill in required fields", variant: "destructive" })
       return
     }
-    onSave(formData as ClientData)
+    onSave?.()
     toast({ title: "Success", description: "Client information saved" })
   }
 
@@ -212,7 +213,7 @@ export function ClientForm({ clientData, onSave }: ClientFormProps) {
     }
     setFormData(newFormData)
 
-    onSave(newFormData as ClientData)
+    onSave?.()
 
     toast({
       title: "Data Imported",
@@ -246,7 +247,7 @@ export function ClientForm({ clientData, onSave }: ClientFormProps) {
     }
 
     setFormData(newFormData)
-    onSave(newFormData as ClientData)
+    onSave?.()
 
     toast({
       title: "Import Complete!",
@@ -260,6 +261,8 @@ export function ClientForm({ clientData, onSave }: ClientFormProps) {
       return value !== "" && value !== undefined && value !== null && (typeof value !== "boolean" || value === true)
     })
   }
+
+  const isAssessmentTypeFixed = !!propAssessmentType
 
   return (
     <div className="h-full flex flex-col">
@@ -296,196 +299,200 @@ export function ClientForm({ clientData, onSave }: ClientFormProps) {
         <div className="p-6">
           <div className="max-w-4xl mx-auto space-y-6">
             {/* Assessment Type */}
-            <div className="space-y-4">
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Select Assessment Type</h2>
-                <p className="text-gray-500 mt-1">Choose the type of evaluation you are conducting</p>
-              </div>
+            {!isAssessmentTypeFixed && (
+              <div className="space-y-4">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Select Assessment Type</h2>
+                  <p className="text-gray-500 mt-1">Choose the type of evaluation you are conducting</p>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Initial Assessment Card - Blue/Teal Theme */}
-                <div
-                  onClick={() => handleChange("assessmentType", "initial")}
-                  className={cn(
-                    "relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02]",
-                    formData.assessmentType === "initial"
-                      ? "ring-4 ring-[#0D9488] shadow-2xl shadow-[#0D9488]/20"
-                      : "ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-lg",
-                  )}
-                >
-                  {/* Background gradient for Initial */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Initial Assessment Card - Blue/Teal Theme */}
                   <div
+                    onClick={() => handleChange("assessmentType", "initial")}
                     className={cn(
-                      "absolute inset-0 transition-opacity duration-300",
-                      formData.assessmentType === "initial" ? "opacity-100" : "opacity-0",
+                      "relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02]",
+                      formData.assessmentType === "initial"
+                        ? "ring-4 ring-[#0D9488] shadow-2xl shadow-[#0D9488]/20"
+                        : "ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-lg",
                     )}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#0D9488]/10 via-[#0D9488]/5 to-blue-50" />
-                  </div>
-
-                  <div className="relative p-6">
-                    {/* Header with icon */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div
-                        className={cn(
-                          "p-3 rounded-xl transition-colors",
-                          formData.assessmentType === "initial"
-                            ? "bg-[#0D9488] text-white"
-                            : "bg-[#0D9488]/10 text-[#0D9488]",
-                        )}
-                      >
-                        <UserPlus className="h-8 w-8" />
-                      </div>
-                      {formData.assessmentType === "initial" && (
-                        <span className="flex items-center gap-1 bg-[#0D9488] text-white text-xs font-semibold px-3 py-1 rounded-full">
-                          <Sparkles className="h-3 w-3" />
-                          Selected
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Title and description */}
-                    <h3
-                      className={cn(
-                        "text-xl font-bold mb-2 transition-colors",
-                        formData.assessmentType === "initial" ? "text-[#0D9488]" : "text-gray-900",
-                      )}
-                    >
-                      Initial Assessment
-                    </h3>
-                    <p className="text-gray-600 text-sm mb-4">Comprehensive first-time evaluation for new clients</p>
-
-                    {/* Features list */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <ClipboardCheck className="h-4 w-4 text-[#0D9488]" />
-                        <span>Complete diagnostic evaluation</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Target className="h-4 w-4 text-[#0D9488]" />
-                        <span>Baseline skill assessment</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="h-4 w-4 text-[#0D9488]" />
-                        <span>Initial treatment plan</span>
-                      </div>
-                    </div>
-
-                    {/* Bottom indicator */}
+                    {/* Background gradient for Initial */}
                     <div
                       className={cn(
-                        "mt-4 pt-4 border-t flex items-center justify-between",
-                        formData.assessmentType === "initial" ? "border-[#0D9488]/20" : "border-gray-100",
+                        "absolute inset-0 transition-opacity duration-300",
+                        formData.assessmentType === "initial" ? "opacity-100" : "opacity-0",
                       )}
                     >
-                      <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">New Client</span>
-                      <span
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#0D9488]/10 via-[#0D9488]/5 to-blue-50" />
+                    </div>
+
+                    <div className="relative p-6">
+                      {/* Header with icon */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div
+                          className={cn(
+                            "p-3 rounded-xl transition-colors",
+                            formData.assessmentType === "initial"
+                              ? "bg-[#0D9488] text-white"
+                              : "bg-[#0D9488]/10 text-[#0D9488]",
+                          )}
+                        >
+                          <UserPlus className="h-8 w-8" />
+                        </div>
+                        {formData.assessmentType === "initial" && (
+                          <span className="flex items-center gap-1 bg-[#0D9488] text-white text-xs font-semibold px-3 py-1 rounded-full">
+                            <Sparkles className="h-3 w-3" />
+                            Selected
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Title and description */}
+                      <h3
                         className={cn(
-                          "text-xs font-semibold px-2 py-1 rounded",
-                          formData.assessmentType === "initial"
-                            ? "bg-[#0D9488]/10 text-[#0D9488]"
-                            : "bg-gray-100 text-gray-500",
+                          "text-xl font-bold mb-2 transition-colors",
+                          formData.assessmentType === "initial" ? "text-[#0D9488]" : "text-gray-900",
                         )}
                       >
-                        First Evaluation
-                      </span>
+                        Initial Assessment
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-4">Comprehensive first-time evaluation for new clients</p>
+
+                      {/* Features list */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <ClipboardCheck className="h-4 w-4 text-[#0D9488]" />
+                          <span>Complete diagnostic evaluation</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Target className="h-4 w-4 text-[#0D9488]" />
+                          <span>Baseline skill assessment</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Calendar className="h-4 w-4 text-[#0D9488]" />
+                          <span>Initial treatment plan</span>
+                        </div>
+                      </div>
+
+                      {/* Bottom indicator */}
+                      <div
+                        className={cn(
+                          "mt-4 pt-4 border-t flex items-center justify-between",
+                          formData.assessmentType === "initial" ? "border-[#0D9488]/20" : "border-gray-100",
+                        )}
+                      >
+                        <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">New Client</span>
+                        <span
+                          className={cn(
+                            "text-xs font-semibold px-2 py-1 rounded",
+                            formData.assessmentType === "initial"
+                              ? "bg-[#0D9488]/10 text-[#0D9488]"
+                              : "bg-gray-100 text-gray-500",
+                          )}
+                        >
+                          First Evaluation
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reassessment Card - Amber/Orange Theme */}
+                  <div
+                    onClick={() => handleChange("assessmentType", "reassessment")}
+                    className={cn(
+                      "relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02]",
+                      formData.assessmentType === "reassessment"
+                        ? "ring-4 ring-amber-500 shadow-2xl shadow-amber-500/20"
+                        : "ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-lg",
+                    )}
+                  >
+                    {/* Background gradient for Reassessment */}
+                    <div
+                      className={cn(
+                        "absolute inset-0 transition-opacity duration-300",
+                        formData.assessmentType === "reassessment" ? "opacity-100" : "opacity-0",
+                      )}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-orange-50" />
+                    </div>
+
+                    <div className="relative p-6">
+                      {/* Header with icon */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div
+                          className={cn(
+                            "p-3 rounded-xl transition-colors",
+                            formData.assessmentType === "reassessment"
+                              ? "bg-amber-500 text-white"
+                              : "bg-amber-500/10 text-amber-600",
+                          )}
+                        >
+                          <TrendingUp className="h-8 w-8" />
+                        </div>
+                        {formData.assessmentType === "reassessment" && (
+                          <span className="flex items-center gap-1 bg-amber-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                            <Sparkles className="h-3 w-3" />
+                            Selected
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Title and description */}
+                      <h3
+                        className={cn(
+                          "text-xl font-bold mb-2 transition-colors",
+                          formData.assessmentType === "reassessment" ? "text-amber-600" : "text-gray-900",
+                        )}
+                      >
+                        Reassessment
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-4">
+                        Periodic review to measure progress and update treatment
+                      </p>
+
+                      {/* Features list */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <BarChart3 className="h-4 w-4 text-amber-500" />
+                          <span>Progress analysis & comparison</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Award className="h-4 w-4 text-amber-500" />
+                          <span>Goal achievement review</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <RepeatIcon className="h-4 w-4 text-amber-500" />
+                          <span>Authorization renewal</span>
+                        </div>
+                      </div>
+
+                      {/* Bottom indicator */}
+                      <div
+                        className={cn(
+                          "mt-4 pt-4 border-t flex items-center justify-between",
+                          formData.assessmentType === "reassessment" ? "border-amber-500/20" : "border-gray-100",
+                        )}
+                      >
+                        <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+                          Existing Client
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xs font-semibold px-2 py-1 rounded",
+                            formData.assessmentType === "reassessment"
+                              ? "bg-amber-500/10 text-amber-600"
+                              : "bg-gray-100 text-gray-500",
+                          )}
+                        >
+                          6-Month Review
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Reassessment Card - Amber/Orange Theme */}
-                <div
-                  onClick={() => handleChange("assessmentType", "reassessment")}
-                  className={cn(
-                    "relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02]",
-                    formData.assessmentType === "reassessment"
-                      ? "ring-4 ring-amber-500 shadow-2xl shadow-amber-500/20"
-                      : "ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-lg",
-                  )}
-                >
-                  {/* Background gradient for Reassessment */}
-                  <div
-                    className={cn(
-                      "absolute inset-0 transition-opacity duration-300",
-                      formData.assessmentType === "reassessment" ? "opacity-100" : "opacity-0",
-                    )}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-orange-50" />
-                  </div>
-
-                  <div className="relative p-6">
-                    {/* Header with icon */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div
-                        className={cn(
-                          "p-3 rounded-xl transition-colors",
-                          formData.assessmentType === "reassessment"
-                            ? "bg-amber-500 text-white"
-                            : "bg-amber-500/10 text-amber-600",
-                        )}
-                      >
-                        <TrendingUp className="h-8 w-8" />
-                      </div>
-                      {formData.assessmentType === "reassessment" && (
-                        <span className="flex items-center gap-1 bg-amber-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                          <Sparkles className="h-3 w-3" />
-                          Selected
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Title and description */}
-                    <h3
-                      className={cn(
-                        "text-xl font-bold mb-2 transition-colors",
-                        formData.assessmentType === "reassessment" ? "text-amber-600" : "text-gray-900",
-                      )}
-                    >
-                      Reassessment
-                    </h3>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Periodic review to measure progress and update treatment
-                    </p>
-
-                    {/* Features list */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <BarChart3 className="h-4 w-4 text-amber-500" />
-                        <span>Progress analysis & comparison</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Award className="h-4 w-4 text-amber-500" />
-                        <span>Goal achievement review</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <RepeatIcon className="h-4 w-4 text-amber-500" />
-                        <span>Authorization renewal</span>
-                      </div>
-                    </div>
-
-                    {/* Bottom indicator */}
-                    <div
-                      className={cn(
-                        "mt-4 pt-4 border-t flex items-center justify-between",
-                        formData.assessmentType === "reassessment" ? "border-amber-500/20" : "border-gray-100",
-                      )}
-                    >
-                      <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">Existing Client</span>
-                      <span
-                        className={cn(
-                          "text-xs font-semibold px-2 py-1 rounded",
-                          formData.assessmentType === "reassessment"
-                            ? "bg-amber-500/10 text-amber-600"
-                            : "bg-gray-100 text-gray-500",
-                        )}
-                      >
-                        6-Month Review
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
-            </div>
+            )}
 
             {/* Basic Information */}
             <Card className="border-2 border-[#0D9488]/20">
