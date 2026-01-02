@@ -733,66 +733,20 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
         <CardContent className="p-6 space-y-4">
           {showPreview && justification ? (
             <div className="min-h-[280px] p-8 border-2 border-gray-100 rounded-xl bg-gradient-to-br from-white via-slate-50/50 to-gray-50/30 shadow-inner">
-              <article className="max-w-none">
-                <style jsx>{`
-                  article :global(h1) {
-                    font-size: 1.5rem;
-                    font-weight: 700;
-                    color: #111827;
-                    margin-bottom: 1rem;
-                    padding-bottom: 0.5rem;
-                    border-bottom: 2px solid #e5e7eb;
-                    letter-spacing: -0.025em;
-                  }
-                  article :global(h2) {
-                    font-size: 1.25rem;
-                    font-weight: 600;
-                    color: #1f2937;
-                    margin-top: 1.5rem;
-                    margin-bottom: 0.75rem;
-                    letter-spacing: -0.02em;
-                  }
-                  article :global(h3) {
-                    font-size: 1.1rem;
-                    font-weight: 600;
-                    color: #374151;
-                    margin-top: 1.25rem;
-                    margin-bottom: 0.5rem;
-                  }
-                  article :global(p) {
-                    font-size: 0.95rem;
-                    line-height: 1.75;
-                    color: #4b5563;
-                    margin-bottom: 1rem;
-                    font-family: 'Georgia', 'Times New Roman', serif;
-                  }
-                  article :global(strong) {
-                    font-weight: 600;
-                    color: #111827;
-                  }
-                  article :global(ul), article :global(ol) {
-                    margin: 0.75rem 0;
-                    padding-left: 1.5rem;
-                  }
-                  article :global(li) {
-                    font-size: 0.95rem;
-                    line-height: 1.7;
-                    color: #4b5563;
-                    margin-bottom: 0.5rem;
-                    font-family: 'Georgia', 'Times New Roman', serif;
-                  }
-                  article :global(li::marker) {
-                    color: #0d9488;
-                    font-weight: 600;
-                  }
-                  article :global(blockquote) {
-                    border-left: 4px solid #0d9488;
-                    padding-left: 1rem;
-                    margin: 1rem 0;
-                    font-style: italic;
-                    color: #6b7280;
-                  }
-                `}</style>
+              <article
+                className="prose prose-slate max-w-none
+                prose-headings:font-semibold prose-headings:tracking-tight
+                prose-h1:text-2xl prose-h1:text-gray-900 prose-h1:mb-4 prose-h1:pb-2 prose-h1:border-b-2 prose-h1:border-gray-200
+                prose-h2:text-xl prose-h2:text-gray-800 prose-h2:mt-6 prose-h2:mb-3
+                prose-h3:text-lg prose-h3:text-gray-700 prose-h3:mt-5 prose-h3:mb-2
+                prose-p:text-[0.95rem] prose-p:leading-relaxed prose-p:text-gray-600 prose-p:mb-4 prose-p:font-serif
+                prose-strong:font-semibold prose-strong:text-gray-900
+                prose-ul:my-3 prose-ul:pl-6 prose-ol:my-3 prose-ol:pl-6
+                prose-li:text-[0.95rem] prose-li:leading-relaxed prose-li:text-gray-600 prose-li:mb-2 prose-li:font-serif
+                prose-li:marker:text-teal-600 prose-li:marker:font-semibold
+                prose-blockquote:border-l-4 prose-blockquote:border-teal-500 prose-blockquote:pl-4 prose-blockquote:my-4 prose-blockquote:italic prose-blockquote:text-gray-500
+              "
+              >
                 <ReactMarkdown>{justification}</ReactMarkdown>
               </article>
             </div>
