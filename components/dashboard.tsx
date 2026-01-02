@@ -555,12 +555,6 @@ export function Dashboard() {
                     onClick={() => setActiveView("medicalnecessity")}
                   />
                   <NavItem
-                    active={activeView === "report"}
-                    label="Generate Report"
-                    completed={isStepCompleted("report")}
-                    onClick={() => setActiveView("report")}
-                  />
-                  <NavItem
                     active={activeView === "cptauth"}
                     label="CPT Authorization"
                     completed={isStepCompleted("cptauth")}
@@ -571,6 +565,12 @@ export function Dashboard() {
                     label="Consent Forms"
                     completed={isStepCompleted("consent")}
                     onClick={() => setActiveView("consent")}
+                  />
+                  <NavItem
+                    active={activeView === "report"}
+                    label="Generate Report"
+                    completed={isStepCompleted("report")}
+                    onClick={() => setActiveView("report")}
                   />
                 </div>
               </AccordionContent>
