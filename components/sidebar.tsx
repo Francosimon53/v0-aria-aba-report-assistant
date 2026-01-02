@@ -20,7 +20,7 @@ import {
   CalendarIcon,
   EditIcon,
   FileIcon,
-  LayoutDashboard,
+  ArrowLeft,
 } from "lucide-react"
 import type { ClientData, AssessmentData } from "@/lib/types"
 
@@ -66,13 +66,6 @@ export function Sidebar({
   selectedGoalsCount,
 }: SidebarProps) {
   const navItems = [
-    {
-      id: "dashboard" as const,
-      label: "Dashboard",
-      icon: LayoutDashboard, // Changed from HomeIcon to LayoutDashboard
-      description: "Overview & quick actions",
-      completed: false,
-    },
     {
       id: "client" as const,
       label: "Client Info",
@@ -210,6 +203,20 @@ export function Sidebar({
         </Button>
       </div>
 
+      <div className="p-2 border-b border-border">
+        <Button
+          variant="outline"
+          className={cn(
+            "w-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-700 font-medium",
+            collapsed ? "justify-center px-2" : "justify-start gap-3",
+          )}
+          onClick={() => (window.location.href = "/dashboard")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {!collapsed && <span>Back to Dashboard</span>}
+        </Button>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-2">
         <nav className="space-y-1">
           {navItems.map((item) => {
@@ -222,13 +229,7 @@ export function Sidebar({
                 key={item.id}
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn("w-full justify-start gap-3 h-auto py-3", collapsed && "justify-center px-2")}
-                onClick={() => {
-                  if (item.id === "dashboard") {
-                    window.location.href = "/dashboard"
-                  } else {
-                    onViewChange(item.id)
-                  }
-                }}
+                onClick={() => onViewChange(item.id)}
               >
                 <div className="relative">
                   <Icon className={cn("h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />
