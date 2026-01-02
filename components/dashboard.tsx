@@ -22,18 +22,16 @@ import { ServiceSchedule } from "./service-schedule"
 import { ConsentForm } from "./consent-form"
 import { BackgroundHistory } from "./background-history"
 import { MedicalNecessityGenerator } from "./medical-necessity-generator"
-import { ProgressDashboard } from "./progress-dashboard"
 import { AssessmentForm } from "./assessment-form"
-import { ReassessmentForm } from "./reassessment-form"
 import { DataIntegration } from "./data-integration"
 import { ComplianceSupport } from "./compliance-support"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { MenuIcon, PlusIcon, SparklesIcon, CheckCircleIcon, ArrowLeftIcon } from "@/components/icons"
+import { MenuIcon, PlusIcon, SparklesIcon, CheckCircleIcon, ArrowLeftIcon, DatabaseIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 import { getNextStep, getPreviousStep } from "./wizard-sidebar"
+import { StorageStatusViewer } from "./storage-status-viewer"
 
 type ActiveView =
   | "client"
@@ -41,8 +39,6 @@ type ActiveView =
   | "assessment"
   | "abc"
   | "risk"
-  | "reassessment"
-  | "progressdashboard"
   | "integration"
   | "goals"
   | "goalstracker"
@@ -54,9 +50,9 @@ type ActiveView =
   | "consent"
   | "medicalnecessity"
   | "report"
-  | "progressreport" // Added progressreport view type
   | "timesaved"
   | "support"
+  | "storagestatus"
 
 export function Dashboard() {
   const [activeView, setActiveView] = useState<ActiveView>("client")
@@ -120,6 +116,11 @@ export function Dashboard() {
     if (nextStep) {
       setActiveView(nextStep as ActiveView)
     }
+  }
+
+  const handleSaveAndNavigate = (nextView: ActiveView) => {
+    markStepComplete(activeView)
+    setActiveView(nextView)
   }
 
   const hasPrevious = getPreviousStep(activeView) !== null
@@ -205,19 +206,6 @@ export function Dashboard() {
         return <ABCObservation onSave={() => markStepComplete("abc")} />
       case "risk":
         return <RiskAssessment clientData={safeClientData} onSave={() => markStepComplete("risk")} />
-      case "reassessment":
-        return (
-          <ReassessmentForm
-            clientData={safeClientData}
-            previousAssessment={assessmentData}
-            onSave={(data) => {
-              setReassessmentData(data)
-              markStepComplete("reassessment")
-            }}
-          />
-        )
-      case "progressdashboard":
-        return <ProgressDashboard clientData={safeClientData} assessmentData={assessmentData} />
       case "integration":
         return (
           <DataIntegration
@@ -258,13 +246,12 @@ export function Dashboard() {
         )
       case "report":
         return <AIReportGenerator />
-      case "progressreport":
-        const ProgressReportPage = require("@/app/assessment/progress-report/page").default
-        return <ProgressReportPage />
       case "timesaved":
         return <TimeSavedTracker />
       case "support":
         return <ComplianceSupport />
+      case "storagestatus":
+        return <StorageStatusViewer />
       default:
         return <ClientForm clientData={clientData} onSave={(data) => setClientData(data)} onNext={handleNext} />
     }
@@ -562,22 +549,16 @@ export function Dashboard() {
               <AccordionContent className="pb-0 pt-1">
                 <div className="space-y-0.5 ml-2 pl-3 border-l border-gray-200">
                   <NavItem
-                    active={activeView === "report"}
-                    label="Generate Report"
-                    completed={isStepCompleted("report")}
-                    onClick={() => setActiveView("report")}
-                  />
-                  <NavItem
-                    active={activeView === "progressreport"}
-                    label="Progress Report"
-                    completed={isStepCompleted("progressreport")}
-                    onClick={() => setActiveView("progressreport")}
-                  />
-                  <NavItem
                     active={activeView === "medicalnecessity"}
                     label="Medical Necessity"
                     completed={isStepCompleted("medicalnecessity")}
                     onClick={() => setActiveView("medicalnecessity")}
+                  />
+                  <NavItem
+                    active={activeView === "report"}
+                    label="Generate Report"
+                    completed={isStepCompleted("report")}
+                    onClick={() => setActiveView("report")}
                   />
                   <NavItem
                     active={activeView === "cptauth"}
@@ -595,21 +576,19 @@ export function Dashboard() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="utilities" className="border-none">
+            <AccordionItem value="storage" className="border-none">
               <AccordionTrigger className="px-2 py-2 hover:bg-gray-50 rounded-lg text-sm font-medium">
-                Utilities
+                <div className="flex items-center gap-2">
+                  <DatabaseIcon className="w-4 h-4 text-teal-600" />
+                  <span>Data Status</span>
+                </div>
               </AccordionTrigger>
               <AccordionContent className="pb-0 pt-1">
                 <div className="space-y-0.5 ml-2 pl-3 border-l border-gray-200">
                   <NavItem
-                    active={activeView === "timesaved"}
-                    label="Time Saved"
-                    onClick={() => setActiveView("timesaved")}
-                  />
-                  <NavItem
-                    active={activeView === "support"}
-                    label="Compliance Support"
-                    onClick={() => setActiveView("support")}
+                    active={activeView === "storagestatus"}
+                    label="View Saved Data"
+                    onClick={() => setActiveView("storagestatus")}
                   />
                 </div>
               </AccordionContent>
@@ -618,17 +597,8 @@ export function Dashboard() {
         </div>
 
         <div className="p-3 border-t border-gray-100">
-          <div className="flex items-center gap-2">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src="/placeholder.svg" />
-              <AvatarFallback className="bg-gradient-to-br from-teal-100 to-cyan-100 text-teal-700 text-xs font-medium">
-                U
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-900 truncate">User</div>
-              <div className="text-xs text-gray-500 truncate">Professional Plan</div>
-            </div>
+          <div className="text-xs text-gray-500 text-center">
+            {lastSaved && <span>Last saved: {lastSaved.toLocaleTimeString()}</span>}
           </div>
         </div>
       </aside>
@@ -686,14 +656,26 @@ export function Dashboard() {
 
             {hasNavigation && (
               <WizardNavigation
+                currentStep={activeView}
                 onPrevious={hasPrevious ? handlePrevious : undefined}
                 onNext={hasNext ? handleNext : undefined}
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
                 isLastStep={isLastStep}
+                onSave={handleSaveAll}
+                isSaving={isSaving}
               />
             )}
           </div>
         </div>
       </div>
+
+      {activeView === "storagestatus" && (
+        <div className="p-6">
+          <StorageStatusViewer />
+        </div>
+      )}
+      {/* </CHANGE> */}
 
       <KeyboardShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
     </div>
