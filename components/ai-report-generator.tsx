@@ -205,6 +205,8 @@ const loadGoalsTrackerData = () => {
   return []
 }
 
+const NEW_SECTION_IDS = ["standardized_assessments", "fade_plan", "barriers_treatment", "generalization_maintenance"]
+
 const REPORT_SECTIONS = [
   {
     id: "header",
@@ -242,7 +244,7 @@ const REPORT_SECTIONS = [
     estimatedWords: "200-300",
   },
   {
-    id: "standardized_assessments",
+    id: "standardized_assessments", // New section ID
     title: "Standardized Assessment Results",
     order: 6,
     icon: <BarChart className="h-4 w-4" />,
@@ -326,21 +328,21 @@ const REPORT_SECTIONS = [
     estimatedWords: "250-350",
   },
   {
-    id: "fade_plan",
+    id: "fade_plan", // New section ID
     title: "Fade Plan & Discharge Criteria",
     order: 18,
     icon: <TrendingDown className="h-4 w-4" />,
     estimatedWords: "300-400",
   },
   {
-    id: "barriers_treatment",
+    id: "barriers_treatment", // New section ID
     title: "Barriers to Treatment",
     order: 19,
     icon: <AlertTriangle className="h-4 w-4" />,
     estimatedWords: "200-300",
   },
   {
-    id: "generalization_maintenance",
+    id: "generalization_maintenance", // New section ID
     title: "Generalization & Maintenance",
     order: 20,
     icon: <Repeat className="h-4 w-4" />,
@@ -1646,14 +1648,14 @@ REQUIRED CONTENT:
 
 **Stimulus Generalization Strategies:**
 | Strategy | Implementation | Settings |
-|----------|---------------|----------|
+|-----------|---------------|----------|
 | Multiple exemplar training | Vary materials, instructions | Home, school, clinic |
 | General case programming | Teach range of examples | All environments |
 | Natural environment teaching | Embed in daily routines | Community, home |
 
 **Response Generalization Strategies:**
 | Strategy | Implementation | Target Behaviors |
-|----------|---------------|-----------------|
+|-----------|---------------|-----------------|
 | Teaching functionally equivalent responses | Multiple communication forms | Requesting, commenting |
 | Training sufficient examples | Various response forms | All skill domains |
 | Reinforcing response variability | Reward novel appropriate responses | Play, social skills |
@@ -3108,6 +3110,7 @@ This collaborative approach ensures a holistic and consistent intervention plan,
                       : g.type === "behavior-reduction",
                   ).length > 0
                 const isGenerating = section.status === "generating"
+                const isNewSection = NEW_SECTION_IDS.includes(section.id)
 
                 return (
                   <button
@@ -3135,6 +3138,11 @@ This collaborative approach ensures a holistic and consistent intervention plan,
                       </span>
                     )}
                     <span className="truncate max-w-[120px]">{section.title}</span>
+                    {isNewSection && section.status === "pending" && (
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full">
+                        NEW
+                      </span>
+                    )}
                     {hasGoalsTrackerData && section.status === "complete" && (
                       <Badge className="bg-green-100 text-green-700 border-0">
                         <Check className="h-3 w-3" />
@@ -3265,7 +3273,7 @@ This collaborative approach ensures a holistic and consistent intervention plan,
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Ready to create your professional report</h3>
               <p className="text-gray-500 mb-4 max-w-md mx-auto">
-                ARIA will generate 16 complete sections based on assessment data. You can generate everything at once or
+                ARIA will generate 21 complete sections based on assessment data. You can generate everything at once or
                 section by section.
               </p>
               <div className="flex items-center justify-center gap-3">
@@ -3339,6 +3347,11 @@ This collaborative approach ensures a holistic and consistent intervention plan,
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-gray-900 truncate">{section.title}</h3>
+                      {NEW_SECTION_IDS.includes(section.id) && section.status === "pending" && (
+                        <span className="px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full animate-pulse">
+                          NEW
+                        </span>
+                      )}
                       {section.status === "complete" && (
                         <Badge className="bg-green-100 text-green-700 border-0 text-xs">Complete</Badge>
                       )}
@@ -3493,66 +3506,64 @@ This collaborative approach ensures a holistic and consistent intervention plan,
         </div>
       )}
 
-      {completedCount > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-gray-900">Export and share</h3>
-              <p className="text-sm text-gray-500">Your report is ready to download or share</p>
-            </div>
-            <Badge className="bg-green-100 text-green-700 border-0">{completedCount} sections complete</Badge>
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-gray-900">Export and share</h3>
+            <p className="text-sm text-gray-500">Your report is ready to download or share</p>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <button
-              onClick={() => exportReport("pdf")}
-              className="flex flex-col items-center gap-2 p-4 bg-red-50 hover:bg-red-100 rounded-xl transition-all group"
-            >
-              <FileDown className="h-6 w-6 text-red-600 group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-medium text-red-700">PDF</span>
-            </button>
-            <button
-              onClick={() => exportReport("docx")}
-              className="flex flex-col items-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all group"
-            >
-              <FileText className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-medium text-blue-700">Word</span>
-            </button>
-            <button
-              onClick={() => exportReport("print")}
-              className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all group"
-            >
-              <Printer className="h-6 w-6 text-gray-600 group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-medium text-gray-700">Print</span>
-            </button>
-            <button
-              onClick={copyFullReport}
-              className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all group ${
-                copied === "full" ? "bg-green-100" : "bg-purple-50 hover:bg-purple-100"
-              }`}
-            >
-              {copied === "full" ? (
-                <>
-                  <Check className="h-6 w-6 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-6 w-6 text-purple-600 group-hover:scale-110 transition-transform" />
-                  <span className="text-sm font-medium text-purple-700">Copy all</span>
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => exportReport("email")}
-              className="flex flex-col items-center gap-2 p-4 bg-teal-50 hover:bg-teal-100 rounded-xl transition-all group"
-            >
-              <Mail className="h-6 w-6 text-teal-600 group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-medium text-teal-700">Email</span>
-            </button>
-          </div>
+          <Badge className="bg-green-100 text-green-700 border-0">{completedCount} sections complete</Badge>
         </div>
-      )}
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <button
+            onClick={() => exportReport("pdf")}
+            className="flex flex-col items-center gap-2 p-4 bg-red-50 hover:bg-red-100 rounded-xl transition-all group"
+          >
+            <FileDown className="h-6 w-6 text-red-600 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-medium text-red-700">PDF</span>
+          </button>
+          <button
+            onClick={() => exportReport("docx")}
+            className="flex flex-col items-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all group"
+          >
+            <FileText className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-medium text-blue-700">Word</span>
+          </button>
+          <button
+            onClick={() => exportReport("print")}
+            className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all group"
+          >
+            <Printer className="h-6 w-6 text-gray-600 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-medium text-gray-700">Print</span>
+          </button>
+          <button
+            onClick={copyFullReport}
+            className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all group ${
+              copied === "full" ? "bg-green-100" : "bg-purple-50 hover:bg-purple-100"
+            }`}
+          >
+            {copied === "full" ? (
+              <>
+                <Check className="h-6 w-6 text-green-600" />
+                <span className="text-sm font-medium text-green-700">Copied</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-6 w-6 text-purple-600 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-medium text-purple-700">Copy all</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => exportReport("email")}
+            className="flex flex-col items-center gap-2 p-4 bg-teal-50 hover:bg-teal-100 rounded-xl transition-all group"
+          >
+            <Mail className="h-6 w-6 text-teal-600 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-medium text-teal-700">Email</span>
+          </button>
+        </div>
+      </div>
 
       <div className="bg-gradient-to-r from-gray-50 to-slate-100 rounded-2xl border border-gray-200 p-6">
         <p className="text-sm text-gray-500 mb-4">What would you like to do next?</p>
