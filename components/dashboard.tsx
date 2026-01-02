@@ -409,6 +409,15 @@ export function Dashboard() {
           </div>
 
           <Button
+            onClick={() => (window.location.href = "/dashboard")}
+            variant="outline"
+            className="w-full mb-3 border-teal-300 text-teal-700 hover:bg-teal-50 flex items-center justify-center gap-2"
+          >
+            <ArrowLeftIcon className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+
+          <Button
             onClick={() => setActiveView("client")}
             className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 shadow-md"
           >
@@ -489,18 +498,6 @@ export function Dashboard() {
                     label="Risk Assessment"
                     completed={isStepCompleted("risk")}
                     onClick={() => setActiveView("risk")}
-                  />
-                  <NavItem
-                    active={activeView === "reassessment"}
-                    label="Reassessment"
-                    completed={isStepCompleted("reassessment")}
-                    onClick={() => setActiveView("reassessment")}
-                  />
-                  <NavItem
-                    active={activeView === "progressdashboard"}
-                    label="Progress Dashboard"
-                    completed={isStepCompleted("progressdashboard")}
-                    onClick={() => setActiveView("progressdashboard")}
                   />
                 </div>
               </AccordionContent>
