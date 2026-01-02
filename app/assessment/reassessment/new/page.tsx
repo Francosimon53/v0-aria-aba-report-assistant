@@ -16,7 +16,10 @@ class AssessmentErrorBoundary extends Component<{ children: ReactNode }, { hasEr
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error("[v0] Reassessment page error:", error, errorInfo)
+    console.error("[v0] Reassessment page error:", error)
+    console.error("[v0] Error message:", error.message)
+    console.error("[v0] Error stack:", error.stack)
+    console.error("[v0] Component stack:", errorInfo?.componentStack)
   }
 
   render() {
@@ -31,6 +34,12 @@ class AssessmentErrorBoundary extends Component<{ children: ReactNode }, { hasEr
             <p className="text-sm text-gray-600">
               The reassessment page encountered an error. Your data has been auto-saved.
             </p>
+            {this.state.error && (
+              <div className="p-3 bg-red-50 rounded text-xs text-red-700 font-mono overflow-auto max-h-40">
+                <p className="font-semibold mb-1">Error: {this.state.error.message}</p>
+                <p className="text-red-500 whitespace-pre-wrap">{this.state.error.stack}</p>
+              </div>
+            )}
             <div className="flex gap-2">
               <Button
                 onClick={() => {
@@ -55,6 +64,7 @@ class AssessmentErrorBoundary extends Component<{ children: ReactNode }, { hasEr
 }
 
 export default function ReassessmentPage() {
+  console.log("[v0] ReassessmentPage rendering")
   return (
     <AssessmentErrorBoundary>
       <ReassessmentDashboard />

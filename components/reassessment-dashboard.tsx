@@ -23,6 +23,8 @@ import {
   BarChartIcon,
 } from "@/components/icons"
 
+console.log("[v0] ReassessmentDashboard: Starting imports")
+
 // Import all the form components
 import { ClientForm } from "@/components/client-form"
 import { BackgroundHistory } from "@/components/background-history"
@@ -41,6 +43,8 @@ import { AIReportGenerator } from "@/components/ai-report-generator"
 import { ServiceDeliverySummary } from "@/components/service-delivery-summary"
 import { PreviousGoalsProgress } from "@/components/previous-goals-progress"
 import { GoalsReview } from "@/components/goals-review"
+
+console.log("[v0] ReassessmentDashboard: All imports completed")
 
 type ActiveView =
   | "client"
