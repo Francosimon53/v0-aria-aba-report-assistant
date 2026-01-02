@@ -28,10 +28,10 @@ import { ComplianceSupport } from "./compliance-support"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { MenuIcon, PlusIcon, SparklesIcon, CheckCircleIcon, ArrowLeftIcon, DatabaseIcon } from "@/components/icons"
+import { MenuIcon, PlusIcon, SparklesIcon, CheckCircleIcon, ArrowLeftIcon, FileTextIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 import { getNextStep, getPreviousStep } from "./wizard-sidebar"
-import { StorageStatusViewer } from "./storage-status-viewer"
+import { AssessmentProgress } from "./assessment-progress"
 
 type ActiveView =
   | "client"
@@ -251,7 +251,7 @@ export function Dashboard() {
       case "support":
         return <ComplianceSupport />
       case "storagestatus":
-        return <StorageStatusViewer />
+        return <AssessmentProgress onNavigate={(view) => setActiveView(view as ActiveView)} />
       default:
         return <ClientForm clientData={clientData} onSave={(data) => setClientData(data)} onNext={handleNext} />
     }
@@ -578,16 +578,16 @@ export function Dashboard() {
 
             <AccordionItem value="storage" className="border-none">
               <AccordionTrigger className="px-2 py-2 hover:bg-gray-50 rounded-lg text-sm font-medium">
-                <div className="flex items-center gap-2">
-                  <DatabaseIcon className="w-4 h-4 text-teal-600" />
-                  <span>Data Status</span>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <FileTextIcon className="h-4 w-4" />
+                  <span>Assessment Progress</span>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pb-0 pt-1">
                 <div className="space-y-0.5 ml-2 pl-3 border-l border-gray-200">
                   <NavItem
                     active={activeView === "storagestatus"}
-                    label="View Saved Data"
+                    label="View Progress"
                     onClick={() => setActiveView("storagestatus")}
                   />
                 </div>
@@ -672,7 +672,7 @@ export function Dashboard() {
 
       {activeView === "storagestatus" && (
         <div className="p-6">
-          <StorageStatusViewer />
+          <AssessmentProgress onNavigate={(view) => setActiveView(view as ActiveView)} />
         </div>
       )}
       {/* </CHANGE> */}
