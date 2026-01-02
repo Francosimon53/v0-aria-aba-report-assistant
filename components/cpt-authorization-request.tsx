@@ -730,23 +730,11 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
             </div>
           </div>
         </CardHeader>
+
         <CardContent className="p-6 space-y-4">
           {showPreview && justification ? (
             <div className="min-h-[280px] p-8 border-2 border-gray-100 rounded-xl bg-gradient-to-br from-white via-slate-50/50 to-gray-50/30 shadow-inner">
-              <article
-                className="prose prose-slate max-w-none
-                prose-headings:font-semibold prose-headings:tracking-tight
-                prose-h1:text-2xl prose-h1:text-gray-900 prose-h1:mb-4 prose-h1:pb-2 prose-h1:border-b-2 prose-h1:border-gray-200
-                prose-h2:text-xl prose-h2:text-gray-800 prose-h2:mt-6 prose-h2:mb-3
-                prose-h3:text-lg prose-h3:text-gray-700 prose-h3:mt-5 prose-h3:mb-2
-                prose-p:text-[0.95rem] prose-p:leading-relaxed prose-p:text-gray-600 prose-p:mb-4 prose-p:font-serif
-                prose-strong:font-semibold prose-strong:text-gray-900
-                prose-ul:my-3 prose-ul:pl-6 prose-ol:my-3 prose-ol:pl-6
-                prose-li:text-[0.95rem] prose-li:leading-relaxed prose-li:text-gray-600 prose-li:mb-2 prose-li:font-serif
-                prose-li:marker:text-teal-600 prose-li:marker:font-semibold
-                prose-blockquote:border-l-4 prose-blockquote:border-teal-500 prose-blockquote:pl-4 prose-blockquote:my-4 prose-blockquote:italic prose-blockquote:text-gray-500
-              "
-              >
+              <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-h1:text-2xl prose-h1:text-gray-900 prose-h1:mb-4 prose-h1:pb-2 prose-h1:border-b-2 prose-h1:border-gray-200 prose-h2:text-xl prose-h2:text-gray-800 prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-lg prose-h3:text-gray-700 prose-h3:mt-5 prose-h3:mb-2 prose-p:text-base prose-p:leading-relaxed prose-p:text-gray-600 prose-p:mb-4 prose-strong:font-semibold prose-strong:text-gray-900 prose-ul:my-3 prose-ul:pl-6 prose-ol:my-3 prose-ol:pl-6 prose-li:text-base prose-li:leading-relaxed prose-li:text-gray-600 prose-li:mb-2 prose-blockquote:border-l-4 prose-blockquote:border-teal-500 prose-blockquote:pl-4 prose-blockquote:my-4 prose-blockquote:italic prose-blockquote:text-gray-500">
                 <ReactMarkdown>{justification}</ReactMarkdown>
               </article>
             </div>
@@ -754,58 +742,11 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
             <Textarea
               value={justification}
               onChange={(e) => setJustification(e.target.value)}
-              placeholder="Based on the severity of [specific behaviors], occurring at a frequency of [X times per day/week], the client requires intensive intervention across multiple settings. The proposed service hours are medically necessary to address [target behaviors/deficits] and achieve the following treatment goals: [list goals]. Research supports intensive intervention for [diagnosis/presentation] with outcomes showing [evidence]. The client's current level of functioning, including [specific deficits], necessitates this service intensity to prevent [risks] and promote [desired outcomes]..."
-              rows={12}
-              className="text-sm leading-relaxed font-serif border-2 border-gray-200 focus:border-teal-400 focus:ring-teal-400/20 rounded-xl p-4 resize-none transition-all duration-300 placeholder:text-gray-400 placeholder:italic"
+              placeholder="Based on the severity of [specific behaviors], occurring at a specific location."
             />
           )}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    wordCount < 150 ? "bg-yellow-400" : wordCount > 300 ? "bg-red-400" : "bg-green-400"
-                  }`}
-                />
-                <span
-                  className={`text-sm font-medium ${
-                    wordCount < 150 ? "text-yellow-600" : wordCount > 300 ? "text-red-600" : "text-green-600"
-                  }`}
-                >
-                  {wordCount} words
-                </span>
-              </div>
-              <span className="text-sm text-gray-400">{justification.length} characters</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {wordCount < 150 ? (
-                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                  Add more detail
-                </Badge>
-              ) : wordCount > 300 ? (
-                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                  Consider shortening
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  Optimal length
-                </Badge>
-              )}
-            </div>
-          </div>
         </CardContent>
       </Card>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-      `}</style>
     </div>
   )
 }
