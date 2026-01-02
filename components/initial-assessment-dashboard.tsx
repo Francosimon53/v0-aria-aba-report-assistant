@@ -18,8 +18,10 @@ import {
   ShieldIcon,
   CheckCircleIcon,
   ChevronLeftIcon,
+  ChevronRightIcon,
   SaveIcon,
   ClockIcon,
+  Loader2Icon,
 } from "@/components/icons"
 
 // Import all the form components
@@ -38,6 +40,7 @@ import { MedicalNecessityGenerator } from "@/components/medical-necessity-genera
 import { CPTAuthorizationRequest } from "@/components/cpt-authorization-request"
 import { ConsentFormsManager } from "@/components/consent-forms-manager"
 import { AIReportGenerator } from "@/components/ai-report-generator"
+import { Card, CardContent } from "@/components/ui/card"
 
 type ActiveView =
   | "client"
@@ -141,6 +144,193 @@ const phases = [
   },
 ]
 
+interface StepNavigationBarProps {
+  currentStep: ActiveView
+  allSteps: ActiveView[]
+  onPrevious: () => void
+  onNext: () => void
+  onSave: () => Promise<void>
+  completedSteps: Set<ActiveView>
+  themeColor?: "teal" | "orange"
+}
+
+function StepNavigationBar({
+  currentStep,
+  allSteps,
+  onPrevious,
+  onNext,
+  onSave,
+  completedSteps,
+  themeColor = "teal",
+}: StepNavigationBarProps) {
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
+
+  const currentIndex = allSteps.indexOf(currentStep)
+  const totalSteps = allSteps.length
+  const progressPercent = Math.round(((currentIndex + 1) / totalSteps) * 100)
+
+  const hasPrevious = currentIndex > 0
+  const hasNext = currentIndex < totalSteps - 1
+  const isLastStep = currentIndex === totalSteps - 1
+
+  const prevStepId = hasPrevious ? allSteps[currentIndex - 1] : null
+  const nextStepId = hasNext ? allSteps[currentIndex + 1] : null
+
+  const getStepLabel = (stepId: ActiveView | null) => {
+    if (!stepId) return ""
+    const allItems = phases.flatMap((p) => p.items)
+    return allItems.find((item) => item.id === stepId)?.label || stepId
+  }
+
+  const handleSaveAndContinue = async () => {
+    setIsSaving(true)
+    setSaveStatus("saving")
+    try {
+      await onSave()
+      setSaveStatus("saved")
+      setTimeout(() => {
+        if (hasNext) {
+          onNext()
+        }
+        setSaveStatus("idle")
+      }, 500)
+    } catch (error) {
+      console.error("Save error:", error)
+      setSaveStatus("idle")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const colors =
+    themeColor === "teal"
+      ? {
+          border: "border-t-teal-500",
+          progress: "from-teal-500 to-cyan-500",
+          text: "text-teal-600",
+          button: "from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700",
+        }
+      : {
+          border: "border-t-orange-500",
+          progress: "from-orange-500 to-amber-500",
+          text: "text-orange-600",
+          button: "from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600",
+        }
+
+  return (
+    <Card className={`mt-8 border-t-4 ${colors.border} shadow-lg`}>
+      <CardContent className="p-6">
+        {/* Progress indicator */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-600">Assessment Progress</span>
+            <span className={`text-sm font-bold ${colors.text}`}>{progressPercent}% Complete</span>
+          </div>
+          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full bg-gradient-to-r ${colors.progress} transition-all duration-500 rounded-full`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-2 text-xs text-gray-500">
+            <span>
+              Step {currentIndex + 1} of {totalSteps}
+            </span>
+            <span>{getStepLabel(currentStep)}</span>
+          </div>
+        </div>
+
+        {/* Save status indicator */}
+        {saveStatus !== "idle" && (
+          <div
+            className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm ${
+              saveStatus === "saving" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"
+            }`}
+          >
+            {saveStatus === "saving" && (
+              <>
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+                <span>Saving your progress...</span>
+              </>
+            )}
+            {saveStatus === "saved" && (
+              <>
+                <CheckCircleIcon className="h-4 w-4" />
+                <span>All changes saved successfully!</span>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Navigation buttons */}
+        <div className="flex items-center justify-between gap-4">
+          {/* Previous button */}
+          <div className="flex-1">
+            {hasPrevious && prevStepId && (
+              <Button variant="outline" onClick={onPrevious} className="bg-transparent">
+                <ChevronLeftIcon className="h-4 w-4 mr-2" />
+                Back to {getStepLabel(prevStepId)}
+              </Button>
+            )}
+          </div>
+
+          {/* Next/Continue button */}
+          <div className="flex-1 flex justify-end">
+            {hasNext && nextStepId && (
+              <Button
+                onClick={handleSaveAndContinue}
+                disabled={isSaving}
+                className={`bg-gradient-to-r ${colors.button} text-white shadow-lg`}
+                size="lg"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <SaveIcon className="h-4 w-4 mr-2" />
+                    Save & Continue to {getStepLabel(nextStepId)}
+                    <ChevronRightIcon className="h-4 w-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            )}
+
+            {isLastStep && (
+              <Button
+                onClick={handleSaveAndContinue}
+                disabled={isSaving}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                size="lg"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircleIcon className="h-4 w-4 mr-2" />
+                    Complete Assessment
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Help text */}
+        <p className="mt-4 text-xs text-gray-500 text-center">
+          Your progress is automatically saved. Click "Save & Continue" to proceed to the next step.
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function InitialAssessmentDashboard() {
   const [activeView, setActiveView] = useState<ActiveView>("client")
   const [completedSteps, setCompletedSteps] = useState<Set<ActiveView>>(new Set())
@@ -148,6 +338,8 @@ export function InitialAssessmentDashboard() {
   const [isSaving, setIsSaving] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const { toast } = useToast()
+
+  const allSteps: ActiveView[] = phases.flatMap((p) => p.items.map((i) => i.id))
 
   // Load saved data on mount
   useEffect(() => {
@@ -181,6 +373,27 @@ export function InitialAssessmentDashboard() {
       return newSet
     })
   }, [])
+
+  const handlePrevious = () => {
+    const currentIndex = allSteps.indexOf(activeView)
+    if (currentIndex > 0) {
+      setActiveView(allSteps[currentIndex - 1])
+    }
+  }
+
+  const handleNext = () => {
+    const currentIndex = allSteps.indexOf(activeView)
+    if (currentIndex < allSteps.length - 1) {
+      setActiveView(allSteps[currentIndex + 1])
+    }
+  }
+
+  const handleSave = async () => {
+    // Trigger save event for current component
+    window.dispatchEvent(new CustomEvent("aria-save-all"))
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    markStepComplete(activeView)
+  }
 
   const handleSaveAll = async () => {
     setIsSaving(true)
@@ -376,7 +589,19 @@ export function InitialAssessmentDashboard() {
         </header>
 
         {/* Content */}
-        <div className="p-6">{renderContent()}</div>
+        <div className="p-6">
+          {renderContent()}
+
+          <StepNavigationBar
+            currentStep={activeView}
+            allSteps={allSteps}
+            onPrevious={handlePrevious}
+            onNext={handleNext}
+            onSave={handleSave}
+            completedSteps={completedSteps}
+            themeColor="teal"
+          />
+        </div>
       </main>
     </div>
   )
