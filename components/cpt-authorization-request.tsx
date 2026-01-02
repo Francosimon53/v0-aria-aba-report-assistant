@@ -672,31 +672,39 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
       </div>
 
       {/* Justification for Hours */}
-      <Card>
-        <CardHeader>
+      <Card className="border-2 border-gray-100 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Justification for Hours</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-xl font-bold tracking-tight text-gray-900">Justification for Hours</CardTitle>
+              <CardDescription className="text-gray-600">
                 Provide detailed rationale for the requested service hours. Aim for 150-300 words.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {justification && (
-                <div className="flex items-center border rounded-lg overflow-hidden">
+                <div className="flex items-center bg-gray-100 rounded-lg p-1 shadow-inner">
                   <Button
-                    variant={!showPreview ? "default" : "ghost"}
+                    variant="ghost"
                     size="sm"
                     onClick={() => setShowPreview(false)}
-                    className={!showPreview ? "bg-teal-600 hover:bg-teal-700 rounded-none" : "rounded-none"}
+                    className={`rounded-md px-4 transition-all duration-200 ${
+                      !showPreview
+                        ? "bg-white text-teal-700 shadow-md font-semibold"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
                   >
                     Edit
                   </Button>
                   <Button
-                    variant={showPreview ? "default" : "ghost"}
+                    variant="ghost"
                     size="sm"
                     onClick={() => setShowPreview(true)}
-                    className={showPreview ? "bg-teal-600 hover:bg-teal-700 rounded-none" : "rounded-none"}
+                    className={`rounded-md px-4 transition-all duration-200 ${
+                      showPreview
+                        ? "bg-white text-teal-700 shadow-md font-semibold"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
                   >
                     Preview
                   </Button>
@@ -705,7 +713,7 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
               <Button
                 onClick={handleAIGenerateJustification}
                 disabled={isGeneratingJustification}
-                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white"
+                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 {isGeneratingJustification ? (
                   <>
@@ -722,44 +730,112 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-6 space-y-4">
           {showPreview && justification ? (
-            <div className="min-h-[240px] p-4 border rounded-lg bg-white">
-              <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-h2:text-lg prose-h2:mt-4 prose-h2:mb-2 prose-h3:text-base prose-h3:mt-3 prose-h3:mb-1 prose-p:text-gray-700 prose-p:leading-relaxed prose-ul:my-2 prose-li:my-0.5 prose-strong:text-gray-900">
+            <div className="min-h-[280px] p-8 border-2 border-gray-100 rounded-xl bg-gradient-to-br from-white via-slate-50/50 to-gray-50/30 shadow-inner">
+              <article className="max-w-none">
+                <style jsx>{`
+                  article :global(h1) {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #111827;
+                    margin-bottom: 1rem;
+                    padding-bottom: 0.5rem;
+                    border-bottom: 2px solid #e5e7eb;
+                    letter-spacing: -0.025em;
+                  }
+                  article :global(h2) {
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    color: #1f2937;
+                    margin-top: 1.5rem;
+                    margin-bottom: 0.75rem;
+                    letter-spacing: -0.02em;
+                  }
+                  article :global(h3) {
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    color: #374151;
+                    margin-top: 1.25rem;
+                    margin-bottom: 0.5rem;
+                  }
+                  article :global(p) {
+                    font-size: 0.95rem;
+                    line-height: 1.75;
+                    color: #4b5563;
+                    margin-bottom: 1rem;
+                    font-family: 'Georgia', 'Times New Roman', serif;
+                  }
+                  article :global(strong) {
+                    font-weight: 600;
+                    color: #111827;
+                  }
+                  article :global(ul), article :global(ol) {
+                    margin: 0.75rem 0;
+                    padding-left: 1.5rem;
+                  }
+                  article :global(li) {
+                    font-size: 0.95rem;
+                    line-height: 1.7;
+                    color: #4b5563;
+                    margin-bottom: 0.5rem;
+                    font-family: 'Georgia', 'Times New Roman', serif;
+                  }
+                  article :global(li::marker) {
+                    color: #0d9488;
+                    font-weight: 600;
+                  }
+                  article :global(blockquote) {
+                    border-left: 4px solid #0d9488;
+                    padding-left: 1rem;
+                    margin: 1rem 0;
+                    font-style: italic;
+                    color: #6b7280;
+                  }
+                `}</style>
                 <ReactMarkdown>{justification}</ReactMarkdown>
-              </div>
+              </article>
             </div>
           ) : (
             <Textarea
               value={justification}
               onChange={(e) => setJustification(e.target.value)}
               placeholder="Based on the severity of [specific behaviors], occurring at a frequency of [X times per day/week], the client requires intensive intervention across multiple settings. The proposed service hours are medically necessary to address [target behaviors/deficits] and achieve the following treatment goals: [list goals]. Research supports intensive intervention for [diagnosis/presentation] with outcomes showing [evidence]. The client's current level of functioning, including [specific deficits], necessitates this service intensity to prevent [risks] and promote [desired outcomes]..."
-              rows={10}
-              className="text-sm leading-relaxed"
+              rows={12}
+              className="text-sm leading-relaxed font-serif border-2 border-gray-200 focus:border-teal-400 focus:ring-teal-400/20 rounded-xl p-4 resize-none transition-all duration-300 placeholder:text-gray-400 placeholder:italic"
             />
           )}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-4">
-              <span
-                className={
-                  wordCount < 150
-                    ? "text-yellow-600 font-medium"
-                    : wordCount > 300
-                      ? "text-red-600 font-medium"
-                      : "text-green-600 font-medium"
-                }
-              >
-                {wordCount} words
-              </span>
-              <span>{justification.length} characters</span>
+          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    wordCount < 150 ? "bg-yellow-400" : wordCount > 300 ? "bg-red-400" : "bg-green-400"
+                  }`}
+                />
+                <span
+                  className={`text-sm font-medium ${
+                    wordCount < 150 ? "text-yellow-600" : wordCount > 300 ? "text-red-600" : "text-green-600"
+                  }`}
+                >
+                  {wordCount} words
+                </span>
+              </div>
+              <span className="text-sm text-gray-400">{justification.length} characters</span>
             </div>
-            <div>
+            <div className="flex items-center gap-2">
               {wordCount < 150 ? (
-                <span className="text-yellow-600">Add more detail</span>
+                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                  Add more detail
+                </Badge>
               ) : wordCount > 300 ? (
-                <span className="text-red-600">Too lengthy</span>
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                  Consider shortening
+                </Badge>
               ) : (
-                <span className="text-green-600">Good length</span>
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  Optimal length
+                </Badge>
               )}
             </div>
           </div>
