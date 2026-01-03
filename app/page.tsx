@@ -20,6 +20,7 @@ import {
   PlayIcon,
   BarChartIcon,
 } from "@/components/icons"
+import { loadDemoData } from "@/lib/load-demo-data"
 
 export default function Home() {
   const router = useRouter()
@@ -435,7 +436,10 @@ export default function Home() {
 
               <div className="text-center mt-8">
                 <Button
-                  onClick={() => router.push("/register")}
+                  onClick={() => {
+                    loadDemoData()
+                    router.push("/assessment/initial/new")
+                  }}
                   className="bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold px-8 py-6 text-lg shadow-lg shadow-teal-500/25"
                 >
                   Try Demo with Sample Data
@@ -608,46 +612,9 @@ export default function Home() {
 
       <section className="py-24 bg-[#FAFAFA]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <Badge className="bg-teal-50 text-[#0D9488] border-teal-200 mb-4">FAQ</Badge>
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
-          </div>
-
-          <div className="max-w-3xl mx-auto space-y-4">
-            {[
-              {
-                q: "What assessments are supported?",
-                a: "ARIA supports ABLLS-R, Vineland-3 (Parent & Teacher forms), SRS-2, MAS, and VB-MAPP with automatic score interpretation and clinical narrative generation.",
-              },
-              {
-                q: "Is ARIA HIPAA compliant?",
-                a: "Yes, all data is encrypted in transit and at rest. Enterprise plans include a signed Business Associate Agreement (BAA).",
-              },
-              {
-                q: "Can I customize the report templates?",
-                a: "Yes, Professional and Enterprise plans include custom template options to match your agency's branding and format preferences.",
-              },
-              {
-                q: "What insurance companies are supported?",
-                a: "ARIA is pre-configured for all major payers including Aetna, BCBS, United, Cigna, Anthem, Humana, Optum, and Magellan with payer-specific language optimization.",
-              },
-            ].map((faq, i) => (
-              <Card key={i} className="p-6 bg-white border-gray-100 hover:shadow-md transition-shadow">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-[#0D9488] to-[#0891B2] relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/placeholder.svg?height=600&width=1200')] opacity-5" />
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-3xl mx-auto text-center">
             <Badge className="bg-white/20 text-white border-white/30 mb-6">Free for 14 Days</Badge>
-            <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">Ready to Reclaim Your Time?</h2>
+            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">Ready to Reclaim Your Time?</h2>
             <p className="text-xl text-teal-100 mb-10">
               Join 2,847+ BCBAs who stopped working evenings and weekends. Start your free trial today — no credit card
               required.

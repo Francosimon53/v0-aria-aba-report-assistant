@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,10 +14,13 @@ import {
   TargetIcon,
   FileCheckIcon,
   UserPlusIcon,
+  SparklesIcon,
 } from "@/components/icons"
 import { safeParseDate } from "@/lib/safe-date"
+import { loadDemoData } from "@/lib/load-demo-data"
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [stats, setStats] = useState({
     totalAssessments: 0,
     completedReports: 0,
@@ -51,6 +55,11 @@ export default function DashboardPage() {
       }
     }
   }, [])
+
+  const handleTryDemo = () => {
+    loadDemoData()
+    router.push("/assessment/initial/new")
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
@@ -107,6 +116,35 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Try Demo Card for new users */}
+        {stats.totalAssessments === 0 && (
+          <div className="mb-8">
+            <Card className="border-2 border-dashed border-teal-200 bg-gradient-to-br from-teal-50/50 to-cyan-50/50">
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <div className="h-16 w-16 bg-gradient-to-br from-teal-100 to-teal-200 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0">
+                    <SparklesIcon className="h-8 w-8 text-teal-600" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <h3 className="text-xl font-bold text-teal-800 mb-1">New to ARIA?</h3>
+                    <p className="text-teal-600">
+                      See a complete assessment with sample data for Marcus Johnson. Experience how ARIA generates
+                      professional 21-section reports in minutes.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleTryDemo}
+                    className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-5 shadow-lg shadow-teal-500/25 whitespace-nowrap"
+                  >
+                    <SparklesIcon className="h-4 w-4 mr-2" />
+                    Try Demo
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Start New Assessment</h2>
@@ -206,7 +244,6 @@ export default function DashboardPage() {
             </Link>
           </div>
         </div>
-        {/* End CHANGE */}
 
         {/* Quick Actions */}
         <Card className="mb-8">
