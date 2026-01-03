@@ -20,7 +20,6 @@ import {
   PlayIcon,
   BarChartIcon,
 } from "@/components/icons"
-import { loadDemoData } from "@/lib/load-demo-data"
 
 export default function Home() {
   const router = useRouter()
@@ -436,9 +435,10 @@ export default function Home() {
 
               <div className="text-center mt-8">
                 <Button
+                  size="lg"
+                  variant="outline"
                   onClick={() => {
-                    loadDemoData()
-                    router.push("/assessment/initial/new")
+                    router.push("/demo/generate-report")
                   }}
                   className="bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold px-8 py-6 text-lg shadow-lg shadow-teal-500/25"
                 >

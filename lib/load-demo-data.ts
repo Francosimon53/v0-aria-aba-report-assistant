@@ -54,6 +54,11 @@ export function exitDemoMode(): void {
 }
 
 /**
+ * Alias for exitDemoMode - clears all demo data from localStorage
+ */
+export const clearDemoData = exitDemoMode
+
+/**
  * Get the demo client name for display
  */
 export function getDemoClientName(): string {
