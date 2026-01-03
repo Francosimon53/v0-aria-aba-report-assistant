@@ -219,6 +219,32 @@ interface FBAData {
   hypothesizedFunction: string
 }
 
+interface StandardizedAssessmentData {
+  domains: Record<string, { score: string; notes: string }>
+}
+
+interface VinelandData {
+  domains: Record<string, { standardScore: string; percentile: string }>
+  maladaptive?: { internalizing: string; externalizing: string }
+  formType: "parent" | "teacher"
+}
+
+interface FadePlanData {
+  currentPhase: string
+  phaseCriteria: Record<string, { hoursPerWeek: string; criteriaToAdvance: string }>
+  dischargeCriteria: Array<{ tool: string; domain: string; targetScore: string; currentScore: string }>
+}
+
+interface BarriersData {
+  barriers: string[]
+  otherBarrier?: string
+}
+
+interface GeneralizationPlanData {
+  strategies: string[]
+  otherStrategy?: string
+}
+
 export const PROMPT_TEMPLATES = {
   /**
    * Generates a medical necessity statement for insurance authorization
@@ -426,6 +452,219 @@ CREATE A PROFESSIONAL FBA SUMMARY INCLUDING:
 
 Keep it evidence-based and aligned with BACB guidelines.`
   },
+
+  /**
+   * Generates ABLLS-R assessment narrative
+   */
+  abllsNarrative: (data: StandardizedAssessmentData): string => {
+    const domainScores = Object.entries(data.domains || {})
+      .filter(([_, v]) => v.score)
+      .map(([domain, values]) => `- ${domain}: ${values.score} points${values.notes ? ` (${values.notes})` : ""}`)
+      .join("\n")
+
+    return `Write a comprehensive clinical narrative summarizing ABLLS-R assessment results.
+
+ABLLS-R DOMAIN SCORES:
+${domainScores || "No scores provided"}
+
+INSTRUCTIONS:
+1. Summarize overall skill levels based on the scores provided
+2. Identify areas of relative strength (higher percentages of mastery)
+3. Identify areas of significant deficit requiring intervention
+4. Prioritize treatment targets based on developmental importance
+5. Connect findings to functional daily living skills
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks, pound signs, or bullet points
+- Write in flowing professional paragraphs
+- Keep between 200-350 words
+- Use clinical ABA terminology appropriately
+
+Generate a professional narrative suitable for an ABA assessment report.`
+  },
+
+  /**
+   * Generates Vineland-3 interpretation
+   */
+  vinelandInterpretation: (data: VinelandData): string => {
+    const domainScores = Object.entries(data.domains || {})
+      .filter(([_, v]) => v.standardScore)
+      .map(
+        ([domain, values]) => `- ${domain}: Standard Score ${values.standardScore}, ${values.percentile}th percentile`,
+      )
+      .join("\n")
+
+    return `Write a clinical interpretation of Vineland-3 ${data.formType === "teacher" ? "Teacher" : "Parent/Caregiver"} Form results.
+
+DOMAIN SCORES:
+${domainScores || "No scores provided"}
+
+${
+  data.maladaptive
+    ? `MALADAPTIVE BEHAVIOR:
+- Internalizing: ${data.maladaptive.internalizing || "Not reported"}
+- Externalizing: ${data.maladaptive.externalizing || "Not reported"}`
+    : ""
+}
+
+INSTRUCTIONS:
+1. Interpret each domain score in relation to same-age peers
+2. Use standard score ranges: <70 Low, 70-84 Below Average, 85-115 Average, 116-130 Above Average, >130 High
+3. Identify adaptive behavior strengths and weaknesses
+4. Discuss implications for treatment planning
+5. Compare scores across domains to identify patterns
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks, pound signs, or bullet points
+- Write in flowing professional paragraphs
+- Keep between 200-350 words
+
+Generate a professional clinical interpretation for an ABA assessment report.`
+  },
+
+  /**
+   * Generates SRS-2 clinical summary
+   */
+  srs2Summary: (data: { subscales: Record<string, string> }): string => {
+    const scores = Object.entries(data.subscales || {})
+      .filter(([_, v]) => v)
+      .map(([subscale, tScore]) => {
+        const score = Number(tScore)
+        let range = "Within Normal Limits"
+        if (score >= 76) range = "Severe Range"
+        else if (score >= 66) range = "Moderate Range"
+        else if (score >= 60) range = "Mild Range"
+        return `- ${subscale}: T-Score ${tScore} (${range})`
+      })
+      .join("\n")
+
+    return `Write a clinical summary of SRS-2 (Social Responsiveness Scale, Second Edition) results.
+
+SRS-2 T-SCORES:
+${scores || "No scores provided"}
+
+INTERPRETATION GUIDELINES:
+- T-Score ≤59: Within Normal Limits
+- T-Score 60-65: Mild Range (mild deficits in social responsiveness)
+- T-Score 66-75: Moderate Range (moderate deficits, clinically significant)
+- T-Score ≥76: Severe Range (severe deficits in social reciprocity)
+
+INSTRUCTIONS:
+1. Interpret the overall social responsiveness profile
+2. Identify specific areas of social difficulty
+3. Discuss implications for ABA treatment targets
+4. Connect findings to social communication goals
+5. Note any discrepancies between subscales
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks, pound signs, or bullet points
+- Write in flowing professional paragraphs
+- Keep between 150-250 words
+
+Generate a professional clinical summary suitable for an ABA assessment report.`
+  },
+
+  /**
+   * Generates Fade Plan narrative
+   */
+  fadePlanNarrative: (data: FadePlanData): string => {
+    const phases = Object.entries(data.phaseCriteria || {})
+      .map(
+        ([phase, criteria]) =>
+          `- ${phase}: ${criteria.hoursPerWeek || "N/A"} hours/week. Advance when: ${criteria.criteriaToAdvance || "Not specified"}`,
+      )
+      .join("\n")
+
+    const discharge = (data.dischargeCriteria || [])
+      .filter((c) => c.tool && c.domain)
+      .map((c) => `- ${c.tool} ${c.domain}: Target ${c.targetScore}, Current ${c.currentScore || "Not measured"}`)
+      .join("\n")
+
+    return `Write a comprehensive fade plan narrative for ABA services.
+
+CURRENT PHASE: ${data.currentPhase || "Not specified"}
+
+PHASE STRUCTURE:
+${phases || "No phases defined"}
+
+DISCHARGE CRITERIA:
+${discharge || "No criteria defined"}
+
+INSTRUCTIONS:
+1. Explain the rationale for the phased service reduction model
+2. Describe criteria for transitioning between phases
+3. Detail measurable discharge criteria
+4. Explain how generalization and maintenance will be ensured
+5. Discuss caregiver involvement in the fade process
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks (*), pound signs (#), or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Keep between 200-300 words
+
+Generate a professional fade plan narrative suitable for insurance authorization.`
+  },
+
+  /**
+   * Generates Barriers to Treatment section
+   */
+  barriersSection: (data: BarriersData): string => {
+    const allBarriers = [...(data.barriers || []), data.otherBarrier].filter(Boolean)
+
+    return `Write a professional Barriers to Treatment section for an ABA assessment.
+
+IDENTIFIED BARRIERS:
+${allBarriers.map((b) => `- ${b}`).join("\n") || "No barriers identified"}
+
+INSTRUCTIONS:
+1. Describe each identified barrier clearly
+2. Explain how each barrier may impact treatment delivery
+3. Propose specific mitigation strategies for each barrier
+4. Discuss how the treatment team will address these barriers
+5. Include contingency plans if barriers persist
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks (*), pound signs (#), or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Keep between 150-250 words
+
+Generate a professional section suitable for an ABA assessment report.`
+  },
+
+  /**
+   * Generates Generalization & Maintenance plan
+   */
+  generalizationPlan: (data: GeneralizationPlanData): string => {
+    const allStrategies = [...(data.strategies || []), data.otherStrategy].filter(Boolean)
+
+    return `Write a comprehensive Generalization and Maintenance plan for ABA treatment.
+
+SELECTED STRATEGIES:
+${allStrategies.map((s) => `- ${s}`).join("\n") || "No strategies selected"}
+
+INSTRUCTIONS:
+1. Explain how each strategy will be implemented
+2. Describe specific procedures for stimulus and response generalization
+3. Detail how skills will be maintained after mastery
+4. Discuss caregiver training for generalization support
+5. Include monitoring procedures to verify generalization
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks (*), pound signs (#), or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Keep between 200-300 words
+
+Generate a professional generalization plan suitable for an ABA assessment report.`
+  },
 }
 
 // ============================================================================
@@ -439,10 +678,10 @@ Keep it evidence-based and aligned with BACB guidelines.`
  * @param data - The data needed for the specific prompt template
  * @returns Generated content as a string
  */
-export async function generateABAContent(promptType: keyof typeof PROMPT_TEMPLATES, data: any): Promise<string> {
+export async function generateABAContent(promptType: string, data: any): Promise<string> {
   try {
     // Get the appropriate prompt template
-    const promptTemplate = PROMPT_TEMPLATES[promptType]
+    const promptTemplate = PROMPT_TEMPLATES[promptType as keyof typeof PROMPT_TEMPLATES]
     if (!promptTemplate) {
       throw new Error(`Invalid prompt type: ${promptType}`)
     }

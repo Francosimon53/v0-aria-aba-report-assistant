@@ -8,7 +8,21 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Sparkles, Save, TrendingDown, Plus, Trash2, CheckCircle, XCircle } from "lucide-react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import {
+  Sparkles,
+  Save,
+  TrendingDown,
+  Plus,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Copy,
+  ChevronDown,
+  ChevronUp,
+  Check,
+} from "lucide-react"
 import { toast } from "sonner"
 
 interface FadePlanProps {
@@ -46,6 +60,9 @@ export function FadePlan({ onSave }: FadePlanProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [currentPhase, setCurrentPhase] = useState("")
+  const [generatedNarrative, setGeneratedNarrative] = useState("")
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const [phaseCriteria, setPhaseCriteria] = useState<Record<string, PhaseCriteria>>({
     "phase-1": { hoursPerWeek: "", criteriaToAdvance: "" },
@@ -69,6 +86,7 @@ export function FadePlan({ onSave }: FadePlanProps) {
         setDischargeCriteria(
           data.dischargeCriteria || [{ id: "1", tool: "", domain: "", targetScore: "", currentScore: "" }],
         )
+        if (data.generatedNarrative) setGeneratedNarrative(data.generatedNarrative)
       } catch (e) {
         console.error("Error loading fade plan data:", e)
       }
@@ -78,10 +96,18 @@ export function FadePlan({ onSave }: FadePlanProps) {
   // Auto-save
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      localStorage.setItem("aria-fade-plan", JSON.stringify({ currentPhase, phaseCriteria, dischargeCriteria }))
+      localStorage.setItem(
+        "aria-fade-plan",
+        JSON.stringify({
+          currentPhase,
+          phaseCriteria,
+          dischargeCriteria,
+          generatedNarrative,
+        }),
+      )
     }, 500)
     return () => clearTimeout(timeoutId)
-  }, [currentPhase, phaseCriteria, dischargeCriteria])
+  }, [currentPhase, phaseCriteria, dischargeCriteria, generatedNarrative])
 
   const handleAIGenerate = async () => {
     setIsGenerating(true)
@@ -90,25 +116,49 @@ export function FadePlan({ onSave }: FadePlanProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "fadePlan",
+          type: "fadePlanNarrative",
           data: { currentPhase, phaseCriteria, dischargeCriteria },
         }),
       })
 
-      if (response.ok) {
-        toast.success("Fade plan narrative generated")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to generate content")
       }
+
+      const data = await response.json()
+      setGeneratedNarrative(data.content)
+      setIsExpanded(true)
+      toast.success("Fade plan narrative generated successfully")
     } catch (error) {
-      toast.error("Failed to generate")
+      console.error("AI Generation error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to generate. Please try again.")
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleCopy = async () => {
+    if (generatedNarrative) {
+      await navigator.clipboard.writeText(generatedNarrative)
+      setCopied(true)
+      toast.success("Copied to clipboard")
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      localStorage.setItem("aria-fade-plan", JSON.stringify({ currentPhase, phaseCriteria, dischargeCriteria }))
+      localStorage.setItem(
+        "aria-fade-plan",
+        JSON.stringify({
+          currentPhase,
+          phaseCriteria,
+          dischargeCriteria,
+          generatedNarrative,
+        }),
+      )
       toast.success("Fade plan saved")
       onSave?.()
     } catch (error) {
@@ -162,9 +212,9 @@ export function FadePlan({ onSave }: FadePlanProps) {
             variant="outline"
             onClick={handleAIGenerate}
             disabled={isGenerating}
-            className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0"
+            className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
           >
-            <Sparkles className="h-4 w-4 mr-2" />
+            {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             {isGenerating ? "Generating..." : "AI Generate Narrative"}
           </Button>
           <Button onClick={handleSave} disabled={isSaving} className="bg-teal-600 hover:bg-teal-700">
@@ -361,6 +411,50 @@ export function FadePlan({ onSave }: FadePlanProps) {
           </Button>
         </CardContent>
       </Card>
+
+      {generatedNarrative && (
+        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+          <Card className="border-2 border-purple-200 bg-purple-50/50">
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-purple-100/50 transition-colors py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-600" />
+                    <CardTitle className="text-sm font-medium text-purple-900">
+                      AI Generated: Fade Plan Narrative
+                    </CardTitle>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCopy()
+                      }}
+                      className="h-8 px-2 text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+                    >
+                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                    {isExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-purple-600" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-purple-600" />
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <div className="bg-white rounded-lg p-4 border border-purple-100">
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{generatedNarrative}</p>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
     </div>
   )
 }

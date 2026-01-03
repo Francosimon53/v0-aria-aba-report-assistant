@@ -9,7 +9,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Sparkles, Save, ClipboardList, Brain, Users, BarChart3, Target, Plus, Trash2 } from "lucide-react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import {
+  Sparkles,
+  Save,
+  ClipboardList,
+  Brain,
+  Users,
+  BarChart3,
+  Target,
+  Plus,
+  Trash2,
+  Loader2,
+  Copy,
+  ChevronDown,
+  ChevronUp,
+  Check,
+} from "lucide-react"
 import { toast } from "sonner"
 
 interface StandardizedAssessmentsProps {
@@ -68,6 +84,9 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
   const [activeTab, setActiveTab] = useState("ablls-r")
   const [isGenerating, setIsGenerating] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [generatedContent, setGeneratedContent] = useState<Record<string, string>>({})
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
+  const [copiedSection, setCopiedSection] = useState<string | null>(null)
 
   // ABLLS-R State
   const [abllsData, setAbllsData] = useState<Record<string, { score: string; notes: string }>>({})
@@ -123,6 +142,9 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
 
       const mas = localStorage.getItem("aria-mas")
       if (mas) setMasData(JSON.parse(mas))
+
+      const generated = localStorage.getItem("aria-standardized-generated")
+      if (generated) setGeneratedContent(JSON.parse(generated))
     } catch (e) {
       console.error("Error loading assessment data:", e)
     }
@@ -142,6 +164,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
       )
       localStorage.setItem("aria-srs2", JSON.stringify(srs2Data))
       localStorage.setItem("aria-mas", JSON.stringify(masData))
+      localStorage.setItem("aria-standardized-generated", JSON.stringify(generatedContent))
     }, 500)
     return () => clearTimeout(timeoutId)
   }, [
@@ -152,34 +175,141 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
     vinelandTeacherMaladaptive,
     srs2Data,
     masData,
+    generatedContent,
   ])
 
   const handleAIGenerate = async (type: string) => {
     setIsGenerating(type)
     try {
+      let requestData: any = {}
+      let apiType = ""
+
+      switch (type) {
+        case "ablls-narrative":
+          apiType = "abllsNarrative"
+          requestData = { domains: abllsData }
+          break
+        case "vineland-parent":
+          apiType = "vinelandInterpretation"
+          requestData = {
+            domains: vinelandParent,
+            maladaptive: vinelandParentMaladaptive,
+            formType: "parent",
+          }
+          break
+        case "vineland-teacher":
+          apiType = "vinelandInterpretation"
+          requestData = {
+            domains: vinelandTeacher,
+            maladaptive: vinelandTeacherMaladaptive,
+            formType: "teacher",
+          }
+          break
+        case "srs2-summary":
+          apiType = "srs2Summary"
+          requestData = { subscales: srs2Data }
+          break
+        default:
+          throw new Error("Unknown generation type")
+      }
+
       const response = await fetch("/api/generate-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: `assessment-${type}`,
-          data: {
-            ablls: abllsData,
-            vinelandParent,
-            vinelandTeacher,
-            srs2: srs2Data,
-            mas: masData,
-          },
+          type: apiType,
+          data: requestData,
         }),
       })
 
-      if (response.ok) {
-        toast.success(`${type} narrative generated successfully`)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to generate content")
       }
+
+      const data = await response.json()
+
+      // Save generated content
+      setGeneratedContent((prev) => ({
+        ...prev,
+        [type]: data.content,
+      }))
+
+      // Auto-expand the section
+      setExpandedSections((prev) => ({
+        ...prev,
+        [type]: true,
+      }))
+
+      toast.success("Content generated successfully")
     } catch (error) {
-      toast.error("Failed to generate. Please try again.")
+      console.error("AI Generation error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to generate. Please try again.")
     } finally {
       setIsGenerating(null)
     }
+  }
+
+  const handleCopy = async (type: string) => {
+    const content = generatedContent[type]
+    if (content) {
+      await navigator.clipboard.writeText(content)
+      setCopiedSection(type)
+      toast.success("Copied to clipboard")
+      setTimeout(() => setCopiedSection(null), 2000)
+    }
+  }
+
+  const GeneratedContentSection = ({ type, title }: { type: string; title: string }) => {
+    const content = generatedContent[type]
+    const isExpanded = expandedSections[type]
+
+    if (!content) return null
+
+    return (
+      <Collapsible
+        open={isExpanded}
+        onOpenChange={(open) => setExpandedSections((prev) => ({ ...prev, [type]: open }))}
+      >
+        <Card className="mt-4 border-2 border-purple-200 bg-purple-50/50">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-purple-100/50 transition-colors py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-600" />
+                  <CardTitle className="text-sm font-medium text-purple-900">AI Generated: {title}</CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCopy(type)
+                    }}
+                    className="h-8 px-2 text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+                  >
+                    {copiedSection === type ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4 text-purple-600" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-purple-600" />
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <div className="bg-white rounded-lg p-4 border border-purple-100">
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{content}</p>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+    )
   }
 
   const handleSave = async () => {
@@ -196,6 +326,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
       )
       localStorage.setItem("aria-srs2", JSON.stringify(srs2Data))
       localStorage.setItem("aria-mas", JSON.stringify(masData))
+      localStorage.setItem("aria-standardized-generated", JSON.stringify(generatedContent))
       toast.success("All assessments saved successfully")
       onSave?.()
     } catch (error) {
@@ -271,9 +402,13 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                   size="sm"
                   onClick={() => handleAIGenerate("ablls-narrative")}
                   disabled={isGenerating === "ablls-narrative"}
-                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0"
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
                 >
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  {isGenerating === "ablls-narrative" ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
                   {isGenerating === "ablls-narrative" ? "Generating..." : "AI Generate Narrative"}
                 </Button>
               </div>
@@ -327,6 +462,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                   </TableBody>
                 </Table>
               </div>
+              <GeneratedContentSection type="ablls-narrative" title="ABLLS-R Narrative" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -343,12 +479,16 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleAIGenerate("vineland-interpretation")}
-                  disabled={isGenerating === "vineland-interpretation"}
-                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0"
+                  onClick={() => handleAIGenerate("vineland-parent")}
+                  disabled={isGenerating === "vineland-parent"}
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
                 >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  AI Generate Interpretation
+                  {isGenerating === "vineland-parent" ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  {isGenerating === "vineland-parent" ? "Generating..." : "AI Generate Interpretation"}
                 </Button>
               </div>
             </CardHeader>
@@ -505,28 +645,33 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                   </TableBody>
                 </Table>
               </div>
+              <GeneratedContentSection type="vineland-parent" title="Vineland-3 Parent Interpretation" />
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Vineland Teacher Tab - Similar structure */}
+        {/* Vineland Teacher Tab */}
         <TabsContent value="vineland-teacher" className="space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Vineland-3 Teacher Form</CardTitle>
-                  <CardDescription>Teacher-reported Adaptive Behavior Assessment</CardDescription>
+                  <CardDescription>Teacher Rating of Adaptive Behavior</CardDescription>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleAIGenerate("vineland-teacher-interpretation")}
-                  disabled={isGenerating === "vineland-teacher-interpretation"}
-                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0"
+                  onClick={() => handleAIGenerate("vineland-teacher")}
+                  disabled={isGenerating === "vineland-teacher"}
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
                 >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  AI Generate Interpretation
+                  {isGenerating === "vineland-teacher" ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  {isGenerating === "vineland-teacher" ? "Generating..." : "AI Generate Interpretation"}
                 </Button>
               </div>
             </CardHeader>
@@ -683,6 +828,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                   </TableBody>
                 </Table>
               </div>
+              <GeneratedContentSection type="vineland-teacher" title="Vineland-3 Teacher Interpretation" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -693,64 +839,78 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>SRS-2 (Social Responsiveness Scale)</CardTitle>
-                  <CardDescription>Measures social deficits in autism spectrum conditions</CardDescription>
+                  <CardTitle>SRS-2 Social Responsiveness Scale</CardTitle>
+                  <CardDescription>Assessment of social communication and interaction</CardDescription>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleAIGenerate("srs2-summary")}
                   disabled={isGenerating === "srs2-summary"}
-                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0"
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
                 >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  AI Generate Clinical Summary
+                  {isGenerating === "srs2-summary" ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  {isGenerating === "srs2-summary" ? "Generating..." : "AI Generate Clinical Summary"}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Subscale</TableHead>
-                    <TableHead>T-Score</TableHead>
-                    <TableHead>Interpretation</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {SRS2_SUBSCALES.map((subscale) => (
-                    <TableRow key={subscale.id} className={subscale.id === "total" ? "bg-gray-50 font-semibold" : ""}>
-                      <TableCell className="font-medium">{subscale.name}</TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={srs2Data[subscale.id] || ""}
-                          onChange={(e) => setSrs2Data((prev) => ({ ...prev, [subscale.id]: e.target.value }))}
-                          className="w-20"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            srs2Data[subscale.id]
-                              ? getSRS2Interpretation(Number(srs2Data[subscale.id])) === "Within Normal Limits"
-                                ? "bg-green-50 text-green-700 border-green-200"
-                                : getSRS2Interpretation(Number(srs2Data[subscale.id])) === "Mild Range"
-                                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                  : getSRS2Interpretation(Number(srs2Data[subscale.id])) === "Moderate Range"
-                                    ? "bg-orange-50 text-orange-700 border-orange-200"
-                                    : "bg-red-50 text-red-700 border-red-200"
-                              : ""
-                          }
-                        >
-                          {srs2Data[subscale.id] ? getSRS2Interpretation(Number(srs2Data[subscale.id])) : "Enter score"}
-                        </Badge>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Subscale</TableHead>
+                      <TableHead>T-Score</TableHead>
+                      <TableHead>Interpretation</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {SRS2_SUBSCALES.map((subscale) => (
+                      <TableRow key={subscale.id}>
+                        <TableCell className="font-medium">{subscale.name}</TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            value={srs2Data[subscale.id] || ""}
+                            onChange={(e) =>
+                              setSrs2Data((prev) => ({
+                                ...prev,
+                                [subscale.id]: e.target.value,
+                              }))
+                            }
+                            className="w-20"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              srs2Data[subscale.id]
+                                ? getSRS2Interpretation(Number(srs2Data[subscale.id])) === "Within Normal Limits"
+                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  : getSRS2Interpretation(Number(srs2Data[subscale.id])) === "Mild Range"
+                                    ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                    : getSRS2Interpretation(Number(srs2Data[subscale.id])) === "Moderate Range"
+                                      ? "bg-orange-50 text-orange-700 border-orange-200"
+                                      : "bg-red-50 text-red-700 border-red-200"
+                                : ""
+                            }
+                          >
+                            {srs2Data[subscale.id]
+                              ? getSRS2Interpretation(Number(srs2Data[subscale.id]))
+                              : "Enter score"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <GeneratedContentSection type="srs2-summary" title="SRS-2 Clinical Summary" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -761,98 +921,90 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>MAS (Motivation Assessment Scale)</CardTitle>
-                  <CardDescription>Identify maintaining functions of target behaviors</CardDescription>
+                  <CardTitle>Motivation Assessment Scale (MAS)</CardTitle>
+                  <CardDescription>Identify function of behavior for treatment planning</CardDescription>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAIGenerate("mas-analysis")}
-                  disabled={isGenerating === "mas-analysis"}
-                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  AI Analyze Functions
-                </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[300px]">Target Behavior</TableHead>
-                    <TableHead className="text-center">Sensory</TableHead>
-                    <TableHead className="text-center">Escape</TableHead>
-                    <TableHead className="text-center">Attention</TableHead>
-                    <TableHead className="text-center">Tangible</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {masData.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <Input
-                          value={item.behavior}
-                          onChange={(e) =>
-                            setMasData((prev) =>
-                              prev.map((m, i) => (i === index ? { ...m, behavior: e.target.value } : m)),
-                            )
-                          }
-                          placeholder="Enter target behavior..."
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={item.sensory}
-                          onCheckedChange={(checked) =>
-                            setMasData((prev) =>
-                              prev.map((m, i) => (i === index ? { ...m, sensory: checked as boolean } : m)),
-                            )
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={item.escape}
-                          onCheckedChange={(checked) =>
-                            setMasData((prev) =>
-                              prev.map((m, i) => (i === index ? { ...m, escape: checked as boolean } : m)),
-                            )
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={item.attention}
-                          onCheckedChange={(checked) =>
-                            setMasData((prev) =>
-                              prev.map((m, i) => (i === index ? { ...m, attention: checked as boolean } : m)),
-                            )
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={item.tangible}
-                          onCheckedChange={(checked) =>
-                            setMasData((prev) =>
-                              prev.map((m, i) => (i === index ? { ...m, tangible: checked as boolean } : m)),
-                            )
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {masData.length > 1 && (
-                          <Button variant="ghost" size="sm" onClick={() => removeMasBehavior(index)}>
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        )}
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[250px]">Target Behavior</TableHead>
+                      <TableHead className="text-center">Sensory</TableHead>
+                      <TableHead className="text-center">Escape</TableHead>
+                      <TableHead className="text-center">Attention</TableHead>
+                      <TableHead className="text-center">Tangible</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {masData.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <Input
+                            value={item.behavior}
+                            onChange={(e) => {
+                              const newData = [...masData]
+                              newData[index].behavior = e.target.value
+                              setMasData(newData)
+                            }}
+                            placeholder="Describe behavior..."
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={item.sensory}
+                            onCheckedChange={(checked) => {
+                              const newData = [...masData]
+                              newData[index].sensory = checked as boolean
+                              setMasData(newData)
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={item.escape}
+                            onCheckedChange={(checked) => {
+                              const newData = [...masData]
+                              newData[index].escape = checked as boolean
+                              setMasData(newData)
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={item.attention}
+                            onCheckedChange={(checked) => {
+                              const newData = [...masData]
+                              newData[index].attention = checked as boolean
+                              setMasData(newData)
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={item.tangible}
+                            onCheckedChange={(checked) => {
+                              const newData = [...masData]
+                              newData[index].tangible = checked as boolean
+                              setMasData(newData)
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {masData.length > 1 && (
+                            <Button variant="ghost" size="sm" onClick={() => removeMasBehavior(index)}>
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               <Button variant="outline" size="sm" onClick={addMasBehavior} className="mt-4 bg-transparent">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Behavior

@@ -33,13 +33,20 @@ export async function POST(request: Request) {
       return Response.json({ error: "Missing required fields: type and data" }, { status: 400 })
     }
 
-    // Validate type
     const validTypes = [
       "medicalNecessity",
       "smartGoal",
       "hoursJustification",
       "parentTrainingGoals",
       "functionalBehaviorAssessment",
+      // New types for Standardized Assessments
+      "abllsNarrative",
+      "vinelandInterpretation",
+      "srs2Summary",
+      // New types for Fade Plan and Barriers
+      "fadePlanNarrative",
+      "barriersSection",
+      "generalizationPlan",
     ]
 
     if (!validTypes.includes(type)) {

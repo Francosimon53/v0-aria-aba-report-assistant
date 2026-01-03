@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Sparkles, Save, AlertTriangle, RefreshCw } from "lucide-react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Sparkles, Save, AlertTriangle, RefreshCw, Loader2, Copy, ChevronDown, ChevronUp, Check } from "lucide-react"
 import { toast } from "sonner"
 
 interface BarriersGeneralizationProps {
@@ -38,6 +39,12 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
   const [isGeneratingBarriers, setIsGeneratingBarriers] = useState(false)
   const [isGeneratingGeneralization, setIsGeneratingGeneralization] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [generatedBarriers, setGeneratedBarriers] = useState("")
+  const [generatedGeneralization, setGeneratedGeneralization] = useState("")
+  const [expandedBarriers, setExpandedBarriers] = useState(false)
+  const [expandedGeneralization, setExpandedGeneralization] = useState(false)
+  const [copiedBarriers, setCopiedBarriers] = useState(false)
+  const [copiedGeneralization, setCopiedGeneralization] = useState(false)
 
   const [formData, setFormData] = useState({
     barriers: [] as string[],
@@ -62,6 +69,7 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
           otherBarrier: data.otherBarrier || "",
           barriersAddressed: data.barriersAddressed || "",
         }))
+        if (data.generatedBarriers) setGeneratedBarriers(data.generatedBarriers)
       } catch (e) {
         console.error("Error loading barriers data:", e)
       }
@@ -76,6 +84,7 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
           otherStrategy: data.otherStrategy || "",
           generalizationPlan: data.generalizationPlan || "",
         }))
+        if (data.generatedGeneralization) setGeneratedGeneralization(data.generatedGeneralization)
       } catch (e) {
         console.error("Error loading generalization data:", e)
       }
@@ -91,6 +100,7 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
           barriers: formData.barriers,
           otherBarrier: formData.otherBarrier,
           barriersAddressed: formData.barriersAddressed,
+          generatedBarriers,
         }),
       )
       localStorage.setItem(
@@ -99,11 +109,12 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
           strategies: formData.strategies,
           otherStrategy: formData.otherStrategy,
           generalizationPlan: formData.generalizationPlan,
+          generatedGeneralization,
         }),
       )
     }, 500)
     return () => clearTimeout(timeoutId)
-  }, [formData])
+  }, [formData, generatedBarriers, generatedGeneralization])
 
   const handleBarrierToggle = (barrierId: string) => {
     setFormData((prev) => ({
@@ -140,13 +151,19 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
         }),
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setFormData((prev) => ({ ...prev, barriersAddressed: data.content }))
-        toast.success("Barriers section generated")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to generate content")
       }
+
+      const data = await response.json()
+      setGeneratedBarriers(data.content)
+      setFormData((prev) => ({ ...prev, barriersAddressed: data.content }))
+      setExpandedBarriers(true)
+      toast.success("Barriers section generated successfully")
     } catch (error) {
-      toast.error("Failed to generate")
+      console.error("AI Generation error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to generate. Please try again.")
     } finally {
       setIsGeneratingBarriers(false)
     }
@@ -171,15 +188,39 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
         }),
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setFormData((prev) => ({ ...prev, generalizationPlan: data.content }))
-        toast.success("Generalization plan generated")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to generate content")
       }
+
+      const data = await response.json()
+      setGeneratedGeneralization(data.content)
+      setFormData((prev) => ({ ...prev, generalizationPlan: data.content }))
+      setExpandedGeneralization(true)
+      toast.success("Generalization plan generated successfully")
     } catch (error) {
-      toast.error("Failed to generate")
+      console.error("AI Generation error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to generate. Please try again.")
     } finally {
       setIsGeneratingGeneralization(false)
+    }
+  }
+
+  const handleCopyBarriers = async () => {
+    if (generatedBarriers) {
+      await navigator.clipboard.writeText(generatedBarriers)
+      setCopiedBarriers(true)
+      toast.success("Copied to clipboard")
+      setTimeout(() => setCopiedBarriers(false), 2000)
+    }
+  }
+
+  const handleCopyGeneralization = async () => {
+    if (generatedGeneralization) {
+      await navigator.clipboard.writeText(generatedGeneralization)
+      setCopiedGeneralization(true)
+      toast.success("Copied to clipboard")
+      setTimeout(() => setCopiedGeneralization(false), 2000)
     }
   }
 
@@ -192,6 +233,7 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
           barriers: formData.barriers,
           otherBarrier: formData.otherBarrier,
           barriersAddressed: formData.barriersAddressed,
+          generatedBarriers,
         }),
       )
       localStorage.setItem(
@@ -200,6 +242,7 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
           strategies: formData.strategies,
           otherStrategy: formData.otherStrategy,
           generalizationPlan: formData.generalizationPlan,
+          generatedGeneralization,
         }),
       )
       toast.success("Barriers & Generalization saved")
@@ -243,9 +286,13 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
               size="sm"
               onClick={handleAIGenerateBarriers}
               disabled={isGeneratingBarriers}
-              className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0"
+              className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
+              {isGeneratingBarriers ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
               {isGeneratingBarriers ? "Generating..." : "AI Generate Section"}
             </Button>
           </div>
@@ -301,6 +348,50 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
               className="mt-2 min-h-[120px] resize-none"
             />
           </div>
+
+          {generatedBarriers && (
+            <Collapsible open={expandedBarriers} onOpenChange={setExpandedBarriers}>
+              <Card className="border-2 border-purple-200 bg-purple-50/50">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-purple-100/50 transition-colors py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-purple-600" />
+                        <CardTitle className="text-sm font-medium text-purple-900">
+                          AI Generated: Barriers Section
+                        </CardTitle>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleCopyBarriers()
+                          }}
+                          className="h-8 px-2 text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+                        >
+                          {copiedBarriers ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                        {expandedBarriers ? (
+                          <ChevronUp className="h-4 w-4 text-purple-600" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-purple-600" />
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <div className="bg-white rounded-lg p-4 border border-purple-100">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{generatedBarriers}</p>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
         </CardContent>
       </Card>
 
@@ -317,9 +408,13 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
               size="sm"
               onClick={handleAIGenerateGeneralization}
               disabled={isGeneratingGeneralization}
-              className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0"
+              className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
+              {isGeneratingGeneralization ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
               {isGeneratingGeneralization ? "Generating..." : "AI Generate Plan"}
             </Button>
           </div>
@@ -375,6 +470,52 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
               className="mt-2 min-h-[120px] resize-none"
             />
           </div>
+
+          {generatedGeneralization && (
+            <Collapsible open={expandedGeneralization} onOpenChange={setExpandedGeneralization}>
+              <Card className="border-2 border-purple-200 bg-purple-50/50">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-purple-100/50 transition-colors py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-purple-600" />
+                        <CardTitle className="text-sm font-medium text-purple-900">
+                          AI Generated: Generalization Plan
+                        </CardTitle>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleCopyGeneralization()
+                          }}
+                          className="h-8 px-2 text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+                        >
+                          {copiedGeneralization ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                        {expandedGeneralization ? (
+                          <ChevronUp className="h-4 w-4 text-purple-600" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-purple-600" />
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <div className="bg-white rounded-lg p-4 border border-purple-100">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        {generatedGeneralization}
+                      </p>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
         </CardContent>
       </Card>
     </div>
