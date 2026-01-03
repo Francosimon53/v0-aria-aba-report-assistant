@@ -1,7 +1,8 @@
 "use client"
 
 import type React from "react"
-
+import { createClient } from "@/lib/supabase/client"
+import { LogOut } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -366,6 +367,7 @@ export function InitialAssessmentDashboard() {
   const [isSaving, setIsSaving] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const { toast } = useToast()
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
 
   const allSteps: ActiveView[] = phases.flatMap((p) => p.items.map((i) => i.id))
 
@@ -441,6 +443,21 @@ export function InitialAssessmentDashboard() {
       })
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      window.location.href = "/login"
+    } catch (error) {
+      console.error("Sign out error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -597,6 +614,29 @@ export function InitialAssessmentDashboard() {
               </>
             )}
           </Button>
+
+          {/* Sign Out button */}
+          {!showSignOutConfirm ? (
+            <button
+              onClick={() => setShowSignOutConfirm(true)}
+              className="flex items-center justify-center gap-2 w-full px-4 py-2 mt-3 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Sign Out</span>
+            </button>
+          ) : (
+            <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+              <p className="text-sm text-red-700 mb-2">Are you sure you want to sign out?</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="destructive" onClick={handleSignOut} className="flex-1">
+                  Yes, Sign Out
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowSignOutConfirm(false)} className="flex-1">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 
