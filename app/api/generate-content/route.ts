@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       "fadePlanNarrative",
       "barriersSection",
       "generalizationPlan",
+      "reasonForReferral",
     ]
 
     if (!validTypes.includes(type)) {

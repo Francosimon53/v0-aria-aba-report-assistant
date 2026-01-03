@@ -72,35 +72,56 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
   }
 
   const handleAIGenerate = async () => {
+    if (formData.areasOfConcern.length === 0) {
+      toast.error("Please select at least one area of concern before generating")
+      return
+    }
+
     setIsGenerating(true)
+    console.log("[v0] Starting AI generation for Reason for Referral")
+
     try {
       // Get client data for context
       const clientData = localStorage.getItem("aria-client-info")
       const backgroundData = localStorage.getItem("aria-background-history")
 
+      console.log("[v0] Client data:", clientData ? "Found" : "Not found")
+      console.log("[v0] Background data:", backgroundData ? "Found" : "Not found")
+      console.log("[v0] Areas of concern:", formData.areasOfConcern)
+      console.log("[v0] DSM-5 Level:", formData.dsm5Level)
+
+      const requestBody = {
+        type: "reasonForReferral",
+        data: {
+          clientInfo: clientData ? JSON.parse(clientData) : {},
+          background: backgroundData ? JSON.parse(backgroundData) : {},
+          areasOfConcern: formData.areasOfConcern.map((id) => AREAS_OF_CONCERN.find((a) => a.id === id)?.label || id),
+          dsm5Level: formData.dsm5Level,
+        },
+      }
+
+      console.log("[v0] Request body:", JSON.stringify(requestBody, null, 2))
+
       const response = await fetch("/api/generate-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "reasonForReferral",
-          data: {
-            clientInfo: clientData ? JSON.parse(clientData) : {},
-            background: backgroundData ? JSON.parse(backgroundData) : {},
-            areasOfConcern: formData.areasOfConcern.map((id) => AREAS_OF_CONCERN.find((a) => a.id === id)?.label || id),
-            dsm5Level: formData.dsm5Level,
-          },
-        }),
+        body: JSON.stringify(requestBody),
       })
 
-      if (response.ok) {
-        const data = await response.json()
+      console.log("[v0] Response status:", response.status)
+
+      const data = await response.json()
+      console.log("[v0] Response data:", data)
+
+      if (response.ok && data.content) {
         setFormData((prev) => ({ ...prev, currentProblemAreas: data.content }))
         toast.success("Problem areas generated successfully")
       } else {
-        throw new Error("Failed to generate")
+        throw new Error(data.error || data.message || "Failed to generate content")
       }
     } catch (error) {
-      toast.error("Failed to generate content. Please try again.")
+      console.error("[v0] AI generation error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to generate content. Please try again.")
     } finally {
       setIsGenerating(false)
     }

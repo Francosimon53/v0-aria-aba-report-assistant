@@ -665,6 +665,67 @@ CRITICAL FORMATTING RULES:
 
 Generate a professional generalization plan suitable for an ABA assessment report.`
   },
+
+  /**
+   * Generates Reason for Referral / Problem Areas content
+   */
+  reasonForReferral: (data: {
+    clientInfo: any
+    background: any
+    areasOfConcern: string[]
+    dsm5Level: string
+  }): string => {
+    const levelDescriptions: Record<string, string> = {
+      "level-1":
+        "Level 1 (Requiring Support) - Without supports, deficits in social communication cause noticeable impairments",
+      "level-2":
+        "Level 2 (Requiring Substantial Support) - Marked deficits in verbal and nonverbal social communication skills",
+      "level-3":
+        "Level 3 (Requiring Very Substantial Support) - Severe deficits in verbal and nonverbal social communication skills",
+    }
+
+    const clientName = data.clientInfo?.firstName
+      ? `${data.clientInfo.firstName} ${data.clientInfo.lastName || ""}`.trim()
+      : "The client"
+    const clientAge = data.clientInfo?.dateOfBirth
+      ? Math.floor((Date.now() - new Date(data.clientInfo.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+      : null
+    const diagnosis = data.clientInfo?.diagnosis || data.background?.diagnosis || "Autism Spectrum Disorder"
+
+    return `Write a comprehensive "Reason for Referral" / "Current Problem Areas" section for an ABA assessment report.
+
+CLIENT INFORMATION:
+- Name: ${clientName}
+- Age: ${clientAge ? `${clientAge} years old` : "Not specified"}
+- Diagnosis: ${diagnosis}
+- DSM-5 Severity: ${levelDescriptions[data.dsm5Level] || data.dsm5Level || "Not specified"}
+
+AREAS OF CONCERN IDENTIFIED:
+${data.areasOfConcern.length > 0 ? data.areasOfConcern.map((area) => `- ${area}`).join("\n") : "- No specific areas selected"}
+
+BACKGROUND CONTEXT:
+${data.background?.medicalHistory ? `Medical History: ${data.background.medicalHistory}` : ""}
+${data.background?.developmentalHistory ? `Developmental History: ${data.background.developmentalHistory}` : ""}
+${data.background?.previousServices ? `Previous Services: ${data.background.previousServices}` : ""}
+
+INSTRUCTIONS:
+1. Write a professional clinical narrative describing why the client was referred for ABA services
+2. For each area of concern selected, provide specific examples of how it manifests in daily life
+3. Describe the functional impact on the client and family
+4. Connect the DSM-5 severity level to the observed deficits
+5. Establish clear clinical need for intensive ABA intervention
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks (*), pound signs (#), or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Use clinical ABA terminology appropriately
+- Keep between 150-250 words
+- Use person-first language throughout
+
+Generate a professional, insurance-ready narrative that clearly establishes medical necessity for ABA services.`
+  },
 }
 
 // ============================================================================
