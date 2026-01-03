@@ -13,13 +13,12 @@ import {
   FileTextIcon,
   SparklesIcon,
   TargetIcon,
-  ClockIcon,
-  AwardIcon,
   UsersIcon,
   CheckIcon,
   StarIcon,
   ArrowRightIcon,
   PlayIcon,
+  BarChartIcon,
 } from "@/components/icons"
 
 export default function Home() {
@@ -57,7 +56,8 @@ export default function Home() {
       role: "BCBA-D, Clinical Director",
       company: "Bright Futures ABA",
       image: "/placeholder.svg?height=80&width=80",
-      quote: "ARIA reduced our assessment time from 15 hours to just 2. Our approval rate jumped to 98%.",
+      quote:
+        "ARIA reduced our assessment time from 15 hours to just 2. All 21 sections generated automatically with insurance approval on first submission.",
       rating: 5,
     },
     {
@@ -65,7 +65,8 @@ export default function Home() {
       role: "Lead BCBA",
       company: "Spectrum Care Services",
       image: "/placeholder.svg?height=80&width=80",
-      quote: "The AI understands insurance requirements better than any tool I've used. Game changer.",
+      quote:
+        "The AI understands insurance requirements better than any tool I've used. Our approval rate jumped to 98%.",
       rating: 5,
     },
     {
@@ -81,16 +82,64 @@ export default function Home() {
   const logos = ["Aetna", "BCBS", "United", "Cigna", "Anthem", "Humana", "Optum", "Magellan"]
 
   const features = [
-    { icon: FileTextIcon, title: "AI-Generated Narratives", desc: "Insurance-optimized language" },
-    { icon: TargetIcon, title: "SMART Goals", desc: "Auto-generated treatment objectives" },
-    { icon: ShieldIcon, title: "100% Compliant", desc: "All major payers supported" },
-    { icon: ClockIcon, title: "12hr Time Savings", desc: "Per assessment average" },
-    { icon: AwardIcon, title: "95% Approval Rate", desc: "First-submission success" },
-    { icon: UsersIcon, title: "Parent Training", desc: "Built-in curriculum tracker" },
+    {
+      icon: FileTextIcon,
+      title: "21-Section Professional Reports",
+      desc: "Generate complete ABA assessment reports with all required sections for insurance approval, from Client Information to Crisis Plan.",
+    },
+    {
+      icon: BarChartIcon,
+      title: "Built-in Assessment Tools",
+      desc: "Integrated scoring for ABLLS-R, Vineland-3 (Parent & Teacher), SRS-2, and MAS with automatic clinical interpretations.",
+    },
+    {
+      icon: SparklesIcon,
+      title: "AI-Generated Clinical Narratives",
+      desc: "One-click generation of insurance-compliant narratives for every section, from Reason for Referral to Fade Plan.",
+    },
+    {
+      icon: TargetIcon,
+      title: "SMART Goals with STOs",
+      desc: "Automatically generate measurable skill acquisition and behavior reduction goals with progressive short-term objectives.",
+    },
+    {
+      icon: ShieldIcon,
+      title: "Pre-Configured for All Major Payers",
+      desc: "Templates and language optimized for Aetna, BCBS, United, Cigna, Anthem, Humana, Optum, and Magellan requirements.",
+    },
+    {
+      icon: UsersIcon,
+      title: "Caregiver Training Tracker",
+      desc: "Built-in curriculum for parent training goals with progress monitoring and fidelity tracking.",
+    },
+  ]
+
+  const howItWorksSteps = [
+    {
+      step: "1",
+      title: "Enter Client Information",
+      description: "Start with basic demographics, diagnosis, and referral information.",
+    },
+    {
+      step: "2",
+      title: "Complete Assessments",
+      description: "Enter scores from standardized tools or let AI generate interpretations.",
+    },
+    {
+      step: "3",
+      title: "Generate Goals & Interventions",
+      description: "AI suggests evidence-based goals, teaching procedures, and behavior plans.",
+    },
+    {
+      step: "4",
+      title: "Download Professional Report",
+      description: "Export a complete 20+ page PDF ready for insurance submission.",
+    },
   ]
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] overflow-x-hidden">
+      {/* Urgency Banner */}
       <div className="bg-gradient-to-r from-[#0D9488] to-[#0891B2] text-white py-3 px-4">
         <div className="container mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 text-sm">
           <div className="flex items-center gap-2">
@@ -109,6 +158,7 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
@@ -121,6 +171,9 @@ export default function Home() {
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors font-medium">
                 Features
+              </a>
+              <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors font-medium">
+                How It Works
               </a>
               <a href="#testimonials" className="text-gray-600 hover:text-gray-900 transition-colors font-medium">
                 Testimonials
@@ -148,8 +201,8 @@ export default function Home() {
         </div>
       </nav>
 
+      {/* Hero Section */}
       <section className="relative pt-20 pb-32 overflow-hidden">
-        {/* Background gradient orbs */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-200/30 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-200/30 rounded-full blur-3xl" />
 
@@ -211,12 +264,11 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-[400ms]">
+            <div className="grid grid-cols-3 gap-8 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-[400ms]">
               {[
-                { value: "95%", label: "Approval Rate" },
-                { value: "12hr", label: "Time Saved" },
-                { value: "$4,200", label: "Monthly Savings" },
+                { value: "98%", label: "First-Submission Approval" },
+                { value: "6-10hr", label: "Saved Per Assessment" },
+                { value: "15,000+", label: "Reports Generated" },
               ].map((stat, i) => (
                 <div key={i} className="text-center">
                   <div className="text-3xl sm:text-4xl font-bold text-[#0D9488] mb-1">{stat.value}</div>
@@ -228,6 +280,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Insurance Logos Section */}
       <section className="py-16 bg-white border-y border-gray-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm font-medium text-gray-500 mb-8">
@@ -246,6 +299,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Features Section */}
       <section id="features" className="py-24 bg-[#FAFAFA]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -280,7 +334,121 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="testimonials" className="py-24 bg-white">
+      <section id="how-it-works" className="py-24 bg-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="bg-teal-50 text-[#0D9488] border-teal-200 mb-4">How It Works</Badge>
+            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+              From Data Entry to
+              <br />
+              <span className="text-[#0D9488]">Approved Report in 4 Steps</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Watch how BCBAs complete assessments in under 2 hours
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {howItWorksSteps.map((item, i) => (
+                <div key={i} className="relative text-center group">
+                  {/* Connector line */}
+                  {i < howItWorksSteps.length - 1 && (
+                    <div className="hidden lg:block absolute top-8 left-[60%] w-full h-0.5 bg-gradient-to-r from-[#0D9488] to-[#0891B2]/30" />
+                  )}
+
+                  {/* Step number */}
+                  <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-[#0D9488] to-[#0891B2] rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-teal-500/25 group-hover:scale-110 transition-transform duration-300">
+                    {item.step}
+                  </div>
+
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
+                  <p className="text-gray-600 text-sm">{item.description}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Demo Preview */}
+            <div className="mt-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl p-8 md:p-12 border border-gray-200">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">See ARIA in Action</h3>
+                <p className="text-gray-600">Preview the report generation interface</p>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+                {/* Mock browser header */}
+                <div className="bg-gray-100 px-4 py-3 flex items-center gap-2 border-b border-gray-200">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-400" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                    <div className="w-3 h-3 rounded-full bg-green-400" />
+                  </div>
+                  <div className="flex-1 text-center">
+                    <span className="text-xs text-gray-500 bg-white px-4 py-1 rounded-full">
+                      ariaba.app/assessment/generate
+                    </span>
+                  </div>
+                </div>
+
+                {/* Mock app interface */}
+                <div className="p-6 md:p-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Generate Report</h4>
+                      <p className="text-sm text-gray-500">21 sections ready for generation</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-[#0D9488]">100%</div>
+                      <div className="text-sm text-gray-500">Complete</div>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden mb-6">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#0D9488] to-[#0891B2] rounded-full"
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+
+                  {/* Section chips */}
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      "Client Info",
+                      "Background",
+                      "Assessments",
+                      "Goals",
+                      "Interventions",
+                      "Fade Plan",
+                      "+15 more",
+                    ].map((section, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 bg-teal-50 text-[#0D9488] text-sm font-medium rounded-full border border-teal-200"
+                      >
+                        {section}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center mt-8">
+                <Button
+                  onClick={() => router.push("/register")}
+                  className="bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold px-8 py-6 text-lg shadow-lg shadow-teal-500/25"
+                >
+                  Try Demo with Sample Data
+                  <ArrowRightIcon className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section id="testimonials" className="py-24 bg-[#FAFAFA]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="bg-teal-50 text-[#0D9488] border-teal-200 mb-4">Testimonials</Badge>
@@ -292,10 +460,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {testimonials.map((t, i) => (
-              <Card
-                key={i}
-                className="p-8 bg-gradient-to-b from-white to-gray-50/50 border-gray-100 hover:shadow-xl transition-all duration-300"
-              >
+              <Card key={i} className="p-8 bg-white border-gray-100 hover:shadow-xl transition-all duration-300">
                 <div className="flex text-yellow-400 mb-4">
                   {[1, 2, 3, 4, 5].map((j) => (
                     <StarIcon key={j} className="h-5 w-5 fill-current" />
@@ -320,7 +485,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="pricing" className="py-24 bg-gradient-to-b from-gray-50 to-white">
+      <section id="pricing" className="py-24 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="bg-red-50 text-red-600 border-red-200 mb-4">Limited Time: 50% OFF</Badge>
@@ -348,9 +513,16 @@ export default function Home() {
                 Start Free Trial
               </Button>
               <ul className="space-y-3 text-sm text-gray-600">
-                {["10 assessments/month", "All insurance templates", "Email support", "Basic analytics"].map((f, i) => (
+                {[
+                  "10 assessments/month",
+                  "Initial Assessments only",
+                  "21-section report generation",
+                  "Basic AI narratives",
+                  "PDF export",
+                  "Email support",
+                ].map((f, i) => (
                   <li key={i} className="flex items-center gap-2">
-                    <CheckIcon className="h-4 w-4 text-[#0D9488]" />
+                    <CheckIcon className="h-4 w-4 text-[#0D9488] flex-shrink-0" />
                     {f}
                   </li>
                 ))}
@@ -380,14 +552,15 @@ export default function Home() {
               <ul className="space-y-3 text-sm text-teal-50">
                 {[
                   "Unlimited assessments",
-                  "Priority support",
-                  "Advanced analytics",
-                  "Team collaboration",
+                  "Initial + Reassessments",
+                  "All standardized assessments (ABLLS-R, Vineland, SRS-2, MAS)",
+                  "Advanced AI with RAG knowledge base",
                   "Custom templates",
-                  "API access",
+                  "Priority support",
+                  "Team collaboration (up to 3 users)",
                 ].map((f, i) => (
                   <li key={i} className="flex items-center gap-2">
-                    <CheckIcon className="h-4 w-4 text-teal-200" />
+                    <CheckIcon className="h-4 w-4 text-teal-200 flex-shrink-0" />
                     {f}
                   </li>
                 ))}
@@ -414,15 +587,16 @@ export default function Home() {
               </Button>
               <ul className="space-y-3 text-sm text-gray-600">
                 {[
-                  "Everything in Pro",
+                  "Everything in Professional",
+                  "Unlimited team members",
+                  "Custom branding on reports",
+                  "API access",
                   "Dedicated success manager",
-                  "Custom integrations",
-                  "SLA guarantee",
-                  "On-premise option",
-                  "Training & onboarding",
+                  "HIPAA BAA included",
+                  "Multi-location support",
                 ].map((f, i) => (
                   <li key={i} className="flex items-center gap-2">
-                    <CheckIcon className="h-4 w-4 text-[#0D9488]" />
+                    <CheckIcon className="h-4 w-4 text-[#0D9488] flex-shrink-0" />
                     {f}
                   </li>
                 ))}
@@ -432,6 +606,42 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="py-24 bg-[#FAFAFA]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="bg-teal-50 text-[#0D9488] border-teal-200 mb-4">FAQ</Badge>
+            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+          </div>
+
+          <div className="max-w-3xl mx-auto space-y-4">
+            {[
+              {
+                q: "What assessments are supported?",
+                a: "ARIA supports ABLLS-R, Vineland-3 (Parent & Teacher forms), SRS-2, MAS, and VB-MAPP with automatic score interpretation and clinical narrative generation.",
+              },
+              {
+                q: "Is ARIA HIPAA compliant?",
+                a: "Yes, all data is encrypted in transit and at rest. Enterprise plans include a signed Business Associate Agreement (BAA).",
+              },
+              {
+                q: "Can I customize the report templates?",
+                a: "Yes, Professional and Enterprise plans include custom template options to match your agency's branding and format preferences.",
+              },
+              {
+                q: "What insurance companies are supported?",
+                a: "ARIA is pre-configured for all major payers including Aetna, BCBS, United, Cigna, Anthem, Humana, Optum, and Magellan with payer-specific language optimization.",
+              },
+            ].map((faq, i) => (
+              <Card key={i} className="p-6 bg-white border-gray-100 hover:shadow-md transition-shadow">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{faq.q}</h3>
+                <p className="text-gray-600">{faq.a}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
       <section className="py-24 bg-gradient-to-br from-[#0D9488] to-[#0891B2] relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/placeholder.svg?height=600&width=1200')] opacity-5" />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
@@ -488,12 +698,18 @@ export default function Home() {
               </div>
               <span className="text-lg font-bold text-white">ARIA</span>
             </div>
-            <div className="flex items-center gap-8 text-sm">
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
               <button onClick={() => router.push("/privacy")} className="hover:text-white transition-colors">
                 Privacy
               </button>
               <button onClick={() => router.push("/terms")} className="hover:text-white transition-colors">
                 Terms
+              </button>
+              <button onClick={() => router.push("/hipaa")} className="hover:text-white transition-colors">
+                HIPAA Compliance
+              </button>
+              <button onClick={() => router.push("/docs")} className="hover:text-white transition-colors">
+                Documentation
               </button>
               <button onClick={() => router.push("/support")} className="hover:text-white transition-colors">
                 Support
