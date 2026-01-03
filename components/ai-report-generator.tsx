@@ -444,12 +444,15 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
 
   useEffect(() => {
     if (!initialData) {
+      const rawAbcObs = safeParseJSON("aria-abc-observation") || []
+      const abcObservations = Array.isArray(rawAbcObs) ? rawAbcObs : rawAbcObs.observations || []
+
       const userData: AssessmentData = {
         clientInfo: safeParseJSON("aria-client-info") || {},
         background: safeParseJSON("aria-background-history") || {},
         assessmentTools: (safeParseJSON("aria-assessment-data") || {}).tools || [],
         domains: safeParseJSON("aria-domains") || {},
-        abcObservations: safeParseJSON("aria-abc-observation") || [],
+        abcObservations: abcObservations, // Use the processed abcObservations
         behaviors: safeParseJSON("aria-behavior-library-data") || [],
         goals: safeParseJSON("aria-goals") || [],
         servicePlan: safeParseJSON("aria-service-plan") || {},
@@ -779,7 +782,7 @@ REQUIRED ASSESSMENTS TO INCLUDE:
 
 [Interpretation paragraph]
 
-**MAS (MOTIVATION ASSESSMENT SCALE)**
+**MAS (MOTIVATION ASSESSMENT SCALE)
 | Function | Mean Score | Rank |
 |----------|------------|------|
 | Sensory | [score] | [rank] |
@@ -923,7 +926,7 @@ Impact on Daily Functioning:
 
       hypothesis_interventions: `Write the HYPOTHESIS-BASED INTERVENTIONS section (800-1200 words) for a professional ABA assessment report.
 
-Based on functional assessment, organize interventions by maintaining function:
+Organize interventions by maintaining function:
 
 **ATTENTION-MAINTAINED BEHAVIORS**
 Behaviors: [List behaviors maintained by attention]
@@ -1723,7 +1726,7 @@ The following techniques will be employed to de-escalate potential crisis situat
 **LEVELS OF INTERVENTION:**
 *   **Level 1 (Mild Escalation):** Use verbal redirection, planned ignoring (if appropriate for function), and offer a break.
 *   **Level 2 (Moderate Escalation):** Implement sensory strategies, offer choices, utilize de-escalation techniques, and increase supervision.
-*   **Level 3 (Severe Escalation/Crisis):** Implement safety protocols, use blocking procedures if necessary, involve crisis intervention team, and contact emergency services if immediate danger exists.
+*   **Level 3 (Severe Escalation/Crisis):** Implement safety protocols, use blocking procedures if necessary, and contact emergency services if immediate danger exists.
 
 **EMERGENCY CONTACTS:**
 *   **Primary Caregiver:** ${data.clientInfo?.caregiver || "[Caregiver Name]"} - Phone: ${data.clientInfo?.phone || "[Caregiver Phone]"}
