@@ -180,7 +180,9 @@ const loadGoalsTrackerData = () => {
   try {
     const data = localStorage.getItem("aria-goals-tracker")
     if (data) {
-      return JSON.parse(data) as Array<{
+      const parsed = JSON.parse(data)
+      const goalsArray = Array.isArray(parsed) ? parsed : parsed?.goals || []
+      return goalsArray as Array<{
         id: string
         type: "behavior-reduction" | "skill-acquisition" | "parent-training"
         description: string
@@ -1763,7 +1765,7 @@ This collaborative approach ensures a holistic and consistent intervention plan,
 
   const generateSection = async (sectionId: string) => {
     setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, status: "generating", generated: true } : s)))
-    setCurrentGenerating(sectionId) // Set current generating section
+    //setCurrentGenerating(sectionId) // Set current generating section - Replaced by section.status === "generating" logic
     setError(null) // Clear previous errors
 
     try {
@@ -1794,7 +1796,7 @@ This collaborative approach ensures a holistic and consistent intervention plan,
       setError(error.message || "An unexpected error occurred.")
       setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, status: "error" } : s)))
     } finally {
-      setCurrentGenerating(null) // Clear current generating section
+      // setCurrentGenerating(null) // Clear current generating section - Replaced by section.status === "generating" logic
     }
   }
 
@@ -1852,13 +1854,13 @@ This collaborative approach ensures a holistic and consistent intervention plan,
   const [isExporting, setIsExporting] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [editingSection, setEditingSection] = useState<string | null>(null)
-  const [editBuffer, setEditBuffer] = useState("")
+  // const [editBuffer, setEditBuffer] = useState("") // This state is not being used
   const [currentGenerating, setCurrentGenerating] = useState<string | null>(null) // Replaced with section.status === "generating"
 
   const saveEdit = (sectionId: string) => {
-    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, content: editBuffer } : s)))
+    // setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, content: editBuffer } : s))) // This uses editBuffer which is not declared
     setEditingSection(null)
-    setEditBuffer("")
+    // setEditBuffer("") // This clears editBuffer which is not declared
   }
 
   // Define exportReport inside the component and memoize it
