@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs"
+
 export interface AIRequestOptions {
   maxRetries?: number
   timeoutMs?: number
@@ -31,7 +33,7 @@ export async function safeAIRequest(endpoint: string, body: object, options: AIR
       // Handle rate limiting with exponential backoff
       if (response.status === 429) {
         const waitTime = Math.pow(2, attempt) * 1000
-        console.warn(`[v0] Rate limited, waiting ${waitTime}ms before retry ${attempt + 1}`)
+        console.warn(`Rate limited, waiting ${waitTime}ms before retry ${attempt + 1}`)
         await new Promise((resolve) => setTimeout(resolve, waitTime))
         continue
       }
@@ -46,11 +48,24 @@ export async function safeAIRequest(endpoint: string, body: object, options: AIR
 
       return { success: true, content }
     } catch (error: any) {
-      console.error(`[v0] AI attempt ${attempt}/${maxRetries} failed:`, error.message)
+      console.error(`AI attempt ${attempt}/${maxRetries} failed:`, error.message)
+
+      Sentry.captureException(error, {
+        tags: {
+          type: "ai_generation",
+          attempt: attempt,
+          endpoint: endpoint,
+        },
+        extra: {
+          body: JSON.stringify(body).substring(0, 500),
+          maxRetries,
+          timeoutMs,
+        },
+      })
 
       // Don't retry on abort (timeout)
       if (error.name === "AbortError") {
-        console.error("[v0] Request timed out after", timeoutMs, "ms")
+        console.error("Request timed out after", timeoutMs, "ms")
 
         if (fallbackResponse) {
           return {
@@ -113,7 +128,7 @@ async function logErrorToServer(type: string, details: object) {
     })
   } catch (e) {
     // Silently fail - don't break the app if logging fails
-    console.error("[v0] Failed to log error:", e)
+    console.error("Failed to log error:", e)
   }
 }
 
