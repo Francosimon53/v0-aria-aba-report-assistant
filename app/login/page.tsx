@@ -131,6 +131,8 @@ export default function LoginPage() {
 
       if (data?.user) {
         localStorage.setItem("aria_user", JSON.stringify({ email: data.user.email, id: data.user.id }))
+        localStorage.setItem("aria-returning-user", "true")
+        document.cookie = "aria-returning-user=true; path=/; max-age=31536000" // 1 year
         window.location.href = "/dashboard"
       } else {
         setError("Login failed. Please check your credentials.")
@@ -376,6 +378,11 @@ export default function LoginPage() {
                 Support
               </a>
             </div>
+            <p className="text-sm text-gray-400 mt-4">
+              <a href="/?landing=true" className="text-teal-600 hover:text-teal-700 hover:underline transition-colors">
+                View product information
+              </a>
+            </p>
           </div>
         </div>
       </div>

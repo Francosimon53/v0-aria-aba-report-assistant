@@ -190,6 +190,8 @@ export default function RegisterPage() {
 
       if (data.user) {
         console.log("[v0] Registration successful:", data.user.id)
+        localStorage.setItem("aria-returning-user", "true")
+        document.cookie = "aria-returning-user=true; path=/; max-age=31536000" // 1 year
         toast({
           title: "Account created!",
           description: "Please check your email to verify your account.",

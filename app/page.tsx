@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ import {
 
 export default function Home() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -44,17 +45,26 @@ export default function Home() {
           router.replace("/dashboard")
           return
         }
+
+        const forceLanding = searchParams.get("landing") === "true"
+        const isReturningUser = localStorage.getItem("aria-returning-user") === "true"
+
+        if (isReturningUser && !forceLanding) {
+          // Returning user - send directly to login
+          router.replace("/login")
+          return
+        }
       } catch (error) {
         // If auth check fails, just show landing page
         console.error("Auth check failed:", error)
       }
 
-      // Not logged in - show landing page
+      // Not logged in and not returning user - show landing page
       setIsCheckingAuth(false)
     }
 
     checkAuth()
-  }, [router])
+  }, [router, searchParams])
 
   useEffect(() => {
     if (isCheckingAuth) return
