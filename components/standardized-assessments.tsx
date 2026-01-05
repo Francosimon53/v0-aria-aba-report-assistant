@@ -80,6 +80,164 @@ const getSRS2Interpretation = (tScore: number): string => {
   return "Severe Range"
 }
 
+function normalizeAbllsData(data: any): Record<string, { score: string; notes: string }> {
+  if (!data || typeof data !== "object") return {}
+
+  const normalized: Record<string, { score: string; notes: string }> = {}
+
+  // Map from demo data keys to component keys
+  const keyMap: Record<string, string> = {
+    cooperation: "cooperation",
+    visualPerformance: "visual",
+    visual: "visual",
+    receptiveLanguage: "receptive",
+    receptive: "receptive",
+    motorImitation: "imitation",
+    imitation: "imitation",
+    vocalImitation: "mands", // Map to mands as fallback
+    requests: "mands",
+    mands: "mands",
+    labeling: "tacts",
+    tacts: "tacts",
+    intraverbals: "intraverbals",
+    spontaneousVocalizations: "syntax",
+    syntaxGrammar: "syntax",
+    syntax: "syntax",
+    playLeisure: "play",
+    play: "play",
+    socialInteraction: "social",
+    social: "social",
+    grossMotor: "grossMotor",
+    fineMotor: "fineMotor",
+  }
+
+  for (const [key, value] of Object.entries(data)) {
+    const mappedKey = keyMap[key] || key
+    if (value && typeof value === "object") {
+      const v = value as any
+      normalized[mappedKey] = {
+        score: String(v.score ?? v.standardScore ?? ""),
+        notes: v.notes ?? "",
+      }
+    }
+  }
+
+  return normalized
+}
+
+function normalizeVinelandData(data: any): {
+  domains: Record<string, { standardScore: string; ciLow: string; ciHigh: string; percentile: string }>
+  maladaptive: { internalizing: string; externalizing: string }
+} {
+  const defaultResult = {
+    domains: {} as Record<string, { standardScore: string; ciLow: string; ciHigh: string; percentile: string }>,
+    maladaptive: { internalizing: "", externalizing: "" },
+  }
+
+  if (!data || typeof data !== "object") return defaultResult
+
+  // Check if it's already in the expected format with 'domains' property
+  if (data.domains) {
+    return {
+      domains: data.domains,
+      maladaptive: data.maladaptive || defaultResult.maladaptive,
+    }
+  }
+
+  // Otherwise, it's demo data format - convert it
+  const keyMap: Record<string, string> = {
+    abc: "abc",
+    communication: "communication",
+    dailyLivingSkills: "dailyLiving",
+    dailyLiving: "dailyLiving",
+    socialization: "socialization",
+    motorSkills: "motorSkills",
+  }
+
+  const domains: Record<string, { standardScore: string; ciLow: string; ciHigh: string; percentile: string }> = {}
+
+  for (const [key, value] of Object.entries(data)) {
+    if (key === "maladaptive") continue
+    const mappedKey = keyMap[key] || key
+    if (value && typeof value === "object") {
+      const v = value as any
+      // Parse confidence interval if present
+      let ciLow = "",
+        ciHigh = ""
+      if (v.confidenceInterval) {
+        const parts = v.confidenceInterval.split("-")
+        ciLow = parts[0] || ""
+        ciHigh = parts[1] || ""
+      }
+      domains[mappedKey] = {
+        standardScore: String(v.standardScore ?? ""),
+        ciLow: v.ciLow ?? ciLow,
+        ciHigh: v.ciHigh ?? ciHigh,
+        percentile: String(v.percentile ?? ""),
+      }
+    }
+  }
+
+  return { domains, maladaptive: data.maladaptive || defaultResult.maladaptive }
+}
+
+function normalizeSrs2Data(data: any): Record<string, string> {
+  if (!data || typeof data !== "object") return {}
+
+  const normalized: Record<string, string> = {}
+
+  const keyMap: Record<string, string> = {
+    socialAwareness: "awareness",
+    awareness: "awareness",
+    socialCognition: "cognition",
+    cognition: "cognition",
+    socialCommunication: "communication",
+    communication: "communication",
+    socialMotivation: "motivation",
+    motivation: "motivation",
+    restrictedInterests: "restrictedBehaviors",
+    restrictedBehaviors: "restrictedBehaviors",
+    totalScore: "total",
+    total: "total",
+  }
+
+  for (const [key, value] of Object.entries(data)) {
+    const mappedKey = keyMap[key] || key
+    if (value && typeof value === "object") {
+      const v = value as any
+      normalized[mappedKey] = String(v.tScore ?? v.score ?? "")
+    } else if (typeof value === "string" || typeof value === "number") {
+      normalized[mappedKey] = String(value)
+    }
+  }
+
+  return normalized
+}
+
+function normalizeMasData(
+  data: any,
+): Array<{ behavior: string; sensory: boolean; escape: boolean; attention: boolean; tangible: boolean }> {
+  if (!data) return [{ behavior: "", sensory: false, escape: false, attention: false, tangible: false }]
+
+  // If it's already an array, return it
+  if (Array.isArray(data)) return data
+
+  // If it's demo format (object with scores), convert to expected format
+  if (typeof data === "object" && (data.sensory || data.escape || data.attention || data.tangible)) {
+    return [
+      {
+        behavior: data.notes || data.primaryFunction || "Target behavior",
+        sensory: (data.sensory?.score ?? data.sensory ?? 0) > 3,
+        escape: (data.escape?.score ?? data.escape ?? 0) > 3,
+        attention: (data.attention?.score ?? data.attention ?? 0) > 3,
+        tangible: (data.tangible?.score ?? data.tangible ?? 0) > 3,
+      },
+    ]
+  }
+
+  return [{ behavior: "", sensory: false, escape: false, attention: false, tangible: false }]
+}
+
 export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps) {
   const [activeTab, setActiveTab] = useState("ablls-r")
   const [isGenerating, setIsGenerating] = useState<string | null>(null)
@@ -87,6 +245,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
   const [generatedContent, setGeneratedContent] = useState<Record<string, string>>({})
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
   const [copiedSection, setCopiedSection] = useState<string | null>(null)
+  const [isDemoMode, setIsDemoMode] = useState(false)
 
   // ABLLS-R State
   const [abllsData, setAbllsData] = useState<Record<string, { score: string; notes: string }>>({})
@@ -117,31 +276,45 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
     Array<{ behavior: string; sensory: boolean; escape: boolean; attention: boolean; tangible: boolean }>
   >([{ behavior: "", sensory: false, escape: false, attention: false, tangible: false }])
 
-  // Load data from localStorage
   useEffect(() => {
     try {
+      // Check if we're in demo mode
+      const demoMode = localStorage.getItem("aria-demo-mode") === "true"
+      setIsDemoMode(demoMode)
+
       const ablls = localStorage.getItem("aria-ablls-r")
-      if (ablls) setAbllsData(JSON.parse(ablls))
+      if (ablls) {
+        const parsed = JSON.parse(ablls)
+        setAbllsData(normalizeAbllsData(parsed))
+      }
 
       const vParent = localStorage.getItem("aria-vineland-parent")
       if (vParent) {
-        const data = JSON.parse(vParent)
-        setVinelandParent(data.domains || {})
-        setVinelandParentMaladaptive(data.maladaptive || { internalizing: "", externalizing: "" })
+        const parsed = JSON.parse(vParent)
+        const normalized = normalizeVinelandData(parsed)
+        setVinelandParent(normalized.domains)
+        setVinelandParentMaladaptive(normalized.maladaptive)
       }
 
       const vTeacher = localStorage.getItem("aria-vineland-teacher")
       if (vTeacher) {
-        const data = JSON.parse(vTeacher)
-        setVinelandTeacher(data.domains || {})
-        setVinelandTeacherMaladaptive(data.maladaptive || { internalizing: "", externalizing: "" })
+        const parsed = JSON.parse(vTeacher)
+        const normalized = normalizeVinelandData(parsed)
+        setVinelandTeacher(normalized.domains)
+        setVinelandTeacherMaladaptive(normalized.maladaptive)
       }
 
       const srs2 = localStorage.getItem("aria-srs2")
-      if (srs2) setSrs2Data(JSON.parse(srs2))
+      if (srs2) {
+        const parsed = JSON.JSON.parse(srs2)
+        setSrs2Data(normalizeSrs2Data(parsed))
+      }
 
       const mas = localStorage.getItem("aria-mas")
-      if (mas) setMasData(JSON.parse(mas))
+      if (mas) {
+        const parsed = JSON.parse(mas)
+        setMasData(normalizeMasData(parsed))
+      }
 
       const generated = localStorage.getItem("aria-standardized-generated")
       if (generated) setGeneratedContent(JSON.parse(generated))
@@ -153,6 +326,8 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
   // Auto-save
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      // Save demo mode status
+      localStorage.setItem("aria-demo-mode", JSON.stringify(isDemoMode))
       localStorage.setItem("aria-ablls-r", JSON.stringify(abllsData))
       localStorage.setItem(
         "aria-vineland-parent",
@@ -176,6 +351,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
     srs2Data,
     masData,
     generatedContent,
+    isDemoMode, // Include isDemoMode in dependencies
   ])
 
   const handleAIGenerate = async (type: string) => {
@@ -327,6 +503,8 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
       localStorage.setItem("aria-srs2", JSON.stringify(srs2Data))
       localStorage.setItem("aria-mas", JSON.stringify(masData))
       localStorage.setItem("aria-standardized-generated", JSON.stringify(generatedContent))
+      // Save demo mode status on save
+      localStorage.setItem("aria-demo-mode", JSON.stringify(isDemoMode))
       toast.success("All assessments saved successfully")
       onSave?.()
     } catch (error) {
@@ -357,10 +535,26 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
             <p className="text-sm text-gray-500">Enter scores from formal assessment tools</p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={isSaving} className="bg-teal-600 hover:bg-teal-700">
-          <Save className="h-4 w-4 mr-2" />
-          {isSaving ? "Saving..." : "Save All"}
-        </Button>
+        {/* Add demo mode toggle button */}
+        <div className="flex items-center gap-4">
+          <Button onClick={handleSave} disabled={isSaving} className="bg-teal-600 hover:bg-teal-700">
+            <Save className="h-4 w-4 mr-2" />
+            {isSaving ? "Saving..." : "Save All"}
+          </Button>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="demo-mode"
+              checked={isDemoMode}
+              onCheckedChange={(checked) => setIsDemoMode(checked as boolean)}
+            />
+            <label
+              htmlFor="demo-mode"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Demo Mode
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -401,7 +595,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                   variant="outline"
                   size="sm"
                   onClick={() => handleAIGenerate("ablls-narrative")}
-                  disabled={isGenerating === "ablls-narrative"}
+                  disabled={isGenerating === "ablls-narrative" || isDemoMode}
                   className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
                 >
                   {isGenerating === "ablls-narrative" ? (
@@ -441,6 +635,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               }))
                             }
                             className="w-20"
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                         <TableCell className="text-gray-500">/{domain.max}</TableCell>
@@ -455,6 +650,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                             }
                             placeholder="Notes..."
                             className="min-h-[60px] resize-none"
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                       </TableRow>
@@ -480,7 +676,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                   variant="outline"
                   size="sm"
                   onClick={() => handleAIGenerate("vineland-parent")}
-                  disabled={isGenerating === "vineland-parent"}
+                  disabled={isGenerating === "vineland-parent" || isDemoMode}
                   className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
                 >
                   {isGenerating === "vineland-parent" ? (
@@ -518,6 +714,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               }))
                             }
                             className="w-20"
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                         <TableCell>
@@ -532,6 +729,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                                 }))
                               }
                               className="w-16"
+                              disabled={isDemoMode}
                             />
                             <span>-</span>
                             <Input
@@ -544,6 +742,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                                 }))
                               }
                               className="w-16"
+                              disabled={isDemoMode}
                             />
                           </div>
                         </TableCell>
@@ -558,6 +757,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               }))
                             }
                             className="w-20"
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                       </TableRow>
@@ -588,6 +788,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                             setVinelandParentMaladaptive((prev) => ({ ...prev, internalizing: e.target.value }))
                           }
                           className="w-20"
+                          disabled={isDemoMode}
                         />
                       </TableCell>
                       <TableCell>
@@ -620,6 +821,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                             setVinelandParentMaladaptive((prev) => ({ ...prev, externalizing: e.target.value }))
                           }
                           className="w-20"
+                          disabled={isDemoMode}
                         />
                       </TableCell>
                       <TableCell>
@@ -663,7 +865,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                   variant="outline"
                   size="sm"
                   onClick={() => handleAIGenerate("vineland-teacher")}
-                  disabled={isGenerating === "vineland-teacher"}
+                  disabled={isGenerating === "vineland-teacher" || isDemoMode}
                   className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
                 >
                   {isGenerating === "vineland-teacher" ? (
@@ -701,6 +903,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               }))
                             }
                             className="w-20"
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                         <TableCell>
@@ -715,6 +918,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                                 }))
                               }
                               className="w-16"
+                              disabled={isDemoMode}
                             />
                             <span>-</span>
                             <Input
@@ -727,6 +931,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                                 }))
                               }
                               className="w-16"
+                              disabled={isDemoMode}
                             />
                           </div>
                         </TableCell>
@@ -741,6 +946,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               }))
                             }
                             className="w-20"
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                       </TableRow>
@@ -771,6 +977,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                             setVinelandTeacherMaladaptive((prev) => ({ ...prev, internalizing: e.target.value }))
                           }
                           className="w-20"
+                          disabled={isDemoMode}
                         />
                       </TableCell>
                       <TableCell>
@@ -803,6 +1010,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                             setVinelandTeacherMaladaptive((prev) => ({ ...prev, externalizing: e.target.value }))
                           }
                           className="w-20"
+                          disabled={isDemoMode}
                         />
                       </TableCell>
                       <TableCell>
@@ -846,7 +1054,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                   variant="outline"
                   size="sm"
                   onClick={() => handleAIGenerate("srs2-summary")}
-                  disabled={isGenerating === "srs2-summary"}
+                  disabled={isGenerating === "srs2-summary" || isDemoMode}
                   className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
                 >
                   {isGenerating === "srs2-summary" ? (
@@ -883,6 +1091,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               }))
                             }
                             className="w-20"
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                         <TableCell>
@@ -951,6 +1160,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               setMasData(newData)
                             }}
                             placeholder="Describe behavior..."
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                         <TableCell className="text-center">
@@ -961,6 +1171,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               newData[index].sensory = checked as boolean
                               setMasData(newData)
                             }}
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                         <TableCell className="text-center">
@@ -971,6 +1182,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               newData[index].escape = checked as boolean
                               setMasData(newData)
                             }}
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                         <TableCell className="text-center">
@@ -981,6 +1193,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               newData[index].attention = checked as boolean
                               setMasData(newData)
                             }}
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                         <TableCell className="text-center">
@@ -991,11 +1204,17 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                               newData[index].tangible = checked as boolean
                               setMasData(newData)
                             }}
+                            disabled={isDemoMode}
                           />
                         </TableCell>
                         <TableCell>
                           {masData.length > 1 && (
-                            <Button variant="ghost" size="sm" onClick={() => removeMasBehavior(index)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeMasBehavior(index)}
+                              disabled={isDemoMode}
+                            >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                           )}
@@ -1005,7 +1224,13 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
                   </TableBody>
                 </Table>
               </div>
-              <Button variant="outline" size="sm" onClick={addMasBehavior} className="mt-4 bg-transparent">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addMasBehavior}
+                className="mt-4 bg-transparent"
+                disabled={isDemoMode}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Behavior
               </Button>
