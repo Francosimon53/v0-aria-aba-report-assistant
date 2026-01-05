@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,8 +29,36 @@ export default function Home() {
   const [submitted, setSubmitted] = useState(false)
   const [timeLeft, setTimeLeft] = useState({ hours: 23, minutes: 59, seconds: 59 })
   const [spotsLeft, setSpotsLeft] = useState(7)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient()
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session?.user) {
+          // User is logged in - redirect to dashboard
+          router.replace("/dashboard")
+          return
+        }
+      } catch (error) {
+        // If auth check fails, just show landing page
+        console.error("Auth check failed:", error)
+      }
+
+      // Not logged in - show landing page
+      setIsCheckingAuth(false)
+    }
+
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    if (isCheckingAuth) return
+
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 }
@@ -39,7 +68,18 @@ export default function Home() {
       })
     }, 1000)
     return () => clearInterval(timer)
-  }, [])
+  }, [isCheckingAuth])
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

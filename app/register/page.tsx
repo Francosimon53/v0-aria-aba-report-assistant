@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
@@ -63,7 +63,7 @@ function LockIcon({ className }: { className?: string }) {
       className={className}
     >
       <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      <path d="M7 11V7a5 5 0 0 1 8-8H9a5 5 0 0 1 8 8v4" />
     </svg>
   )
 }
@@ -80,7 +80,7 @@ function UserIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <path d="M19 21v-2a8 8 0 0 0-8-8H9a8 8 0 0 0-8 8v2" />
       <circle cx="12" cy="7" r="4" />
     </svg>
   )
@@ -89,6 +89,7 @@ function UserIcon({ className }: { className?: string }) {
 export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -97,6 +98,39 @@ export default function RegisterPage() {
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient()
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session?.user) {
+          router.replace("/dashboard")
+          return
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error)
+      }
+
+      setIsCheckingAuth(false)
+    }
+
+    checkAuth()
+  }, [router])
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+          <p className="text-sm text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
