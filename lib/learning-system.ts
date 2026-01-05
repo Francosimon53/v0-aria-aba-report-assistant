@@ -247,3 +247,177 @@ export async function saveContentForLearning(): Promise<{ success: boolean; save
     return { success: false, error: "Failed to save content" }
   }
 }
+
+export async function searchSimilarContent({
+  sectionType,
+  diagnosis,
+  severityLevel,
+  ageRange,
+  queryText,
+  limit = 2,
+}: {
+  sectionType: string
+  diagnosis?: string
+  severityLevel?: string
+  ageRange?: string
+  queryText: string
+  limit?: number
+}): Promise<
+  Array<{
+    diagnosis: string
+    severity_level: string
+    age_years: number
+    bcba_approved_content: string
+    similarity: number
+  }>
+> {
+  try {
+    // Generate embedding for the query
+    const response = await fetch("/api/embeddings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: queryText.slice(0, 2000) }),
+    })
+
+    if (!response.ok) {
+      console.log("[v0] Embedding generation failed, falling back to text search")
+      return await fallbackTextSearch({ sectionType, diagnosis, severityLevel, limit })
+    }
+
+    const { embedding } = await response.json()
+
+    if (!embedding) {
+      return await fallbackTextSearch({ sectionType, diagnosis, severityLevel, limit })
+    }
+
+    const supabase = createClient()
+
+    // Try vector similarity search first
+    const { data, error } = await supabase.rpc("search_similar_content", {
+      query_embedding: embedding,
+      p_diagnosis: diagnosis || null,
+      p_severity_level: severityLevel || null,
+      p_age_range: ageRange || null,
+      p_section_type: sectionType,
+      p_insurance: null,
+      p_limit: limit,
+    })
+
+    if (error) {
+      console.log("[v0] Vector search failed, falling back to text search:", error.message)
+      return await fallbackTextSearch({ sectionType, diagnosis, severityLevel, limit })
+    }
+
+    return data || []
+  } catch (error) {
+    console.log("[v0] Search error, using fallback:", error)
+    return await fallbackTextSearch({ sectionType, diagnosis, severityLevel, limit })
+  }
+}
+
+// Fallback to simple text-based search when embeddings aren't available
+async function fallbackTextSearch({
+  sectionType,
+  diagnosis,
+  severityLevel,
+  limit = 2,
+}: {
+  sectionType: string
+  diagnosis?: string
+  severityLevel?: string
+  limit?: number
+}): Promise<
+  Array<{
+    diagnosis: string
+    severity_level: string
+    age_years: number
+    bcba_approved_content: string
+    similarity: number
+  }>
+> {
+  try {
+    const supabase = createClient()
+
+    let query = supabase
+      .from("approved_content")
+      .select("diagnosis, severity_level, age_years, bcba_approved_content")
+      .eq("section_type", sectionType)
+      .not("bcba_approved_content", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(limit * 2) // Get more to filter
+
+    if (diagnosis) {
+      query = query.eq("diagnosis", diagnosis)
+    }
+    if (severityLevel) {
+      query = query.eq("severity_level", severityLevel)
+    }
+
+    const { data, error } = await query
+
+    if (error || !data) {
+      return []
+    }
+
+    // Return top results with mock similarity score
+    return data.slice(0, limit).map((item) => ({
+      ...item,
+      similarity: 0.8, // Default similarity for fallback
+    }))
+  } catch {
+    return []
+  }
+}
+
+export async function buildEnhancedPrompt({
+  basePrompt,
+  sectionType,
+  clientInfo,
+}: {
+  basePrompt: string
+  sectionType: string
+  clientInfo: {
+    diagnosis?: string
+    severityLevel?: string
+    age?: number
+  }
+}): Promise<{ enhancedPrompt: string; exampleCount: number }> {
+  const ageRange = clientInfo.age ? getAgeRange(clientInfo.age) : undefined
+
+  try {
+    const examples = await searchSimilarContent({
+      sectionType,
+      diagnosis: clientInfo.diagnosis,
+      severityLevel: clientInfo.severityLevel,
+      ageRange,
+      queryText: basePrompt,
+      limit: 2,
+    })
+
+    if (examples.length === 0) {
+      return { enhancedPrompt: basePrompt, exampleCount: 0 }
+    }
+
+    const examplesText = examples
+      .map(
+        (ex, i) => `
+EXAMPLE ${i + 1} (${ex.diagnosis || "ASD"}, ${ex.severity_level || "Level 2"}, Age ${ex.age_years || "N/A"}):
+${ex.bcba_approved_content.slice(0, 1500)}
+`,
+      )
+      .join("\n")
+
+    const enhancedPrompt = `${basePrompt}
+
+Here are examples of previously approved content for similar cases. Use these as style and quality references:
+
+${examplesText}
+
+Generate new content following a similar professional style and level of detail, customized for this specific client. Do not copy the examples directly - create original content.`
+
+    return { enhancedPrompt, exampleCount: examples.length }
+  } catch (error) {
+    console.log("[v0] Failed to enhance prompt with examples:", error)
+    return { enhancedPrompt: basePrompt, exampleCount: 0 }
+  }
+}

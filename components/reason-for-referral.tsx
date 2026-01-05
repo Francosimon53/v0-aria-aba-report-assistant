@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Sparkles, Save, FileText, AlertCircle, Target, Users } from "lucide-react"
+import { Sparkles, Save, FileText, AlertCircle, Target, Users, Brain } from "lucide-react"
 import { toast } from "sonner"
+import { buildEnhancedPrompt } from "@/lib/learning-system"
 
 interface ReasonForReferralProps {
   onSave?: () => void
@@ -34,6 +35,7 @@ const DSM5_LEVELS = [
 export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [usedHistoricalExamples, setUsedHistoricalExamples] = useState(0)
 
   const [formData, setFormData] = useState({
     currentProblemAreas: "",
@@ -42,7 +44,6 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
     areasOfConcern: [] as string[],
   })
 
-  // Load data from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("aria-reason-for-referral")
     if (saved) {
@@ -54,7 +55,6 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
     }
   }, [])
 
-  // Auto-save on changes
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       localStorage.setItem("aria-reason-for-referral", JSON.stringify(formData))
@@ -78,29 +78,45 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
     }
 
     setIsGenerating(true)
-    console.log("[v0] Starting AI generation for Reason for Referral")
+    setUsedHistoricalExamples(0)
 
     try {
-      // Get client data for context
       const clientData = localStorage.getItem("aria-client-info")
       const backgroundData = localStorage.getItem("aria-background-history")
+      const parsedClientInfo = clientData ? JSON.parse(clientData) : {}
 
-      console.log("[v0] Client data:", clientData ? "Found" : "Not found")
-      console.log("[v0] Background data:", backgroundData ? "Found" : "Not found")
-      console.log("[v0] Areas of concern:", formData.areasOfConcern)
-      console.log("[v0] DSM-5 Level:", formData.dsm5Level)
+      const basePromptContext = `
+Client Information:
+- Diagnosis: ${parsedClientInfo.diagnosis || "Autism Spectrum Disorder"}
+- Age: ${parsedClientInfo.age || "Not specified"}
+- DSM-5 Level: ${formData.dsm5Level || "Not specified"}
+- Areas of Concern: ${formData.areasOfConcern.map((id) => AREAS_OF_CONCERN.find((a) => a.id === id)?.label || id).join(", ")}
+
+Generate a professional "Reason for Referral" narrative for an ABA assessment.
+`
+
+      const { enhancedPrompt, exampleCount } = await buildEnhancedPrompt({
+        basePrompt: basePromptContext,
+        sectionType: "reason_for_referral",
+        clientInfo: {
+          diagnosis: parsedClientInfo.diagnosis,
+          severityLevel: formData.dsm5Level,
+          age: Number.parseInt(parsedClientInfo.age) || undefined,
+        },
+      })
+
+      setUsedHistoricalExamples(exampleCount)
 
       const requestBody = {
         type: "reasonForReferral",
         data: {
-          clientInfo: clientData ? JSON.parse(clientData) : {},
+          clientInfo: parsedClientInfo,
           background: backgroundData ? JSON.parse(backgroundData) : {},
           areasOfConcern: formData.areasOfConcern.map((id) => AREAS_OF_CONCERN.find((a) => a.id === id)?.label || id),
           dsm5Level: formData.dsm5Level,
+          enhancedContext: exampleCount > 0 ? enhancedPrompt : undefined,
         },
       }
-
-      console.log("[v0] Request body:", JSON.stringify(requestBody, null, 2))
 
       const response = await fetch("/api/generate-content", {
         method: "POST",
@@ -108,14 +124,14 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
         body: JSON.stringify(requestBody),
       })
 
-      console.log("[v0] Response status:", response.status)
-
       const data = await response.json()
-      console.log("[v0] Response data:", data)
 
       if (response.ok && data.content) {
+        localStorage.setItem("aria-reason-for-referral-ai-generated", data.content)
         setFormData((prev) => ({ ...prev, currentProblemAreas: data.content }))
-        toast.success("Problem areas generated successfully")
+        toast.success(
+          exampleCount > 0 ? `Generated with ${exampleCount} similar examples` : "Problem areas generated successfully",
+        )
       } else {
         throw new Error(data.error || data.message || "Failed to generate content")
       }
@@ -149,7 +165,6 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg">
@@ -171,7 +186,6 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
         </div>
       </div>
 
-      {/* DSM-5 Level */}
       <Card className="border-2 border-gray-100 shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -199,7 +213,6 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
         </CardContent>
       </Card>
 
-      {/* Areas of Concern */}
       <Card className="border-2 border-gray-100 shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -234,7 +247,6 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
         </CardContent>
       </Card>
 
-      {/* Current Problem Areas */}
       <Card className="border-2 border-gray-100 shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -254,6 +266,15 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
             </Button>
           </div>
           <CardDescription>Describe the specific behavioral and developmental concerns</CardDescription>
+          {usedHistoricalExamples > 0 && (
+            <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded mt-2 w-fit">
+              <Brain className="h-3 w-3" />
+              <span>
+                Enhanced with {usedHistoricalExamples} similar approved assessment
+                {usedHistoricalExamples > 1 ? "s" : ""}
+              </span>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <Textarea
@@ -269,7 +290,6 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
         </CardContent>
       </Card>
 
-      {/* Family Goals */}
       <Card className="border-2 border-gray-100 shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
