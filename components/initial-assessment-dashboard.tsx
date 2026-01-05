@@ -1,9 +1,9 @@
 "use client"
 
 import type React from "react"
-import { createClient } from "@/lib/supabase/client"
+import { createBrowserClient } from "@/lib/supabase/client"
 import { LogOut } from "lucide-react"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Progress } from "@/components/ui/progress"
@@ -14,37 +14,27 @@ import {
   TargetIcon,
   ClipboardListIcon,
   BookOpenIcon,
-  UsersIcon,
-  CalendarIcon,
-  ShieldIcon,
+  ShieldAlertIcon,
   CheckCircleIcon,
   ChevronLeftIcon,
-  ChevronRightIcon,
-  SaveIcon,
-  ClockIcon,
-  Loader2Icon,
   TrendingDownIcon,
+  Menu,
+  X,
+  ClockIcon,
+  SaveIcon,
   AlertTriangleIcon,
-} from "@/components/icons"
+} from "lucide-react"
 
 // Import all the form components
-import { ClientForm } from "@/components/client-form"
-import { BackgroundHistory } from "@/components/background-history"
-import { AssessmentForm } from "@/components/assessment-form"
+import { ClientInformationForm } from "@/components/client-information-form"
+import { BackgroundHistoryForm } from "@/components/background-history-form"
+import { ReasonForReferral } from "@/components/reason-for-referral"
+import { StandardizedAssessments } from "@/components/standardized-assessments"
 import { ABCObservation } from "@/components/abc-observation"
 import { RiskAssessment } from "@/components/risk-assessment"
 import { GoalBankBrowser } from "@/components/goal-bank-browser"
-import { GoalsTracker } from "@/components/goals-tracker"
-import { InterventionsLibrary } from "@/components/interventions-library"
-import { TeachingProtocolBuilder } from "@/components/teaching-protocol-builder"
-import { ParentTrainingTracker } from "@/components/parent-training-tracker"
-import { ServiceSchedule } from "@/components/service-schedule"
-import { MedicalNecessityGenerator } from "@/components/medical-necessity-generator"
 import { CPTAuthorizationRequest } from "@/components/cpt-authorization-request"
-import { ConsentFormsManager } from "@/components/consent-forms-manager"
 import { AIReportGenerator } from "@/components/ai-report-generator"
-import { ReasonForReferral } from "@/components/reason-for-referral"
-import { StandardizedAssessments } from "@/components/standardized-assessments"
 import { FadePlan } from "@/components/fade-plan"
 import { BarriersGeneralization } from "@/components/barriers-generalization"
 import { Card, CardContent } from "@/components/ui/card"
@@ -54,20 +44,12 @@ type ActiveView =
   | "background"
   | "referral"
   | "standardized"
-  | "assessment"
   | "abc"
   | "risk"
   | "goalbank"
-  | "goals"
-  | "interventions"
-  | "protocols"
-  | "parent"
-  | "schedule"
-  | "medical"
   | "cptauth"
   | "fadeplan"
   | "barriers"
-  | "consent"
   | "report"
 
 interface NavItem {
@@ -111,44 +93,18 @@ const phases = [
         icon: FileTextIcon,
         description: "Antecedent-Behavior-Consequence",
       },
-      { id: "risk" as ActiveView, label: "Risk Assessment", icon: ShieldIcon, description: "Safety & risk evaluation" },
+      {
+        id: "risk" as ActiveView,
+        label: "Risk Assessment",
+        icon: ShieldAlertIcon,
+        description: "Safety & risk evaluation",
+      },
     ],
   },
   {
     title: "Goals & Treatment",
     items: [
       { id: "goalbank" as ActiveView, label: "Goal Bank", icon: TargetIcon, description: "Browse & select goals" },
-      { id: "goals" as ActiveView, label: "Goals Tracker", icon: TargetIcon, description: "Track goal progress" },
-      {
-        id: "interventions" as ActiveView,
-        label: "Interventions",
-        icon: ClipboardListIcon,
-        description: "Treatment interventions",
-      },
-      {
-        id: "protocols" as ActiveView,
-        label: "Teaching Protocols",
-        icon: BookOpenIcon,
-        description: "DTT & NET protocols",
-      },
-      { id: "parent" as ActiveView, label: "Parent Training", icon: UsersIcon, description: "Caregiver training" },
-      {
-        id: "schedule" as ActiveView,
-        label: "Service Schedule",
-        icon: CalendarIcon,
-        description: "Weekly service hours",
-      },
-    ],
-  },
-  {
-    title: "Reports & Documents",
-    items: [
-      {
-        id: "medical" as ActiveView,
-        label: "Medical Necessity",
-        icon: FileTextIcon,
-        description: "Medical necessity statement",
-      },
       {
         id: "cptauth" as ActiveView,
         label: "CPT Authorization",
@@ -167,7 +123,11 @@ const phases = [
         icon: AlertTriangleIcon,
         description: "Treatment barriers & strategies",
       },
-      { id: "consent" as ActiveView, label: "Consent Forms", icon: FileTextIcon, description: "Required consents" },
+    ],
+  },
+  {
+    title: "Reports & Documents",
+    items: [
       { id: "report" as ActiveView, label: "Generate Report", icon: FileTextIcon, description: "Create final report" },
     ],
   },
@@ -279,7 +239,7 @@ function StepNavigationBar({
           >
             {saveStatus === "saving" && (
               <>
-                <Loader2Icon className="h-4 w-4 animate-spin" />
+                <ClockIcon className="h-4 w-4 animate-spin" />
                 <span>Saving your progress...</span>
               </>
             )}
@@ -315,14 +275,14 @@ function StepNavigationBar({
               >
                 {isSaving ? (
                   <>
-                    <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                    <ClockIcon className="h-4 w-4 mr-2 animate-spin" />
                     Saving...
                   </>
                 ) : (
                   <>
                     <SaveIcon className="h-4 w-4 mr-2" />
                     Save & Continue to {getStepLabel(nextStepId)}
-                    <ChevronRightIcon className="h-4 w-4 ml-2" />
+                    <ChevronLeftIcon className="h-4 w-4 ml-2" />
                   </>
                 )}
               </Button>
@@ -337,7 +297,7 @@ function StepNavigationBar({
               >
                 {isSaving ? (
                   <>
-                    <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                    <ClockIcon className="h-4 w-4 mr-2 animate-spin" />
                     Saving...
                   </>
                 ) : (
@@ -363,11 +323,11 @@ function StepNavigationBar({
 export function InitialAssessmentDashboard() {
   const [activeView, setActiveView] = useState<ActiveView>("client")
   const [completedSteps, setCompletedSteps] = useState<Set<ActiveView>>(new Set())
-  const [clientData, setClientData] = useState<any>({})
   const [isSaving, setIsSaving] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const { toast } = useToast()
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+  const { toast } = useToast()
 
   const allSteps: ActiveView[] = phases.flatMap((p) => p.items.map((i) => i.id))
 
@@ -375,10 +335,6 @@ export function InitialAssessmentDashboard() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
-        const savedClient = localStorage.getItem("aria-initial-client-info")
-        if (savedClient) {
-          setClientData(JSON.parse(savedClient))
-        }
         const savedSteps = localStorage.getItem("aria-initial-completed-steps")
         if (savedSteps) {
           setCompletedSteps(new Set(JSON.parse(savedSteps)))
@@ -448,7 +404,7 @@ export function InitialAssessmentDashboard() {
 
   const handleSignOut = async () => {
     try {
-      const supabase = createClient()
+      const supabase = createBrowserClient()
       await supabase.auth.signOut()
       window.location.href = "/login"
     } catch (error) {
@@ -461,58 +417,183 @@ export function InitialAssessmentDashboard() {
     }
   }
 
-  const renderContent = () => {
-    const safeClientData = clientData || {}
+  const handleNavItemClick = (itemId: ActiveView) => {
+    setActiveView(itemId)
+    setMobileDrawerOpen(false)
+  }
 
+  const currentSectionLabel = useMemo(() => {
+    return phases.flatMap((p) => p.items).find((i) => i.id === activeView)?.label || "Assessment"
+  }, [activeView])
+
+  const renderContent = () => {
     switch (activeView) {
       case "client":
-        return <ClientForm onSave={() => markStepComplete("client")} assessmentType="initial" />
+        return <ClientInformationForm onSave={() => markStepComplete("client")} />
       case "background":
-        return <BackgroundHistory onSave={() => markStepComplete("background")} />
+        return <BackgroundHistoryForm onSave={() => markStepComplete("background")} />
       case "referral":
         return <ReasonForReferral onSave={() => markStepComplete("referral")} />
       case "standardized":
         return <StandardizedAssessments onSave={() => markStepComplete("standardized")} />
-      case "assessment":
-        return <AssessmentForm onSave={() => markStepComplete("assessment")} />
       case "abc":
         return <ABCObservation onSave={() => markStepComplete("abc")} />
       case "risk":
         return <RiskAssessment onSave={() => markStepComplete("risk")} />
       case "goalbank":
         return <GoalBankBrowser onSave={() => markStepComplete("goalbank")} />
-      case "goals":
-        return <GoalsTracker onSave={() => markStepComplete("goals")} />
-      case "interventions":
-        return <InterventionsLibrary onSave={() => markStepComplete("interventions")} />
-      case "protocols":
-        return <TeachingProtocolBuilder onSave={() => markStepComplete("protocols")} />
-      case "parent":
-        return <ParentTrainingTracker onSave={() => markStepComplete("parent")} />
-      case "schedule":
-        return <ServiceSchedule onSave={() => markStepComplete("schedule")} />
-      case "medical":
-        return <MedicalNecessityGenerator onSave={() => markStepComplete("medical")} />
       case "cptauth":
-        return <CPTAuthorizationRequest clientData={safeClientData} onSave={() => markStepComplete("cptauth")} />
+        return <CPTAuthorizationRequest onSave={() => markStepComplete("cptauth")} />
       case "fadeplan":
         return <FadePlan onSave={() => markStepComplete("fadeplan")} />
       case "barriers":
         return <BarriersGeneralization onSave={() => markStepComplete("barriers")} />
-      case "consent":
-        return <ConsentFormsManager clientData={safeClientData} onSave={() => markStepComplete("consent")} />
       case "report":
         return <AIReportGenerator />
       default:
-        return <ClientForm onSave={() => markStepComplete("client")} assessmentType="initial" />
+        return <ClientInformationForm onSave={() => markStepComplete("client")} />
     }
   }
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50 px-4 py-3 flex items-center justify-between safe-area-top">
+        <button onClick={() => setMobileDrawerOpen(true)} className="p-2 -ml-2 rounded-lg hover:bg-gray-100">
+          <Menu className="h-6 w-6 text-gray-700" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-teal-600 flex items-center justify-center">
+            <FileTextIcon className="h-4 w-4 text-white" />
+          </div>
+          <span className="font-semibold text-teal-700">ARIA</span>
+        </div>
+        <span className="text-sm text-gray-500 truncate max-w-[120px]">{currentSectionLabel}</span>
+      </div>
+
+      {mobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 animate-fade-in-backdrop"
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl overflow-y-auto animate-slide-in-drawer safe-area-top">
+            {/* Close button */}
+            <button
+              onClick={() => setMobileDrawerOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 z-10"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-teal-600 to-teal-700">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <FileTextIcon className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="font-bold text-white">Initial Assessment</h1>
+                  <p className="text-xs text-teal-100">New Client Evaluation</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Back to Dashboard */}
+            <div className="p-3 border-b border-gray-100">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start gap-2 text-gray-600 hover:text-teal-700 hover:border-teal-300 bg-transparent"
+                onClick={() => (window.location.href = "/dashboard")}
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </div>
+
+            {/* Progress */}
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Progress</span>
+                <span className="text-sm font-bold text-teal-600">{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2 bg-teal-100" />
+              <p className="text-xs text-gray-500 mt-1">
+                {completedSteps.size} of {allItems.length} sections complete
+              </p>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto p-2">
+              <Accordion type="multiple" defaultValue={phases.map((_, i) => `phase-${i}`)} className="space-y-1">
+                {phases.map((phase, phaseIndex) => (
+                  <AccordionItem key={phaseIndex} value={`phase-${phaseIndex}`} className="border-none">
+                    <AccordionTrigger className="py-2 px-3 text-sm font-semibold text-gray-700 hover:no-underline hover:bg-gray-50 rounded-lg">
+                      {phase.title}
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-1 pt-0">
+                      <div className="space-y-0.5 ml-2">
+                        {phase.items.map((item) => {
+                          const isActive = activeView === item.id
+                          const isComplete = completedSteps.has(item.id)
+                          const Icon = item.icon
+
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => handleNavItemClick(item.id)}
+                              className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all ${
+                                isActive
+                                  ? "bg-teal-50 text-teal-700 border-l-4 border-teal-500"
+                                  : "text-gray-600 hover:bg-gray-50"
+                              }`}
+                            >
+                              <div
+                                className={`h-5 w-5 rounded-full flex items-center justify-center ${
+                                  isComplete ? "bg-teal-500" : isActive ? "bg-teal-200" : "bg-gray-200"
+                                }`}
+                              >
+                                {isComplete ? (
+                                  <CheckCircleIcon className="h-3 w-3 text-white" />
+                                ) : (
+                                  <Icon className={`h-3 w-3 ${isActive ? "text-teal-700" : "text-gray-500"}`} />
+                                )}
+                              </div>
+                              <span className="text-sm font-medium">{item.label}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </nav>
+
+            {/* Save All Button */}
+            <div className="p-3 border-t border-gray-200 safe-area-bottom">
+              <Button onClick={handleSaveAll} disabled={isSaving} className="w-full bg-teal-600 hover:bg-teal-700">
+                {isSaving ? (
+                  <>
+                    <ClockIcon className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <SaveIcon className="h-4 w-4 mr-2" />
+                    Save All Progress
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <aside
-        className={`${sidebarOpen ? "w-72" : "w-0"} bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden`}
+        className={`hidden lg:flex ${sidebarOpen ? "w-72" : "w-0"} bg-white border-r border-gray-200 flex-col transition-all duration-300 overflow-hidden`}
       >
         {/* Header */}
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-teal-600 to-teal-700">
@@ -641,9 +722,9 @@ export function InitialAssessmentDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+      <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
+        {/* Top Bar - hidden on mobile */}
+        <header className="hidden lg:flex bg-white border-b border-gray-200 px-6 py-3 items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-500">
               {sidebarOpen ? "←" : "→"}
@@ -665,7 +746,7 @@ export function InitialAssessmentDashboard() {
         </header>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 lg:p-6">
           {renderContent()}
 
           <StepNavigationBar
@@ -679,6 +760,14 @@ export function InitialAssessmentDashboard() {
           />
         </div>
       </main>
+
+      <button
+        onClick={handleSaveAll}
+        disabled={isSaving}
+        className="lg:hidden fixed bottom-6 right-6 bg-teal-600 hover:bg-teal-700 text-white rounded-full p-4 shadow-lg z-40 safe-area-bottom"
+      >
+        {isSaving ? <ClockIcon className="h-6 w-6 animate-spin" /> : <SaveIcon className="h-6 w-6" />}
+      </button>
     </div>
   )
 }

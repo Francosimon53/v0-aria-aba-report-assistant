@@ -398,3 +398,94 @@
   -webkit-text-fill-color: transparent;
   animation: shimmer 3s linear infinite;
 }
+
+/* Mobile responsive utilities */
+/* Prevent iOS zoom on input focus */
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area padding for notched phones */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Touch-friendly tap targets */
+@media screen and (max-width: 768px) {
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+  }
+}
+
+/* Mobile drawer animation */
+@keyframes slide-in-drawer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-drawer {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes fade-in-backdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-drawer {
+  animation: slide-in-drawer 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-out-drawer {
+  animation: slide-out-drawer 200ms ease-in forwards;
+}
+
+.animate-fade-in-backdrop {
+  animation: fade-in-backdrop 200ms ease-out forwards;
+}
+
+/* Scrollable table wrapper */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile-optimized scrollbars */
+@media screen and (max-width: 768px) {
+  .table-responsive::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+  }
+
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+  }
+}

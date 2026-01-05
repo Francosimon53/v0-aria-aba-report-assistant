@@ -202,26 +202,27 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-20 pb-32 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-200/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-200/30 rounded-full blur-3xl" />
+      <section className="relative pt-16 sm:pt-20 pb-20 sm:pb-32 overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-teal-200/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-cyan-200/30 rounded-full blur-3xl" />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-5xl mx-auto text-center">
             {/* Trust badge */}
-            <div className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-2 mb-8 shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
+            <div className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 sm:px-4 py-2 mb-6 sm:mb-8 shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
               <div className="flex -space-x-2">
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 border-2 border-white"
+                    className="w-6 sm:w-7 h-6 sm:h-7 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 border-2 border-white"
                   />
                 ))}
               </div>
-              <span className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">2,847 BCBAs</span> already saving time
+              <span className="text-xs sm:text-sm text-gray-600">
+                <span className="font-semibold text-gray-900">2,847 BCBAs</span>{" "}
+                <span className="hidden sm:inline">already saving time</span>
               </span>
-              <div className="flex text-yellow-400">
+              <div className="hidden sm:flex text-yellow-400">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <StarIcon key={i} className="h-4 w-4 fill-current" />
                 ))}
@@ -229,27 +230,28 @@ export default function Home() {
             </div>
 
             {/* Main headline */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-[1.1] mb-4 sm:mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 text-balance">
               Stop Spending 15 Hours
-              <br />
+              <br className="hidden sm:block" />
+              <span className="sm:hidden"> </span>
               <span className="bg-gradient-to-r from-[#0D9488] via-[#0891B2] to-[#06B6D4] bg-clip-text text-transparent">
                 on Every Assessment
               </span>
             </h1>
 
             {/* Subheadline */}
-            <p className="text-xl sm:text-2xl text-gray-600 leading-relaxed max-w-3xl mx-auto mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+            <p className="text-base sm:text-xl md:text-2xl text-gray-600 leading-relaxed max-w-3xl mx-auto mb-8 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 px-2 sm:px-0">
               AI-powered assessment reports that get{" "}
               <span className="font-semibold text-gray-900">approved on first submission</span>. Join thousands of BCBAs
               who reclaimed their evenings and weekends.
             </p>
 
             {/* CTA buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 px-4 sm:px-0">
               <Button
                 onClick={() => router.push("/register")}
                 size="lg"
-                className="bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold px-8 py-7 text-lg shadow-xl shadow-teal-500/25 hover:shadow-2xl hover:shadow-teal-500/30 transition-all duration-300 hover:-translate-y-1 group"
+                className="w-full sm:w-auto bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold px-6 sm:px-8 py-6 sm:py-7 text-base sm:text-lg shadow-xl shadow-teal-500/25 hover:shadow-2xl hover:shadow-teal-500/30 transition-all duration-300 hover:-translate-y-1 group"
               >
                 Start Free Assessment
                 <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -257,22 +259,26 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="lg"
-                className="border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-8 py-7 text-lg hover:bg-gray-50 transition-all duration-300 group bg-transparent"
+                className="w-full sm:w-auto border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-6 sm:px-8 py-6 sm:py-7 text-base sm:text-lg hover:bg-gray-50 transition-all duration-300 group bg-transparent"
               >
                 <PlayIcon className="mr-2 h-5 w-5 text-[#0D9488]" />
                 Watch 2-min Demo
               </Button>
             </div>
 
-            <div className="grid grid-cols-3 gap-8 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-[400ms]">
+            {/* Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-[400ms] px-4 sm:px-0">
               {[
                 { value: "98%", label: "First-Submission Approval" },
                 { value: "6-10hr", label: "Saved Per Assessment" },
                 { value: "15,000+", label: "Reports Generated" },
               ].map((stat, i) => (
-                <div key={i} className="text-center">
-                  <div className="text-3xl sm:text-4xl font-bold text-[#0D9488] mb-1">{stat.value}</div>
-                  <div className="text-sm text-gray-500 font-medium">{stat.label}</div>
+                <div
+                  key={i}
+                  className="text-center py-4 sm:py-0 border-b sm:border-b-0 last:border-b-0 border-gray-100"
+                >
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#0D9488] mb-1">{stat.value}</div>
+                  <div className="text-xs sm:text-sm text-gray-500 font-medium">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -489,23 +495,25 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="pricing" className="py-24 bg-white">
+      <section id="pricing" className="py-16 sm:py-24 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12 sm:mb-16">
             <Badge className="bg-red-50 text-red-600 border-red-200 mb-4">Limited Time: 50% OFF</Badge>
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-xl text-gray-600">Cancel anytime. No hidden fees.</p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Simple, Transparent Pricing
+            </h2>
+            <p className="text-lg sm:text-xl text-gray-600">Cancel anytime. No hidden fees.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {/* Starter */}
-            <Card className="p-8 bg-white border-gray-200 hover:shadow-xl transition-all duration-300">
+            <Card className="p-6 sm:p-8 bg-white border-gray-200 hover:shadow-xl transition-all duration-300">
               <div className="text-lg font-semibold text-gray-900 mb-2">Starter</div>
               <div className="text-sm text-gray-500 mb-6">For individual BCBAs</div>
               <div className="mb-6">
                 <span className="text-sm text-gray-400 line-through">$99/mo</span>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-bold text-gray-900">$49</span>
+                  <span className="text-4xl sm:text-5xl font-bold text-gray-900">$49</span>
                   <span className="text-gray-500">/month</span>
                 </div>
               </div>
@@ -534,7 +542,7 @@ export default function Home() {
             </Card>
 
             {/* Professional - Featured */}
-            <Card className="p-8 bg-gradient-to-b from-[#0D9488] to-[#0F766E] text-white border-0 shadow-2xl shadow-teal-500/25 scale-105 relative">
+            <Card className="p-6 sm:p-8 bg-gradient-to-b from-[#0D9488] to-[#0F766E] text-white border-0 shadow-2xl shadow-teal-500/25 relative order-first md:order-none">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                 <Badge className="bg-yellow-400 text-yellow-900 font-semibold px-4">Most Popular</Badge>
               </div>
@@ -543,7 +551,7 @@ export default function Home() {
               <div className="mb-6">
                 <span className="text-sm text-teal-200 line-through">$199/mo</span>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-bold">$99</span>
+                  <span className="text-4xl sm:text-5xl font-bold">$99</span>
                   <span className="text-teal-100">/month</span>
                 </div>
               </div>
@@ -572,13 +580,13 @@ export default function Home() {
             </Card>
 
             {/* Enterprise */}
-            <Card className="p-8 bg-white border-gray-200 hover:shadow-xl transition-all duration-300">
+            <Card className="p-6 sm:p-8 bg-white border-gray-200 hover:shadow-xl transition-all duration-300">
               <div className="text-lg font-semibold text-gray-900 mb-2">Enterprise</div>
               <div className="text-sm text-gray-500 mb-6">For large agencies</div>
               <div className="mb-6">
                 <span className="text-sm text-gray-400 line-through">$499/mo</span>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-bold text-gray-900">$249</span>
+                  <span className="text-4xl sm:text-5xl font-bold text-gray-900">$249</span>
                   <span className="text-gray-500">/month</span>
                 </div>
               </div>

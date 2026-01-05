@@ -1,51 +1,47 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Progress } from "@/components/ui/progress"
-import { useToast } from "@/hooks/use-toast"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import {
   UserIcon,
   FileTextIcon,
-  TargetIcon,
   ClipboardListIcon,
-  BookOpenIcon,
-  UsersIcon,
+  TargetIcon,
   CalendarIcon,
-  ShieldIcon,
-  CheckCircleIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  SaveIcon,
-  TrendingUpIcon,
-  ClockIcon,
-  RefreshCwIcon,
+  BookOpenIcon,
   BarChartIcon,
-  Loader2Icon,
-} from "@/components/icons"
-import { createClient } from "@/lib/supabase/client"
+  ClockIcon,
+  CheckCircleIcon,
+  SaveIcon,
+  ChevronLeftIcon,
+  ShieldAlertIcon,
+  RefreshCwIcon,
+  TrendingUpIcon,
+  Menu,
+  X,
+  ChevronRightIcon,
+} from "lucide-react"
 import { LogOut } from "lucide-react"
-
-// Import all the form components
-import { ClientForm } from "@/components/client-form"
-import { BackgroundHistory } from "@/components/background-history"
-import { AssessmentForm } from "@/components/assessment-form"
+import { ClientInformationForm } from "@/components/client-information-form"
+import { BackgroundHistoryForm } from "@/components/background-history-form"
+import { PreviousGoalsProgress } from "@/components/previous-goals-progress"
+import { ServiceDeliverySummary } from "@/components/service-delivery-summary"
+import { GoalsReview } from "@/components/goals-review"
+import { StandardizedAssessments } from "@/components/standardized-assessments"
 import { ABCObservation } from "@/components/abc-observation"
 import { RiskAssessment } from "@/components/risk-assessment"
 import { GoalBankBrowser } from "@/components/goal-bank-browser"
-import { InterventionsLibrary } from "@/components/interventions-library"
-import { TeachingProtocolBuilder } from "@/components/teaching-protocol-builder"
+import { CPTAuthorizationRequest } from "@/components/cpt-authorization-request"
+import { AIReportGenerator } from "@/components/ai-report-generator"
+import { FadePlan } from "@/components/fade-plan"
+import { BarriersGeneralization } from "@/components/barriers-generalization"
 import { ParentTrainingTracker } from "@/components/parent-training-tracker"
 import { ServiceSchedule } from "@/components/service-schedule"
 import { MedicalNecessityGenerator } from "@/components/medical-necessity-generator"
-import { CPTAuthorizationRequest } from "@/components/cpt-authorization-request"
-import { ConsentFormsManager } from "@/components/consent-forms-manager"
-import { AIReportGenerator } from "@/components/ai-report-generator"
-import { ServiceDeliverySummary } from "@/components/service-delivery-summary"
-import { PreviousGoalsProgress } from "@/components/previous-goals-progress"
-import { GoalsReview } from "@/components/goals-review"
-import { Card, CardContent } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
+import { createBrowserClient } from "@/lib/supabase/client"
 
 type ActiveView =
   | "client"
@@ -107,7 +103,12 @@ const phases = [
         description: "Compare to baseline",
       },
       { id: "abc" as ActiveView, label: "ABC Observations", icon: FileTextIcon, description: "Current observations" },
-      { id: "risk" as ActiveView, label: "Risk Assessment", icon: ShieldIcon, description: "Updated risk evaluation" },
+      {
+        id: "risk" as ActiveView,
+        label: "Risk Assessment",
+        icon: ShieldAlertIcon,
+        description: "Updated risk evaluation",
+      },
     ],
   },
   {
@@ -132,7 +133,7 @@ const phases = [
         icon: BookOpenIcon,
         description: "DTT & NET protocols",
       },
-      { id: "parent" as ActiveView, label: "Parent Training", icon: UsersIcon, description: "Caregiver training" },
+      { id: "parent" as ActiveView, label: "Parent Training", icon: CalendarIcon, description: "Caregiver training" },
       {
         id: "schedule" as ActiveView,
         label: "Service Schedule",
@@ -242,8 +243,8 @@ function StepNavigationBar({
         }
 
   return (
-    <Card className={`mt-8 border-t-4 ${colors.border} shadow-lg`}>
-      <CardContent className="p-6">
+    <div className={`mt-8 border-t-4 ${colors.border} shadow-lg`}>
+      <div className="p-6">
         {/* Progress indicator */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
@@ -273,7 +274,7 @@ function StepNavigationBar({
           >
             {saveStatus === "saving" && (
               <>
-                <Loader2Icon className="h-4 w-4 animate-spin" />
+                <ClockIcon className="h-4 w-4 animate-spin" />
                 <span>Saving your progress...</span>
               </>
             )}
@@ -309,7 +310,7 @@ function StepNavigationBar({
               >
                 {isSaving ? (
                   <>
-                    <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                    <ClockIcon className="h-4 w-4 mr-2 animate-spin" />
                     Saving...
                   </>
                 ) : (
@@ -331,7 +332,7 @@ function StepNavigationBar({
               >
                 {isSaving ? (
                   <>
-                    <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                    <ClockIcon className="h-4 w-4 mr-2 animate-spin" />
                     Saving...
                   </>
                 ) : (
@@ -349,8 +350,8 @@ function StepNavigationBar({
         <p className="mt-4 text-xs text-gray-500 text-center">
           Your progress is automatically saved. Click "Save & Continue" to proceed to the next step.
         </p>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
@@ -360,8 +361,9 @@ export function ReassessmentDashboard() {
   const [clientData, setClientData] = useState<any>({})
   const [isSaving, setIsSaving] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const { toast } = useToast()
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+  const { toast } = useToast()
 
   const allSteps: ActiveView[] = phases.flatMap((p) => p.items.map((i) => i.id))
 
@@ -441,7 +443,7 @@ export function ReassessmentDashboard() {
 
   const handleSignOut = async () => {
     try {
-      const supabase = createClient()
+      const supabase = createBrowserClient()
       await supabase.auth.signOut()
       window.location.href = "/login"
     } catch (error) {
@@ -454,20 +456,25 @@ export function ReassessmentDashboard() {
     }
   }
 
+  const handleNavItemClick = (itemId: ActiveView) => {
+    setActiveView(itemId)
+    setMobileDrawerOpen(false)
+  }
+
   const renderContent = () => {
     const safeClientData = clientData || {}
 
     switch (activeView) {
       case "client":
-        return <ClientForm onSave={() => markStepComplete("client")} assessmentType="reassessment" />
+        return <ClientInformationForm onSave={() => markStepComplete("client")} assessmentType="reassessment" />
       case "background":
-        return <BackgroundHistory onSave={() => markStepComplete("background")} />
+        return <BackgroundHistoryForm onSave={() => markStepComplete("background")} />
       case "service-delivery":
         return <ServiceDeliverySummary onSave={() => markStepComplete("service-delivery")} />
       case "previous-goals":
         return <PreviousGoalsProgress onSave={() => markStepComplete("previous-goals")} />
       case "assessment":
-        return <AssessmentForm onSave={() => markStepComplete("assessment")} />
+        return <StandardizedAssessments onSave={() => markStepComplete("assessment")} />
       case "abc":
         return <ABCObservation onSave={() => markStepComplete("abc")} />
       case "risk":
@@ -477,9 +484,9 @@ export function ReassessmentDashboard() {
       case "new-goals":
         return <GoalBankBrowser onSave={() => markStepComplete("new-goals")} />
       case "interventions":
-        return <InterventionsLibrary onSave={() => markStepComplete("interventions")} />
+        return <FadePlan onSave={() => markStepComplete("interventions")} />
       case "protocols":
-        return <TeachingProtocolBuilder onSave={() => markStepComplete("protocols")} />
+        return <BarriersGeneralization onSave={() => markStepComplete("protocols")} />
       case "parent":
         return <ParentTrainingTracker onSave={() => markStepComplete("parent")} />
       case "schedule":
@@ -489,19 +496,181 @@ export function ReassessmentDashboard() {
       case "cptauth":
         return <CPTAuthorizationRequest clientData={safeClientData} onSave={() => markStepComplete("cptauth")} />
       case "consent":
-        return <ConsentFormsManager clientData={safeClientData} onSave={() => markStepComplete("consent")} />
+        return <FadePlan onSave={() => markStepComplete("consent")} />
       case "report":
         return <AIReportGenerator />
       default:
-        return <ClientForm onSave={() => markStepComplete("client")} assessmentType="reassessment" />
+        return <ClientInformationForm onSave={() => markStepComplete("client")} assessmentType="reassessment" />
     }
   }
 
+  const currentSectionLabel = useMemo(() => {
+    return phases.flatMap((p) => p.items).find((i) => i.id === activeView)?.label || "Reassessment"
+  }, [activeView])
+
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar - ORANGE THEME */}
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50 px-4 py-3 flex items-center justify-between safe-area-top">
+        <button onClick={() => setMobileDrawerOpen(true)} className="p-2 -ml-2 rounded-lg hover:bg-gray-100">
+          <Menu className="h-6 w-6 text-gray-700" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-orange-500 flex items-center justify-center">
+            <RefreshCwIcon className="h-4 w-4 text-white" />
+          </div>
+          <span className="font-semibold text-orange-700">ARIA</span>
+        </div>
+        <span className="text-sm text-gray-500 truncate max-w-[120px]">{currentSectionLabel}</span>
+      </div>
+
+      {mobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 animate-fade-in-backdrop"
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl overflow-y-auto animate-slide-in-drawer safe-area-top">
+            {/* Close button */}
+            <button
+              onClick={() => setMobileDrawerOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 z-10"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-orange-500 to-orange-600">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <RefreshCwIcon className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="font-bold text-white">Reassessment</h1>
+                  <p className="text-xs text-orange-100">6-Month Review</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Back to Dashboard */}
+            <div className="p-3 border-b border-gray-100">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start gap-2 text-gray-600 hover:text-orange-700 hover:border-orange-300 bg-transparent"
+                onClick={() => (window.location.href = "/dashboard")}
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </div>
+
+            {/* Progress */}
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Progress</span>
+                <span className="text-sm font-bold text-orange-600">{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2 bg-orange-100 [&>div]:bg-orange-500" />
+              <p className="text-xs text-gray-500 mt-1">
+                {completedSteps.size} of {allItems.length} sections complete
+              </p>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto p-2">
+              <Accordion type="multiple" defaultValue={phases.map((_, i) => `phase-${i}`)} className="space-y-1">
+                {phases.map((phase, phaseIndex) => (
+                  <AccordionItem key={phaseIndex} value={`phase-${phaseIndex}`} className="border-none">
+                    <AccordionTrigger
+                      className={`py-2 px-3 text-sm font-semibold hover:no-underline hover:bg-gray-50 rounded-lg ${
+                        phase.title === "Previous Period Review" ? "text-orange-700 bg-orange-50" : "text-gray-700"
+                      }`}
+                    >
+                      {phase.title}
+                      {phase.title === "Previous Period Review" && (
+                        <span className="ml-2 px-1.5 py-0.5 bg-orange-200 text-orange-700 rounded text-xs">NEW</span>
+                      )}
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-1 pt-0">
+                      <div className="space-y-0.5 ml-2">
+                        {phase.items.map((item) => {
+                          const isActive = activeView === item.id
+                          const isComplete = completedSteps.has(item.id)
+                          const Icon = item.icon
+                          const isPreviousReview = phase.title === "Previous Period Review"
+
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => handleNavItemClick(item.id)}
+                              className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all ${
+                                isActive
+                                  ? "bg-orange-50 text-orange-700 border-l-4 border-orange-500"
+                                  : "text-gray-600 hover:bg-gray-50"
+                              }`}
+                            >
+                              <div
+                                className={`h-5 w-5 rounded-full flex items-center justify-center ${
+                                  isComplete
+                                    ? "bg-orange-500"
+                                    : isActive
+                                      ? "bg-orange-200"
+                                      : isPreviousReview
+                                        ? "bg-orange-100"
+                                        : "bg-gray-200"
+                                }`}
+                              >
+                                {isComplete ? (
+                                  <CheckCircleIcon className="h-3 w-3 text-white" />
+                                ) : (
+                                  <Icon
+                                    className={`h-3 w-3 ${
+                                      isActive
+                                        ? "text-orange-700"
+                                        : isPreviousReview
+                                          ? "text-orange-500"
+                                          : "text-gray-500"
+                                    }`}
+                                  />
+                                )}
+                              </div>
+                              <span className="text-sm font-medium">{item.label}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </nav>
+
+            {/* Save All Button */}
+            <div className="p-3 border-t border-gray-200 safe-area-bottom">
+              <Button onClick={handleSaveAll} disabled={isSaving} className="w-full bg-orange-500 hover:bg-orange-600">
+                {isSaving ? (
+                  <>
+                    <ClockIcon className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <SaveIcon className="h-4 w-4 mr-2" />
+                    Save All Progress
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Sidebar */}
       <aside
-        className={`${sidebarOpen ? "w-72" : "w-0"} bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden`}
+        className={`hidden lg:flex ${sidebarOpen ? "w-72" : "w-0"} bg-white border-r border-gray-200 flex-col transition-all duration-300 overflow-hidden`}
       >
         {/* Header */}
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-orange-500 to-orange-600">
@@ -529,7 +698,7 @@ export function ReassessmentDashboard() {
           </Button>
         </div>
 
-        {/* Progress - ORANGE */}
+        {/* Progress */}
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Progress</span>
@@ -608,7 +777,7 @@ export function ReassessmentDashboard() {
           </Accordion>
         </nav>
 
-        {/* Save All Button - ORANGE */}
+        {/* Save All Button */}
         <div className="p-3 border-t border-gray-200">
           <Button onClick={handleSaveAll} disabled={isSaving} className="w-full bg-orange-500 hover:bg-orange-600">
             {isSaving ? (
@@ -650,9 +819,9 @@ export function ReassessmentDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
         {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+        <header className="hidden lg:flex bg-white border-b border-gray-200 px-6 py-3 items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-500">
               {sidebarOpen ? "←" : "→"}
@@ -674,7 +843,7 @@ export function ReassessmentDashboard() {
         </header>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 lg:p-6">
           {renderContent()}
 
           <StepNavigationBar
@@ -688,6 +857,14 @@ export function ReassessmentDashboard() {
           />
         </div>
       </main>
+
+      <button
+        onClick={handleSaveAll}
+        disabled={isSaving}
+        className="lg:hidden fixed bottom-6 right-6 bg-orange-500 hover:bg-orange-600 text-white rounded-full p-4 shadow-lg z-40 safe-area-bottom"
+      >
+        {isSaving ? <ClockIcon className="h-6 w-6 animate-spin" /> : <SaveIcon className="h-6 w-6" />}
+      </button>
     </div>
   )
 }
