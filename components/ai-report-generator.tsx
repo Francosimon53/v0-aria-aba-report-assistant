@@ -43,6 +43,7 @@ import Link from "next/link"
 
 import { sampleAssessmentData } from "@/lib/sample-data/sample-data"
 import { safeGetItem } from "@/lib/safe-storage"
+import { saveContentForLearning } from "@/lib/learning-system"
 
 // Remove the duplicate React import
 // import type React from "react"
@@ -434,6 +435,9 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
   const [copied, setCopied] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [sampleDataLoaded, setSampleDataLoaded] = useState(false)
+
+  const [savedToLearning, setSavedToLearning] = useState(false)
+  const [savingToLearning, setSavingToLearning] = useState(false)
 
   const printRef = useRef<HTMLDivElement>(null)
 
@@ -2911,6 +2915,21 @@ This collaborative approach ensures a holistic and consistent intervention plan,
 
     await exportReport(format)
 
+    if (format === "pdf" || format === "docx") {
+      setSavingToLearning(true)
+      try {
+        const result = await saveContentForLearning()
+        if (result.success) {
+          setSavedToLearning(true)
+          console.log(`[v0] ARIA learned from ${result.savedSections} sections`)
+        }
+      } catch (e) {
+        console.error("[v0] Learning system save failed:", e)
+      } finally {
+        setSavingToLearning(false)
+      }
+    }
+
     clearInterval(interval)
     setExportProgress(100)
 
@@ -2935,6 +2954,8 @@ This collaborative approach ensures a holistic and consistent intervention plan,
     setExportProgress(0)
     setIsExporting(false)
     setCurrentGenerating(null)
+    setSavedToLearning(false) // Reset learning state
+    setSavingToLearning(false) // Reset learning state
   }
 
   useImperativeHandle(
@@ -3193,6 +3214,24 @@ This collaborative approach ensures a holistic and consistent intervention plan,
                 More options
               </button>
             </div>
+          </div>
+          {/* Add learning indicator after export buttons in the completion banner */}
+          {/* Find the closing </div> of the flex gap-3 buttons, add after it: */}
+          <div className="flex items-center gap-3 mt-4">
+            {" "}
+            {/* Moved flex gap-3 here */}
+            {savedToLearning && (
+              <div className="flex items-center gap-2 text-sm text-emerald-100 bg-emerald-600/30 px-4 py-2 rounded-xl backdrop-blur-sm">
+                <Brain className="h-4 w-4" />
+                <span>ARIA learned from this assessment to improve future reports</span>
+              </div>
+            )}
+            {savingToLearning && (
+              <div className="flex items-center gap-2 text-sm text-white/70 px-4 py-2">
+                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Saving to learning system...</span>
+              </div>
+            )}
           </div>
         </div>
       )}
