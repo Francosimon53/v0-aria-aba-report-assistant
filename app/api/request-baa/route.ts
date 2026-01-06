@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       organization_type: organizationType,
       number_of_bcbas: numberOfBcbas || null,
       message: message || null,
-      authorized_signer: isAuthorized,
+      authorized: isAuthorized,
       status: "pending",
     }
 
