@@ -5,10 +5,23 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const { organizationName, contactName, email, phone, organizationType, numberOfBcbas, message, authorized } = body
+    const {
+      organizationName,
+      contactName,
+      email,
+      phone,
+      organizationType,
+      numberOfBcbas,
+      message,
+      authorized,
+      authorizedSigner,
+    } = body
+
+    // Accept either field name
+    const isAuthorized = authorizedSigner ?? authorized
 
     // Validate required fields
-    if (!organizationName || !contactName || !email || !organizationType || !authorized) {
+    if (!organizationName || !contactName || !email || !organizationType || !isAuthorized) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
@@ -31,18 +44,21 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Insert BAA request into database
-    const { error } = await supabase.from("baa_requests").insert({
-      organization_name: organizationName,
-      contact_name: contactName,
-      email: email,
-      phone: phone || null,
-      organization_type: organizationType,
-      number_of_bcbas: numberOfBcbas || null,
-      message: message || null,
-      authorized: authorized,
-      status: "pending",
-    })
+    const { data, error } = await supabase
+      .from("baa_requests")
+      .insert({
+        organization_name: organizationName,
+        contact_name: contactName,
+        email: email,
+        phone: phone || null,
+        organization_type: organizationType,
+        number_of_bcbas: numberOfBcbas || null,
+        message: message || null,
+        authorized_signer: isAuthorized,
+        status: "pending",
+      })
+      .select("id")
+      .single()
 
     if (error) {
       console.error("Error inserting BAA request:", error)
@@ -51,7 +67,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, stored: false })
     }
 
-    return NextResponse.json({ success: true, stored: true })
+    return NextResponse.json({ success: true, stored: true, id: data?.id })
   } catch (error) {
     console.error("BAA request error:", error)
     return NextResponse.json({ error: "Failed to process request" }, { status: 500 })
