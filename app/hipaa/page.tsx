@@ -12,21 +12,21 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import {
-  ArrowLeftIcon,
-  SparklesIcon,
-  ShieldCheckIcon,
-  LockIcon,
-  KeyIcon,
-  FileTextIcon,
-  DatabaseIcon,
-  LayersIcon,
-  CheckCircleIcon,
-  MailIcon,
-  Loader2Icon,
-  AwardIcon,
-  SearchIcon,
-  FingerprintIcon,
-} from "@/components/icons"
+  ArrowLeft,
+  Sparkles,
+  ShieldCheck,
+  Lock,
+  Key,
+  FileText,
+  Database,
+  Layers,
+  CheckCircle,
+  Mail,
+  Loader2,
+  Award,
+  Search,
+  Fingerprint,
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
@@ -101,19 +101,19 @@ export default function HIPAAPage() {
 
   const complianceCards = [
     {
-      icon: ShieldCheckIcon,
+      icon: ShieldCheck,
       title: "HIPAA Compliant Infrastructure",
       description:
         "All data is processed and stored in HIPAA-compliant cloud infrastructure with signed Business Associate Agreements from all vendors",
     },
     {
-      icon: AwardIcon,
+      icon: Award,
       title: "SOC 2 Type II Aligned",
       description:
         "Our security practices align with SOC 2 Type II standards for data security, availability, and confidentiality",
     },
     {
-      icon: SearchIcon,
+      icon: Search,
       title: "Regular Security Audits",
       description:
         "We conduct regular security assessments and penetration testing to identify and address vulnerabilities",
@@ -122,32 +122,32 @@ export default function HIPAAPage() {
 
   const securityMeasures = [
     {
-      icon: LockIcon,
+      icon: Lock,
       title: "Encryption at Rest & Transit",
       description: "All data encrypted using AES-256 encryption at rest and TLS 1.3 in transit",
     },
     {
-      icon: KeyIcon,
+      icon: Key,
       title: "Access Controls",
       description: "Role-based access control (RBAC) ensures users only access data they need",
     },
     {
-      icon: FileTextIcon,
+      icon: FileText,
       title: "Audit Logging",
       description: "Comprehensive audit trails track all access to PHI for compliance reporting",
     },
     {
-      icon: DatabaseIcon,
+      icon: Database,
       title: "Automatic Backups",
       description: "Daily encrypted backups with 30-day retention and disaster recovery",
     },
     {
-      icon: FingerprintIcon,
+      icon: Fingerprint,
       title: "Secure Authentication",
       description: "Multi-factor authentication available, secure session management, automatic timeouts",
     },
     {
-      icon: LayersIcon,
+      icon: Layers,
       title: "Data Isolation",
       description: "Each organization's data is logically isolated with strict access boundaries",
     },
@@ -194,12 +194,12 @@ export default function HIPAAPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
               <div className="w-8 h-8 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-lg flex items-center justify-center">
-                <SparklesIcon className="h-4 w-4 text-white" />
+                <Sparkles className="h-4 w-4 text-white" />
               </div>
               <span className="text-lg font-bold text-gray-900">ARIA</span>
             </div>
             <Button variant="ghost" onClick={() => router.back()}>
-              <ArrowLeftIcon className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
           </div>
@@ -210,7 +210,7 @@ export default function HIPAAPage() {
       <section className="py-16 sm:py-24 bg-gradient-to-b from-teal-50/50 to-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-100 text-teal-700 text-sm font-medium mb-6">
-            <LockIcon className="h-4 w-4" />
+            <Lock className="h-4 w-4" />
             HIPAA Compliant
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 text-balance">
@@ -284,7 +284,7 @@ export default function HIPAAPage() {
             <Card className="border-teal-200 bg-teal-50">
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center mx-auto mb-4">
-                  <CheckCircleIcon className="h-8 w-8 text-teal-600" />
+                  <CheckCircle className="h-8 w-8 text-teal-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Request Submitted!</h3>
                 <p className="text-gray-600">
@@ -406,7 +406,7 @@ export default function HIPAAPage() {
                   <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700" disabled={isSubmitting}>
                     {isSubmitting ? (
                       <>
-                        <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Submitting...
                       </>
                     ) : (
@@ -452,7 +452,7 @@ export default function HIPAAPage() {
             href="mailto:security@ariaba.app"
             className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 font-medium mb-6"
           >
-            <MailIcon className="h-5 w-5" />
+            <Mail className="h-5 w-5" />
             security@ariaba.app
           </a>
           <div>
