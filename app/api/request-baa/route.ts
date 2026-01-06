@@ -1,11 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { Resend } from "resend"
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-
-    console.log("[v0] BAA Request received:", JSON.stringify(body, null, 2))
 
     const {
       organizationName,
@@ -22,14 +23,6 @@ export async function POST(request: NextRequest) {
     // Accept either field name
     const isAuthorized = authorizedSigner ?? authorized
 
-    console.log("[v0] Parsed fields:", {
-      organizationName,
-      contactName,
-      email,
-      organizationType,
-      isAuthorized,
-    })
-
     // Validate required fields
     if (!organizationName || !contactName || !email || !organizationType || !isAuthorized) {
       const missingFields = []
@@ -39,27 +32,20 @@ export async function POST(request: NextRequest) {
       if (!organizationType) missingFields.push("organizationType")
       if (!isAuthorized) missingFields.push("authorized/authorizedSigner")
 
-      console.log("[v0] Missing required fields:", missingFields)
       return NextResponse.json({ error: "Missing required fields", missingFields }, { status: 400 })
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      console.log("[v0] Invalid email format:", email)
       return NextResponse.json({ error: "Invalid email format" }, { status: 400 })
     }
 
-    // Create Supabase client with service role for inserting data
+    // Create Supabase client
     const supabaseUrl = process.env.NEXT_PUBLIC_ARIA_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.ARIA_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    console.log("[v0] Supabase URL configured:", !!supabaseUrl)
-    console.log("[v0] Supabase Service Key configured:", !!supabaseServiceKey)
-
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("[v0] Supabase environment variables not configured")
-      // Still return success - we'll log the request
       console.log("[v0] BAA Request (not saved to DB):", body)
       return NextResponse.json({ success: true, stored: false, reason: "DB not configured" })
     }
@@ -78,30 +64,65 @@ export async function POST(request: NextRequest) {
       status: "pending",
     }
 
-    console.log("[v0] Inserting to Supabase:", JSON.stringify(insertData, null, 2))
-
     const { data, error } = await supabase.from("baa_requests").insert(insertData).select("id").single()
 
     if (error) {
-      console.error("[v0] Supabase insert error:", {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      })
-      // Log the request anyway but return error info
-      return NextResponse.json(
-        {
-          success: false,
-          stored: false,
-          error: error.message,
-          code: error.code,
-        },
-        { status: 500 },
-      )
+      console.error("[v0] Supabase insert error:", error.message)
+      return NextResponse.json({ success: false, stored: false, error: error.message }, { status: 500 })
     }
 
-    console.log("[v0] BAA request saved successfully, id:", data?.id)
+    if (resend) {
+      try {
+        // Notify admin
+        await resend.emails.send({
+          from: "ARIA <notifications@ariaba.app>",
+          to: "simon@ariaba.app",
+          subject: `New BAA Request: ${organizationName}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #3b82f6;">New BAA Request</h2>
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p><strong>Organization:</strong> ${organizationName}</p>
+                <p><strong>Type:</strong> ${organizationType}</p>
+                <p><strong>Contact:</strong> ${contactName}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
+                <p><strong>Number of BCBAs:</strong> ${numberOfBcbas || "Not specified"}</p>
+                ${message ? `<p><strong>Message:</strong> ${message}</p>` : ""}
+              </div>
+              <p style="color: #6b7280; font-size: 14px;">
+                Review this request at <a href="https://ariaba.app/admin/baa">ARIA Admin Panel</a>
+              </p>
+            </div>
+          `,
+        })
+
+        // Send confirmation to requester
+        await resend.emails.send({
+          from: "ARIA <notifications@ariaba.app>",
+          to: email,
+          subject: "BAA Request Received - ARIA",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #3b82f6;">We've Received Your Request</h2>
+              <p>Hello ${contactName},</p>
+              <p>Thank you for requesting a Business Associate Agreement (BAA) with ARIA.</p>
+              <p>Our team will review your request and contact you within 24-48 business hours.</p>
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p><strong>Organization:</strong> ${organizationName}</p>
+                <p><strong>Type:</strong> ${organizationType}</p>
+              </div>
+              <p>If you have any questions, please reply to this email.</p>
+              <p>Best regards,<br/>The ARIA Team</p>
+            </div>
+          `,
+        })
+      } catch (emailError) {
+        console.error("[v0] Failed to send email notifications:", emailError)
+        // Don't fail the request if email fails
+      }
+    }
+
     return NextResponse.json({ success: true, stored: true, id: data?.id })
   } catch (error) {
     console.error("[v0] BAA request error:", error)
