@@ -72,7 +72,7 @@ export default function Home() {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 }
-        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 }
+        if (prev.minutes > 0) return { hours: prev.hours - 1, minutes: prev.minutes - 1, seconds: 59 }
         if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 }
         return prev
       })
@@ -307,12 +307,13 @@ export default function Home() {
                 <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
+                onClick={() => router.push("/demo/generate-report")}
                 variant="outline"
                 size="lg"
                 className="w-full sm:w-auto border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-6 sm:px-8 py-6 sm:py-7 text-base sm:text-lg hover:bg-gray-50 transition-all duration-300 group bg-transparent"
               >
                 <PlayIcon className="mr-2 h-5 w-5 text-[#0D9488]" />
-                Watch 2-min Demo
+                Try Interactive Demo
               </Button>
             </div>
 
