@@ -181,11 +181,9 @@ function ArticleContent() {
                 <span className="font-medium text-sm">Still need help?</span>
               </div>
               <p className="text-xs text-gray-600 mb-3">Our support team is here to assist you.</p>
-              <a href="mailto:support@ariaba.app">
-                <Button size="sm" className="w-full bg-teal-600 hover:bg-teal-700">
-                  Contact Support
-                </Button>
-              </a>
+              <Button size="sm" className="w-full bg-teal-600 hover:bg-teal-700" asChild>
+                <a href="mailto:support@ariaba.app?subject=ARIA Support Request">Contact Support</a>
+              </Button>
             </CardContent>
           </Card>
         </div>
