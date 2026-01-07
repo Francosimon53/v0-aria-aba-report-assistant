@@ -584,7 +584,7 @@ export default function RegisterPage() {
                 Terms of Service
               </a>
               <span>•</span>
-              <a href="/support" className="hover:text-gray-600 transition-colors">
+              <a href="/help" className="hover:text-gray-600 transition-colors">
                 Support
               </a>
             </div>

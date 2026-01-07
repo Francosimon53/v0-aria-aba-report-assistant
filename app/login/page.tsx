@@ -374,7 +374,7 @@ export default function LoginPage() {
                 Terms of Service
               </a>
               <span>•</span>
-              <a href="/support" className="hover:text-gray-600 transition-colors">
+              <a href="/help" className="hover:text-gray-600 transition-colors">
                 Support
               </a>
             </div>

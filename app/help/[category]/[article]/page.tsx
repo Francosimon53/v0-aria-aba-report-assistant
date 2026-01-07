@@ -181,11 +181,11 @@ function ArticleContent() {
                 <span className="font-medium text-sm">Still need help?</span>
               </div>
               <p className="text-xs text-gray-600 mb-3">Our support team is here to assist you.</p>
-              <Link href="/support">
+              <a href="mailto:support@ariaba.app">
                 <Button size="sm" className="w-full bg-teal-600 hover:bg-teal-700">
                   Contact Support
                 </Button>
-              </Link>
+              </a>
             </CardContent>
           </Card>
         </div>
@@ -303,9 +303,9 @@ function ArticleContent() {
         <footer className="p-6 lg:p-8 border-t bg-white text-center text-sm text-gray-500">
           <p>
             Can&apos;t find what you&apos;re looking for?{" "}
-            <Link href="/support" className="text-teal-600 hover:underline">
+            <a href="mailto:support@ariaba.app" className="text-teal-600 hover:underline">
               Contact our support team
-            </Link>
+            </a>
           </p>
         </footer>
       </main>

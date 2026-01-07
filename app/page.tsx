@@ -736,7 +736,7 @@ export default function Home() {
               <button onClick={() => router.push("/docs")} className="hover:text-white transition-colors">
                 Documentation
               </button>
-              <button onClick={() => router.push("/support")} className="hover:text-white transition-colors">
+              <button onClick={() => router.push("/help")} className="hover:text-white transition-colors">
                 Support
               </button>
               <button onClick={() => router.push("/contact")} className="hover:text-white transition-colors">
