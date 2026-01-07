@@ -112,8 +112,8 @@ function SuccessContent() {
 
             <p className="text-sm text-gray-500">
               Need help getting started?{" "}
-              <a href="/docs" className="text-[#0D9488] hover:underline">
-                Check our documentation
+              <a href="/help" className="text-[#0D9488] hover:underline">
+                Check our Help Center
               </a>
             </p>
           </div>

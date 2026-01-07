@@ -1803,7 +1803,7 @@ This collaborative approach ensures a holistic and consistent intervention plan,
       setError(error.message || "An unexpected error occurred.")
       setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, status: "error" } : s)))
     } finally {
-      // setCurrentGenerating(null) // Clear current generating section - Replaced by section.status === "generating" logic
+      //setCurrentGenerating(null) // Clear current generating section - Replaced by section.status === "generating" logic
     }
   }
 
@@ -2997,7 +2997,7 @@ This collaborative approach ensures a holistic and consistent intervention plan,
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {/* Gradient header strip */}
         <div
-          className="h-1.5 bg-gradient-to-r from-[#0D9488] via-cyan-500 to-blue-500"
+          className="h-1.5 bg-gradient-to-r from-[#0D9488] to-cyan-600"
           style={{ width: `${progress}%`, transition: "width 0.5s ease-out" }}
         />
 
@@ -3612,8 +3612,9 @@ This collaborative approach ensures a holistic and consistent intervention plan,
       <div className="bg-gradient-to-r from-gray-50 to-slate-100 rounded-2xl border border-gray-200 p-6">
         <p className="text-sm text-gray-500 mb-4">What would you like to do next?</p>
         <div className="flex flex-wrap gap-3">
+          {/* CHANGE: Fixed broken /assessment/new link to /assessment/initial/new */}
           <Link
-            href="/assessment/new"
+            href="/assessment/initial/new"
             className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
