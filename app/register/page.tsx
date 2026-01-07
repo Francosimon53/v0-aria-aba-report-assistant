@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SparklesIcon, ShieldIcon, ArrowRightIcon, CheckIcon } from "@/components/icons"
+import Link from "next/link"
 
 function EyeOffIcon({ className }: { className?: string }) {
   return (
@@ -63,7 +64,7 @@ function LockIcon({ className }: { className?: string }) {
       className={className}
     >
       <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      <path d="M7 11V7a5 5 0 0 1 8-8H9a5 5 0 0 1 8 8v4" />
     </svg>
   )
 }
@@ -80,7 +81,7 @@ function UserIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <path d="M19 21v-2a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
       <circle cx="12" cy="7" r="4" />
     </svg>
   )
@@ -218,6 +219,15 @@ export default function RegisterPage() {
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse delay-1000" />
+        </div>
+
+        <div className="absolute top-6 right-6 flex gap-4 z-20">
+          <Link href="/help" className="text-white/80 hover:text-white text-sm transition-colors">
+            Help
+          </Link>
+          <Link href="/hipaa" className="text-white/80 hover:text-white text-sm transition-colors">
+            HIPAA
+          </Link>
         </div>
 
         <div className="relative z-10 flex flex-col justify-center px-12 lg:px-16">

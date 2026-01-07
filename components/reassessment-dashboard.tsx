@@ -42,6 +42,7 @@ import { ServiceSchedule } from "@/components/service-schedule"
 import { MedicalNecessityGenerator } from "@/components/medical-necessity-generator"
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@/lib/supabase/client"
+import { SidebarHelpLinks } from "@/components/sidebar-help-links"
 
 type ActiveView =
   | "client"
@@ -816,6 +817,9 @@ export function ReassessmentDashboard() {
             </div>
           )}
         </div>
+
+        {/* Help Links */}
+        <SidebarHelpLinks />
       </aside>
 
       {/* Main Content */}

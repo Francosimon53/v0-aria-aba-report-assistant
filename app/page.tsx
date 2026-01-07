@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -231,6 +231,12 @@ export default function Home() {
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors font-medium">
                 Pricing
               </a>
+              <Link href="/help" className="text-gray-600 hover:text-gray-900 transition-colors font-medium">
+                Help
+              </Link>
+              <Link href="/hipaa" className="text-gray-600 hover:text-gray-900 transition-colors font-medium">
+                HIPAA
+              </Link>
             </div>
             <div className="flex items-center gap-3">
               <Button

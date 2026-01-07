@@ -34,6 +34,7 @@ import { getNextStep, getPreviousStep } from "./wizard-sidebar"
 import { AssessmentProgress } from "./assessment-progress"
 import { createClient } from "@/lib/supabase/client"
 import { LogOut } from "lucide-react"
+import { SidebarHelpLinks } from "@/components/sidebar-help-links"
 
 type ActiveView =
   | "client"
@@ -619,6 +620,8 @@ export function Dashboard() {
           <div className="text-xs text-gray-500 text-center">
             {lastSaved && <span>Last saved: {lastSaved.toLocaleTimeString()}</span>}
           </div>
+
+          <SidebarHelpLinks />
 
           {/* Sign Out button */}
           {!showSignOutConfirm ? (

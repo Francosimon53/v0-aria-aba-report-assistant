@@ -38,6 +38,7 @@ import { AIReportGenerator } from "@/components/ai-report-generator"
 import { FadePlan } from "@/components/fade-plan"
 import { BarriersGeneralization } from "@/components/barriers-generalization"
 import { Card, CardContent } from "@/components/ui/card"
+import { SidebarHelpLinks } from "@/components/sidebar-help-links"
 
 type ActiveView =
   | "client"
@@ -695,6 +696,8 @@ export function InitialAssessmentDashboard() {
               </>
             )}
           </Button>
+
+          <SidebarHelpLinks />
 
           {/* Sign Out button */}
           {!showSignOutConfirm ? (

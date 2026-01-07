@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SparklesIcon, EyeIcon, ShieldIcon, ArrowRightIcon, CheckIcon } from "@/components/icons"
+import Link from "next/link"
 
 function EyeOffIcon({ className }: { className?: string }) {
   return (
@@ -146,14 +147,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex">
+    <div className="min-h-screen flex">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0D9488] via-[#0891B2] to-[#06B6D4] relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0D9488] via-[#0F766E] to-[#115E59] relative overflow-hidden p-8 lg:p-12 flex-col justify-between">
         {/* Animated background elements */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse delay-1000" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/5 rounded-full blur-3xl" />
+        </div>
+
+        <div className="absolute top-6 right-6 flex gap-4">
+          <Link href="/help" className="text-white/80 hover:text-white text-sm transition-colors">
+            Help
+          </Link>
+          <Link href="/hipaa" className="text-white/80 hover:text-white text-sm transition-colors">
+            HIPAA
+          </Link>
         </div>
 
         {/* Grid pattern overlay */}
