@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SparklesIcon, ShieldIcon, ArrowRightIcon, CheckIcon } from "@/components/icons"
-import { CreditCard, ExternalLink } from "lucide-react"
 
 function EyeOffIcon({ className }: { className?: string }) {
   return (
@@ -87,32 +86,12 @@ function UserIcon({ className }: { className?: string }) {
   )
 }
 
-function IdCardIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <rect width="20" height="14" x="2" y="5" rx="2" />
-      <line x1="2" x2="22" y1="10" y2="10" />
-    </svg>
-  )
-}
-
 export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
-  const [npi, setNpi] = useState("")
-  const [npiError, setNpiError] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -153,23 +132,9 @@ export default function RegisterPage() {
     )
   }
 
-  const validateNpiFormat = (npiValue: string): string | null => {
-    if (npiValue.length !== 10) return "NPI must be 10 digits"
-    if (!["1", "2"].includes(npiValue[0])) return "Invalid NPI format (must start with 1 or 2)"
-    return null
-  }
-
-  const handleNpiChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow numbers, max 10 digits
-    const value = e.target.value.replace(/\D/g, "").slice(0, 10)
-    setNpi(value)
-    setNpiError("")
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    setNpiError("")
 
     // Validate inputs
     if (password !== confirmPassword) {
@@ -187,46 +152,18 @@ export default function RegisterPage() {
       return
     }
 
-    const formatError = validateNpiFormat(npi)
-    if (formatError) {
-      setNpiError(formatError)
-      return
-    }
-
     setIsLoading(true)
 
     try {
-      const npiCheckResponse = await fetch("/api/auth/check-npi", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ npi }),
-      })
-      const npiCheckData = await npiCheckResponse.json()
-
-      if (npiCheckData.exists) {
-        setNpiError("This NPI is already registered. If this is your NPI, please sign in instead.")
-        setIsLoading(false)
-
-        // Log blocked attempt
-        await fetch("/api/auth/log-blocked", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, npi, reason: "duplicate_npi" }),
-        })
-        return
-      }
-
       // Create Supabase auth user
       const supabase = createClient()
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard?setup=success`,
+          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
           data: {
             full_name: fullName,
-            npi: npi,
           },
         },
       })
@@ -252,7 +189,6 @@ export default function RegisterPage() {
           id: data.user.id,
           email: email,
           full_name: fullName,
-          npi: npi,
           trial_started_at: new Date().toISOString(),
           trial_ends_at: trialEndsAt,
           trial_used: true,
@@ -261,29 +197,11 @@ export default function RegisterPage() {
         localStorage.setItem("aria-returning-user", "true")
         document.cookie = "aria-returning-user=true; path=/; max-age=31536000"
 
-        const stripeResponse = await fetch("/api/stripe/create-setup-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            userId: data.user.id,
-          }),
+        toast({
+          title: "Account created!",
+          description: "Welcome to ARIA! Your 14-day free trial has started.",
         })
-
-        const stripeData = await stripeResponse.json()
-
-        if (stripeData.url) {
-          // Redirect to Stripe checkout for card setup
-          window.location.href = stripeData.url
-        } else {
-          // Fallback: if Stripe fails, still let them continue but log the error
-          console.error("Stripe setup failed:", stripeData.error)
-          toast({
-            title: "Account created!",
-            description: "Please check your email to verify your account.",
-          })
-          router.push("/login?message=Check your email to verify your account")
-        }
+        router.push("/dashboard")
       }
     } catch (err: any) {
       console.error("Registration error:", err)
@@ -321,19 +239,16 @@ export default function RegisterPage() {
           </p>
 
           <div className="space-y-4">
-            {[
-              "14-day free trial",
-              "Card required, but not charged until trial ends",
-              "Full access to all features",
-              "Cancel anytime before trial ends",
-            ].map((benefit, i) => (
-              <div key={i} className="flex items-center gap-3 text-white/90">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                  <CheckIcon className="h-4 w-4 text-white" />
+            {["14-day free trial", "No credit card required", "Full access to all features", "Cancel anytime"].map(
+              (benefit, i) => (
+                <div key={i} className="flex items-center gap-3 text-white/90">
+                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <CheckIcon className="h-4 w-4 text-white" />
+                  </div>
+                  <span>{benefit}</span>
                 </div>
-                <span>{benefit}</span>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         </div>
       </div>
@@ -401,59 +316,6 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="npi" className="text-gray-700 font-medium">
-                  NPI Number <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <IdCardIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="npi"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="1234567890"
-                    value={npi}
-                    onChange={handleNpiChange}
-                    maxLength={10}
-                    className={`h-12 pl-12 border-gray-200 focus:border-[#0D9488] focus:ring-[#0D9488]/20 ${
-                      npiError ? "border-red-300 focus:border-red-500" : ""
-                    }`}
-                    required
-                  />
-                </div>
-                <p className="text-xs text-gray-500 flex items-center gap-1">
-                  Your 10-digit National Provider Identifier.
-                  <a
-                    href="https://npiregistry.cms.hhs.gov/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#0D9488] hover:underline inline-flex items-center gap-0.5"
-                  >
-                    Look up your NPI
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </p>
-                {npiError && (
-                  <div className="mt-2">
-                    <p className="text-xs text-red-500">{npiError}</p>
-                    {npiError.includes("already registered") && (
-                      <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                        <p className="text-amber-800 text-sm font-medium">Already have an account?</p>
-                        <p className="text-amber-700 text-xs mt-1">
-                          This NPI is associated with an existing account.
-                          <a href="/login" className="text-[#0D9488] font-medium hover:underline ml-1">
-                            Sign in here
-                          </a>
-                        </p>
-                        <p className="text-amber-600 text-xs mt-2">
-                          If you believe this is an error, please contact support@ariaba.app
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="password" className="text-gray-700 font-medium">
                   Password
                 </Label>
@@ -498,19 +360,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
-                <div className="flex items-start gap-3">
-                  <CreditCard className="h-5 w-5 text-teal-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium text-teal-800">14-Day Free Trial</p>
-                    <p className="text-sm text-teal-600 mt-1">
-                      You'll add a payment method on the next step. You won't be charged until your trial ends, and you
-                      can cancel anytime.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               <div className="flex items-start gap-2">
                 <Checkbox
                   id="terms"
@@ -532,7 +381,7 @@ export default function RegisterPage() {
 
               <Button
                 type="submit"
-                disabled={isLoading || !email || !password || !fullName || !agreeTerms || npi.length !== 10}
+                disabled={isLoading || !email || !password || !fullName || !agreeTerms}
                 className="w-full h-12 bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold shadow-lg shadow-teal-500/25 hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 group"
               >
                 {isLoading ? (
@@ -557,7 +406,7 @@ export default function RegisterPage() {
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
-                    Continue to Payment Setup
+                    Start Free Trial
                     <ArrowRightIcon className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                 )}
