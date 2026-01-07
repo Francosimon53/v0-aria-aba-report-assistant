@@ -46,7 +46,7 @@ export default function PricingPage() {
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Simple, transparent pricing</h1>
           <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-            Choose the plan that fits your practice. All plans include a 14-day free trial.
+            Choose the plan that fits your practice. All plans include a 7-day free trial.
           </p>
         </div>
 

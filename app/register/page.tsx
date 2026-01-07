@@ -183,7 +183,7 @@ export default function RegisterPage() {
       }
 
       if (data.user) {
-        const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+        const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
         await supabase.from("profiles").upsert({
           id: data.user.id,
@@ -199,7 +199,7 @@ export default function RegisterPage() {
 
         toast({
           title: "Account created!",
-          description: "Welcome to ARIA! Your 14-day free trial has started.",
+          description: "Welcome to ARIA! Your 7-day free trial has started.",
         })
         router.push("/dashboard")
       }
@@ -239,7 +239,7 @@ export default function RegisterPage() {
           </p>
 
           <div className="space-y-4">
-            {["14-day free trial", "No credit card required", "Full access to all features", "Cancel anytime"].map(
+            {["7-day free trial", "No credit card required", "Full access to all features", "Cancel anytime"].map(
               (benefit, i) => (
                 <div key={i} className="flex items-center gap-3 text-white/90">
                   <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">

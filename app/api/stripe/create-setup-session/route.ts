@@ -25,8 +25,8 @@ export async function POST(request: Request) {
     const supabase = await createClient()
     await supabase.from("profiles").update({ stripe_customer_id: customer.id }).eq("id", userId)
 
-    // Calculate trial end date (14 days from now)
-    const trialEnd = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+    // Calculate trial end date (7 days from now)
+    const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
     // Create setup session (captures card without charging)
     const session = await stripe.checkout.sessions.create({

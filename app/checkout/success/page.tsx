@@ -76,7 +76,7 @@ function SuccessContent() {
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Welcome to ARIA!</h1>
 
           <p className="text-xl text-gray-500 mb-8">
-            Your subscription is now active. Your 14-day free trial has started.
+            Your subscription is now active. Your 7-day free trial has started.
           </p>
 
           {session && (
@@ -90,7 +90,7 @@ function SuccessContent() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Trial ends</span>
                   <span className="font-medium text-gray-900">
-                    {new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                    {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">

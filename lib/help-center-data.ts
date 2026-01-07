@@ -1143,7 +1143,7 @@ Navigate to Account Settings > Subscription and select your new plan. Changes ta
 
 ## Can I get a refund?
 
-We offer a 14-day money-back guarantee for new subscriptions. Contact support for refund requests.
+We offer a 7-day money-back guarantee for new subscriptions. Contact support for refund requests.
 
 ## How do I cancel?
 

@@ -20,7 +20,7 @@ export default function RegisterSuccessPage() {
             <div className="flex items-center gap-3 justify-center">
               <SparklesIcon className="h-5 w-5 text-[#0D9488]" />
               <span className="text-sm text-[#0D9488] font-medium">
-                Your 14-day free trial starts after verification
+                Your 7-day free trial starts after verification
               </span>
             </div>
           </div>
