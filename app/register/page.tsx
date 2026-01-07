@@ -64,7 +64,7 @@ function LockIcon({ className }: { className?: string }) {
       className={className}
     >
       <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 8-8H9a5 5 0 0 1 8 8v4" />
+      <path d="M7 11V7a5 5 0 018-8H9a5 5 0 018 8v4" />
     </svg>
   )
 }
@@ -162,7 +162,7 @@ export default function RegisterPage() {
         email,
         password,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: fullName,
           },
@@ -195,14 +195,11 @@ export default function RegisterPage() {
           trial_used: true,
         })
 
+        localStorage.setItem("pendingEmail", email)
         localStorage.setItem("aria-returning-user", "true")
         document.cookie = "aria-returning-user=true; path=/; max-age=31536000"
 
-        toast({
-          title: "Account created!",
-          description: "Welcome to ARIA! Your 7-day free trial has started.",
-        })
-        router.push("/dashboard")
+        router.push("/confirm-email")
       }
     } catch (err: any) {
       console.error("Registration error:", err)

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SparklesIcon, EyeIcon, ShieldIcon, ArrowRightIcon, CheckIcon } from "@/components/icons"
 import Link from "next/link"
+import { CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
+import { Suspense } from "react"
 
 function EyeOffIcon({ className }: { className?: string }) {
   return (
@@ -68,8 +71,9 @@ function LockIcon({ className }: { className?: string }) {
   )
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -100,16 +104,15 @@ export default function LoginPage() {
     checkAuth()
   }, [router])
 
-  if (isCheckingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
-          <p className="text-sm text-muted-foreground">Checking authentication...</p>
-        </div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (searchParams.get("confirmed") === "true") {
+      toast.success("Email confirmed! You can now sign in.")
+    }
+
+    if (searchParams.get("error") === "confirmation_failed") {
+      toast.error("Email confirmation failed. Please try again.")
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -118,39 +121,45 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
-
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (authError) {
-        setError(authError.message)
+      if (signInError) {
+        if (
+          signInError.message?.includes("Email not confirmed") ||
+          signInError.message?.includes("email_not_confirmed")
+        ) {
+          toast.error("Please confirm your email first. Check your inbox.")
+          localStorage.setItem("pendingEmail", email)
+          router.push("/confirm-email")
+          return
+        }
+
+        if (signInError.message === "Invalid login credentials") {
+          setError("Incorrect email or password. Please try again.")
+        } else {
+          setError(signInError.message)
+        }
         setIsLoading(false)
         return
       }
 
-      if (data?.user) {
-        localStorage.setItem("aria_user", JSON.stringify({ email: data.user.email, id: data.user.id }))
-        localStorage.setItem("aria-returning-user", "true")
-        document.cookie = "aria-returning-user=true; path=/; max-age=31536000" // 1 year
-        window.location.href = "/dashboard"
-      } else {
-        setError("Login failed. Please check your credentials.")
-        setIsLoading(false)
+      if (data.session) {
+        router.push("/dashboard")
       }
-    } catch (err) {
-      console.error("Unexpected login error:", err)
-      setError("An unexpected error occurred. Please try again.")
+    } catch (err: any) {
+      console.error("Login error:", err)
+      setError(err.message || "An unexpected error occurred. Please try again.")
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen bg-[#FAFAFA] flex">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0D9488] via-[#0F766E] to-[#115E59] relative overflow-hidden p-8 lg:p-12 flex-col justify-between">
-        {/* Animated background elements */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0D9488] via-[#0891B2] to-[#06B6D4] relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse delay-1000" />
@@ -166,16 +175,7 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        {/* Grid pattern overlay */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23ffffff' fillOpacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-
         <div className="relative z-10 flex flex-col justify-center px-12 lg:px-16">
-          {/* Logo */}
           <div className="flex items-center gap-3 mb-12">
             <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
               <SparklesIcon className="h-8 w-8 text-white" />
@@ -183,7 +183,6 @@ export default function LoginPage() {
             <span className="text-3xl font-bold text-white">ARIA</span>
           </div>
 
-          {/* Main message */}
           <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-6">
             Welcome back to your
             <br />
@@ -194,7 +193,6 @@ export default function LoginPage() {
             Continue creating insurance-ready reports in minutes, not hours.
           </p>
 
-          {/* Benefits list */}
           <div className="space-y-4">
             {[
               "AI-powered report generation",
@@ -215,7 +213,6 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {/* Trust indicator */}
           <div className="mt-16 pt-8 border-t border-white/20">
             <div className="flex items-center gap-4">
               <div className="flex -space-x-3">
@@ -236,9 +233,8 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - Login form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
         <div className="w-full max-w-md">
-          {/* Mobile logo */}
           <div className="flex lg:hidden items-center justify-center gap-2 mb-8">
             <div className="w-12 h-12 bg-gradient-to-br from-[#0D9488] to-[#0891B2] rounded-xl flex items-center justify-center">
               <SparklesIcon className="h-6 w-6 text-white" />
@@ -257,7 +253,15 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Login form */}
+            {searchParams.get("confirmed") === "true" && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <p className="text-green-800 text-sm font-medium flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Email confirmed successfully! You can now sign in.
+                </p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
                 <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm animate-in fade-in slide-in-from-top-2 duration-300">
@@ -364,7 +368,6 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Security badge */}
             <div className="mt-6 pt-6 border-t border-gray-100">
               <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
                 <ShieldIcon className="h-4 w-4" />
@@ -373,7 +376,6 @@ export default function LoginPage() {
             </div>
           </Card>
 
-          {/* Footer links */}
           <div className="mt-8 text-center">
             <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
               <a href="/privacy" className="hover:text-gray-600 transition-colors">
@@ -397,5 +399,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }
