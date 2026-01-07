@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeftIcon, SparklesIcon, MailIcon, MapPinIcon, ClockIcon, CheckCircleIcon } from "@/components/icons"
+import { ArrowLeftIcon, SparklesIcon, MailIcon, ClockIcon, CheckCircleIcon } from "@/components/icons"
+import { Globe, Linkedin, Twitter } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function ContactPage() {
@@ -77,19 +78,30 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Email</h3>
-                    <p className="text-gray-600">hello@aria-aba.com</p>
-                    <p className="text-gray-600">sales@aria-aba.com</p>
+                    <a
+                      href="mailto:support@ariaba.app"
+                      className="block text-gray-600 hover:text-[#0D9488] transition-colors"
+                    >
+                      support@ariaba.app
+                    </a>
+                    <a
+                      href="mailto:sales@ariaba.app"
+                      className="block text-gray-600 hover:text-[#0D9488] transition-colors"
+                    >
+                      sales@ariaba.app
+                    </a>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-[#0D9488]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MapPinIcon className="h-5 w-5 text-[#0D9488]" />
+                    <Globe className="h-5 w-5 text-[#0D9488]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Office</h3>
-                    <p className="text-gray-600">123 Healthcare Way, Suite 400</p>
-                    <p className="text-gray-600">San Francisco, CA 94102</p>
+                    <h3 className="font-semibold text-gray-900">Location</h3>
+                    <p className="text-gray-600">Ave Maria, Florida</p>
+                    <p className="text-gray-600">United States</p>
+                    <p className="text-sm text-gray-500 mt-1">Serving BCBAs across the United States</p>
                   </div>
                 </div>
 
@@ -98,8 +110,8 @@ export default function ContactPage() {
                     <ClockIcon className="h-5 w-5 text-[#0D9488]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Business Hours</h3>
-                    <p className="text-gray-600">Monday - Friday: 9am - 6pm PST</p>
+                    <h3 className="font-semibold text-gray-900">Support Hours</h3>
+                    <p className="text-gray-600">Monday - Friday: 9am - 6pm EST</p>
                     <p className="text-gray-600">Weekend: Email support only</p>
                   </div>
                 </div>
@@ -108,10 +120,22 @@ export default function ContactPage() {
               <div className="pt-6 border-t">
                 <h3 className="font-semibold text-gray-900 mb-3">Follow Us</h3>
                 <div className="flex gap-4">
-                  <a href="#" className="text-gray-400 hover:text-[#0D9488] transition-colors">
+                  <a
+                    href="https://linkedin.com/company/ariaba"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-600 hover:text-[#0D9488] transition-colors flex items-center gap-2"
+                  >
+                    <Linkedin className="h-5 w-5" />
                     LinkedIn
                   </a>
-                  <a href="#" className="text-gray-400 hover:text-[#0D9488] transition-colors">
+                  <a
+                    href="https://twitter.com/ariaba_app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-600 hover:text-[#0D9488] transition-colors flex items-center gap-2"
+                  >
+                    <Twitter className="h-5 w-5" />
                     Twitter
                   </a>
                 </div>
