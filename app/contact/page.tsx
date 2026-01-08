@@ -10,9 +10,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeftIcon, SparklesIcon, MailIcon, ClockIcon, CheckCircleIcon } from "@/components/icons"
 import { Globe, Linkedin, Twitter } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ContactPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -22,10 +24,42 @@ export default function ContactPage() {
     message: "",
   })
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+
+      if (response.ok) {
+        setSubmitted(true)
+        toast({
+          title: "Message sent!",
+          description: "We'll get back to you within 1 business day.",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send message. Please try emailing us directly.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("[v0] Contact form submission error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try emailing us directly.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -218,8 +252,13 @@ export default function ContactPage() {
                           required
                         />
                       </div>
-                      <Button type="submit" size="lg" className="w-full bg-[#0D9488] hover:bg-[#0D9488]/90">
-                        Send Message
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full bg-[#0D9488] hover:bg-[#0D9488]/90"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Sending..." : "Send Message"}
                       </Button>
                       <p className="text-sm text-gray-500 text-center">
                         By submitting this form, you agree to our{" "}
