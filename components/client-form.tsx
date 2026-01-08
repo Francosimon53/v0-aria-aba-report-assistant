@@ -28,7 +28,6 @@ import type { ClientData } from "@/lib/types"
 import { insuranceTemplates } from "@/lib/data/insurance-templates"
 import { useToast } from "@/hooks/use-toast"
 import { ImportDataModal } from "./import-data-modal" // Import AI Import Modal
-import { DailyScheduleTable } from "./daily-schedule-table"
 import { cn } from "@/lib/utils" // Import cn for conditional styling
 import { AssessmentTypeBadge } from "./assessment-type-badge"
 
@@ -982,17 +981,6 @@ export function ClientForm({ clientData, onSave, assessmentType: propAssessmentT
                     placeholder="Enter address"
                   />
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Daily Schedule Card */}
-            <Card className="border-2 border-[#0D9488]/20">
-              <CardHeader>
-                <CardTitle>Daily Schedule</CardTitle>
-                <CardDescription>Document the client's typical daily routine and activities</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <DailyScheduleTable onSave={(scheduleData) => console.log("Schedule saved:", scheduleData)} />
               </CardContent>
             </Card>
           </div>
