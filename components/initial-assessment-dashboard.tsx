@@ -565,10 +565,10 @@ export function InitialAssessmentDashboard() {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Progress</span>
                 <span className="text-sm font-bold text-teal-600">
-                  {(completedSteps.size * 100) / allSteps.length}%
+                  {Math.round((completedSteps.size * 100) / allSteps.length)}%
                 </span>
               </div>
-              <Progress value={(completedSteps.size * 100) / allSteps.length} className="h-2 bg-teal-100" />
+              <Progress value={Math.round((completedSteps.size * 100) / allSteps.length)} className="h-2 bg-teal-100" />
               <p className="text-xs text-gray-500 mt-1">
                 {completedSteps.size} of {allSteps.length} sections complete
               </p>
@@ -674,9 +674,11 @@ export function InitialAssessmentDashboard() {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Progress</span>
-            <span className="text-sm font-bold text-teal-600">{(completedSteps.size * 100) / allSteps.length}%</span>
+            <span className="text-sm font-bold text-teal-600">
+              {Math.round((completedSteps.size * 100) / allSteps.length)}%
+            </span>
           </div>
-          <Progress value={(completedSteps.size * 100) / allSteps.length} className="h-2 bg-teal-100" />
+          <Progress value={Math.round((completedSteps.size * 100) / allSteps.length)} className="h-2 bg-teal-100" />
           <p className="text-xs text-gray-500 mt-1">
             {completedSteps.size} of {allSteps.length} sections complete
           </p>

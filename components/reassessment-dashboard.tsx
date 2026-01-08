@@ -621,11 +621,16 @@ export function ReassessmentDashboard() {
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Progress</span>
-                <span className="text-sm font-bold text-orange-600">{progress}%</span>
+                <span className="text-sm font-bold text-orange-600">
+                  {Math.round((completedSteps.size * 100) / allSteps.length)}%
+                </span>
               </div>
-              <Progress value={progress} className="h-2 bg-orange-100 [&>div]:bg-orange-500" />
+              <Progress
+                value={Math.round((completedSteps.size * 100) / allSteps.length)}
+                className="h-2 bg-orange-100"
+              />
               <p className="text-xs text-gray-500 mt-1">
-                {completedSteps.size} of {allItems.length} sections complete
+                {completedSteps.size} of {allSteps.length} sections complete
               </p>
             </div>
 
@@ -752,11 +757,13 @@ export function ReassessmentDashboard() {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Progress</span>
-            <span className="text-sm font-bold text-orange-600">{progress}%</span>
+            <span className="text-sm font-bold text-orange-600">
+              {Math.round((completedSteps.size * 100) / allSteps.length)}%
+            </span>
           </div>
-          <Progress value={progress} className="h-2 bg-orange-100 [&>div]:bg-orange-500" />
+          <Progress value={Math.round((completedSteps.size * 100) / allSteps.length)} className="h-2 bg-orange-100" />
           <p className="text-xs text-gray-500 mt-1">
-            {completedSteps.size} of {allItems.length} sections complete
+            {completedSteps.size} of {allSteps.length} sections complete
           </p>
         </div>
 
