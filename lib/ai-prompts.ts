@@ -245,6 +245,12 @@ interface GeneralizationPlanData {
   otherStrategy?: string
 }
 
+interface FamilyGoalsData {
+  clientInfo: any
+  areasOfConcern: string[]
+  dsm5Level: string
+}
+
 export const PROMPT_TEMPLATES = {
   /**
    * Generates a medical necessity statement for insurance authorization
@@ -560,7 +566,8 @@ INSTRUCTIONS:
 
 CRITICAL FORMATTING RULES:
 - Write in PLAIN TEXT only - NO Markdown formatting
-- DO NOT use asterisks, pound signs, or bullet points
+- DO NOT use asterisks, pound signs, or any special characters
+- DO NOT use bullet points with dashes or asterisks
 - Write in flowing professional paragraphs
 - Keep between 150-250 words
 
@@ -725,6 +732,74 @@ CRITICAL FORMATTING RULES:
 - Use person-first language throughout
 
 Generate a professional, insurance-ready narrative that clearly establishes medical necessity for ABA services.`
+  },
+
+  /**
+   * Generates Family's Goals for Treatment section
+   */
+  familyGoals: (data: FamilyGoalsData): string => {
+    const clientName = data.clientInfo?.firstName
+      ? `${data.clientInfo.firstName} ${data.clientInfo.lastName || ""}`.trim()
+      : "The client"
+    const clientAge = data.clientInfo?.dateOfBirth
+      ? Math.floor((Date.now() - new Date(data.clientInfo.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+      : null
+    const diagnosis = data.clientInfo?.diagnosis || "Autism Spectrum Disorder"
+
+    return `Write a comprehensive "Family's Goals for Treatment" section for an ABA assessment report.
+
+CLIENT INFORMATION:
+- Name: ${clientName}
+- Age: ${clientAge ? `${clientAge} years old` : "Not specified"}
+- Diagnosis: ${diagnosis}
+- DSM-5 Severity: ${data.dsm5Level || "Not specified"}
+
+IDENTIFIED AREAS OF CONCERN:
+${data.areasOfConcern.length > 0 ? data.areasOfConcern.map((area) => `- ${area}`).join("\n") : "- Communication and social skills"}
+
+INSTRUCTIONS:
+Generate realistic and appropriate family goals for ABA treatment that address:
+
+1. COMMUNICATION IMPROVEMENTS:
+   - Expressive language development
+   - Receptive language skills
+   - Functional communication
+   - Requesting and commenting
+
+2. DAILY LIVING SKILLS:
+   - Self-care and hygiene
+   - Mealtime behaviors
+   - Toileting skills
+   - Independence in routines
+
+3. BEHAVIOR REDUCTION:
+   - Challenging behaviors that interfere with learning
+   - Self-injurious behaviors if applicable
+   - Aggression or property destruction if applicable
+   - Stereotypic behaviors
+
+4. SOCIAL SKILLS DEVELOPMENT:
+   - Peer interactions
+   - Turn-taking and sharing
+   - Joint attention
+   - Play skills
+
+5. INDEPENDENCE GOALS:
+   - Following instructions
+   - Transitioning between activities
+   - Attending to tasks
+   - Completing routines independently
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks (*), pound signs (#), or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Keep between 100-200 words
+- Use person-first language throughout
+- Write from the family's perspective (what they want to see improved)
+
+Generate a professional narrative that describes what outcomes the family hopes to achieve through ABA treatment.`
   },
 }
 

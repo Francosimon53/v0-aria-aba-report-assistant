@@ -34,6 +34,7 @@ const DSM5_LEVELS = [
 
 export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isGeneratingFamilyGoals, setIsGeneratingFamilyGoals] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [usedHistoricalExamples, setUsedHistoricalExamples] = useState(0)
 
@@ -140,6 +141,49 @@ Generate a professional "Reason for Referral" narrative for an ABA assessment.
       toast.error(error instanceof Error ? error.message : "Failed to generate content. Please try again.")
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleFamilyGoalsAIGenerate = async () => {
+    if (formData.areasOfConcern.length === 0) {
+      toast.error("Please select at least one area of concern before generating")
+      return
+    }
+
+    setIsGeneratingFamilyGoals(true)
+
+    try {
+      const clientData = localStorage.getItem("aria-client-info")
+      const parsedClientInfo = clientData ? JSON.parse(clientData) : {}
+
+      const requestBody = {
+        type: "familyGoals",
+        data: {
+          clientInfo: parsedClientInfo,
+          areasOfConcern: formData.areasOfConcern.map((id) => AREAS_OF_CONCERN.find((a) => a.id === id)?.label || id),
+          dsm5Level: formData.dsm5Level,
+        },
+      }
+
+      const response = await fetch("/api/generate-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.content) {
+        setFormData((prev) => ({ ...prev, familyGoals: data.content }))
+        toast.success("Family goals generated successfully")
+      } else {
+        throw new Error(data.error || data.message || "Failed to generate content")
+      }
+    } catch (error) {
+      console.error("[v0] Family goals AI generation error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to generate family goals. Please try again.")
+    } finally {
+      setIsGeneratingFamilyGoals(false)
     }
   }
 
@@ -292,9 +336,21 @@ Generate a professional "Reason for Referral" narrative for an ABA assessment.
 
       <Card className="border-2 border-gray-100 shadow-sm">
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-500" />
-            <CardTitle className="text-lg">Family's Goals for Treatment</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-500" />
+              <CardTitle className="text-lg">Family's Goals for Treatment</CardTitle>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleFamilyGoalsAIGenerate}
+              disabled={isGeneratingFamilyGoals}
+              className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              {isGeneratingFamilyGoals ? "Generating..." : "AI Generate"}
+            </Button>
           </div>
           <CardDescription>What outcomes does the family hope to achieve?</CardDescription>
         </CardHeader>

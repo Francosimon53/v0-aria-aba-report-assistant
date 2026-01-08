@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       "barriersSection",
       "generalizationPlan",
       "reasonForReferral",
+      "familyGoals",
     ]
 
     if (!validTypes.includes(type)) {
