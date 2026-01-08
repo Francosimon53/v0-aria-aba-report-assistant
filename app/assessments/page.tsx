@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { safeParseDate, safeFormatDate } from "@/lib/safe-date"
+import { createClient } from "@/lib/supabase/client"
 
 interface Assessment {
   id: string
@@ -41,28 +42,51 @@ export default function AssessmentsPage() {
     fetchAssessments()
   }, [])
 
-  const fetchAssessments = () => {
+  const fetchAssessments = async () => {
     try {
       setIsLoading(true)
+      const supabase = createClient()
 
-      const saved = localStorage.getItem("aria-assessments")
-      if (saved) {
-        const data = JSON.parse(saved)
-        const assessmentList = Array.isArray(data) ? data : []
+      // Get current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-        // Filter out assessments with invalid dates
-        const validAssessments = assessmentList.filter((a: any) => {
-          if (a.createdAt) {
-            return safeParseDate(a.createdAt) !== null
-          }
-          return true
-        })
-
-        setAssessments(validAssessments)
-        console.log("[v0] Loaded", validAssessments.length, "assessments from localStorage")
-      } else {
+      if (!user) {
+        console.log("[v0] No user logged in")
         setAssessments([])
+        return
       }
+
+      // Fetch assessments from Supabase
+      const { data, error } = await supabase
+        .from("assessments")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("[v0] Error fetching assessments from Supabase:", error)
+        setAssessments([])
+        return
+      }
+
+      // Transform Supabase data to match Assessment interface
+      const assessmentList: Assessment[] = (data || []).map((item) => ({
+        id: item.id,
+        clientName:
+          item.data?.clientInformation?.firstName && item.data?.clientInformation?.lastName
+            ? `${item.data.clientInformation.firstName} ${item.data.clientInformation.lastName}`
+            : item.client_name || "Unnamed Client",
+        status: item.status || "draft",
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        progress: item.progress || 0,
+        data: item.data,
+      }))
+
+      setAssessments(assessmentList)
+      console.log("[v0] Loaded", assessmentList.length, "assessments from Supabase")
     } catch (error) {
       console.error("[v0] Error loading assessments:", error)
       setAssessments([])
@@ -71,17 +95,21 @@ export default function AssessmentsPage() {
     }
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     try {
       console.log("[v0] Deleting assessment:", id)
+      const supabase = createClient()
 
-      const saved = localStorage.getItem("aria-assessments")
-      if (saved) {
-        const data = JSON.parse(saved)
-        const assessmentList = Array.isArray(data) ? data : []
-        const filtered = assessmentList.filter((a: any) => a.id !== id)
-        localStorage.setItem("aria-assessments", JSON.stringify(filtered))
+      const { error } = await supabase.from("assessments").delete().eq("id", id)
+
+      if (error) {
+        console.error("[v0] Error deleting assessment from Supabase:", error)
+        return
       }
+
+      // Also clear localStorage for this assessment
+      localStorage.removeItem(`aria-initial-assessment-${id}`)
+      localStorage.removeItem(`aria-reassessment-${id}`)
 
       setAssessments((prev) => prev.filter((a) => a.id !== id))
       setDeleteId(null)
