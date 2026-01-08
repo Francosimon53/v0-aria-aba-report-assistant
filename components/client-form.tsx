@@ -144,6 +144,51 @@ export function ClientForm({ clientData, onSave, assessmentType: propAssessmentT
   )
 
   useEffect(() => {
+    const loadFromStorage = () => {
+      try {
+        const stored = localStorage.getItem("aria-client-info")
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          const data = parsed.data !== undefined ? parsed.data : parsed
+          console.log("[v0] ClientForm loaded data from localStorage:", data)
+          setFormData((prev) => ({
+            ...prev,
+            ...data,
+          }))
+        }
+      } catch (error) {
+        console.error("[v0] Error loading client data from localStorage:", error)
+      }
+    }
+
+    // Load on mount
+    loadFromStorage()
+
+    // Listen for data loaded event from dashboard
+    const handleDataLoaded = () => {
+      console.log("[v0] ClientForm received aria-data-loaded event")
+      loadFromStorage()
+    }
+
+    window.addEventListener("aria-data-loaded", handleDataLoaded)
+    return () => window.removeEventListener("aria-data-loaded", handleDataLoaded)
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "aria-client-info",
+        JSON.stringify({
+          data: formData,
+          savedAt: new Date().toISOString(),
+        }),
+      )
+    } catch (error) {
+      console.error("[v0] Error saving client data to localStorage:", error)
+    }
+  }, [formData])
+
+  useEffect(() => {
     if (clientData) {
       setFormData((prev) => ({
         ...getDefaultFormData(),
