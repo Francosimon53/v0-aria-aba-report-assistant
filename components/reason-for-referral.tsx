@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -11,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Sparkles, Save, FileText, AlertCircle, Target, Users, Brain } from "lucide-react"
 import { toast } from "sonner"
 import { buildEnhancedPrompt } from "@/lib/learning-system"
+import { EditableAIField } from "@/components/editable-ai-field"
 
 interface ReasonForReferralProps {
   onSave?: () => void
@@ -144,7 +144,7 @@ Generate a professional "Reason for Referral" narrative for an ABA assessment.
     }
   }
 
-  const handleFamilyGoalsAIGenerate = async () => {
+  const handleFamilyGoalsGenerate = async () => {
     if (formData.areasOfConcern.length === 0) {
       toast.error("Please select at least one area of concern before generating")
       return
@@ -321,16 +321,17 @@ Generate a professional "Reason for Referral" narrative for an ABA assessment.
           )}
         </CardHeader>
         <CardContent>
-          <Textarea
+          <EditableAIField
             value={formData.currentProblemAreas}
-            onChange={(e) => setFormData((prev) => ({ ...prev, currentProblemAreas: e.target.value }))}
+            onChange={(value) => setFormData((prev) => ({ ...prev, currentProblemAreas: value }))}
+            onGenerate={handleAIGenerate}
+            isGenerating={isGenerating}
+            label=""
             placeholder="Describe the client's current problem areas, including frequency, intensity, and impact on daily functioning..."
-            className="min-h-[150px] resize-none"
+            minHeight="150px"
+            showWordCount
+            wordCountTarget="Aim for 100-200 words"
           />
-          <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-            <span>{formData.currentProblemAreas.split(/\s+/).filter(Boolean).length} words</span>
-            <span>Aim for 100-200 words</span>
-          </div>
         </CardContent>
       </Card>
 
@@ -344,7 +345,7 @@ Generate a professional "Reason for Referral" narrative for an ABA assessment.
             <Button
               variant="outline"
               size="sm"
-              onClick={handleFamilyGoalsAIGenerate}
+              onClick={handleFamilyGoalsGenerate}
               disabled={isGeneratingFamilyGoals}
               className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700"
             >
@@ -352,14 +353,19 @@ Generate a professional "Reason for Referral" narrative for an ABA assessment.
               {isGeneratingFamilyGoals ? "Generating..." : "AI Generate"}
             </Button>
           </div>
-          <CardDescription>What outcomes does the family hope to achieve?</CardDescription>
+          <CardDescription>What are the family's primary goals and expectations for ABA services?</CardDescription>
         </CardHeader>
         <CardContent>
-          <Textarea
+          <EditableAIField
             value={formData.familyGoals}
-            onChange={(e) => setFormData((prev) => ({ ...prev, familyGoals: e.target.value }))}
-            placeholder="Describe the family's priorities and goals for ABA treatment, including specific skills they want the client to develop..."
-            className="min-h-[120px] resize-none"
+            onChange={(value) => setFormData((prev) => ({ ...prev, familyGoals: value }))}
+            onGenerate={handleFamilyGoalsGenerate}
+            isGenerating={isGeneratingFamilyGoals}
+            label=""
+            placeholder="What does the family hope to achieve through ABA therapy? Include specific goals for communication, behavior, social skills, independence, etc."
+            minHeight="150px"
+            showWordCount
+            wordCountTarget="Aim for 75-150 words"
           />
         </CardContent>
       </Card>
