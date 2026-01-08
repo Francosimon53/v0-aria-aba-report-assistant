@@ -50,7 +50,6 @@ export function TrialExpiredModal({ forceOpen = false }: TrialExpiredModalProps)
 
   const handleUpgrade = () => {
     router.push("/pricing")
-    setOpen(false)
   }
 
   const handleSignOut = async () => {
@@ -64,8 +63,13 @@ export function TrialExpiredModal({ forceOpen = false }: TrialExpiredModalProps)
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent
+        className="sm:max-w-md"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        showCloseButton={false}
+      >
         <DialogHeader className="text-center">
           <div className="mx-auto h-16 w-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
             <AlertTriangle className="h-8 w-8 text-red-600" />
