@@ -79,13 +79,13 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold text-gray-900">Email</h3>
                     <a
-                      href="mailto:support@ariaba.app"
+                      href="mailto:francosimon@hotmail.com"
                       className="block text-gray-600 hover:text-[#0D9488] transition-colors"
                     >
                       support@ariaba.app
                     </a>
                     <a
-                      href="mailto:sales@ariaba.app"
+                      href="mailto:francosimon@hotmail.com"
                       className="block text-gray-600 hover:text-[#0D9488] transition-colors"
                     >
                       sales@ariaba.app
@@ -120,24 +120,14 @@ export default function ContactPage() {
               <div className="pt-6 border-t">
                 <h3 className="font-semibold text-gray-900 mb-3">Follow Us</h3>
                 <div className="flex gap-4">
-                  <a
-                    href="https://linkedin.com/company/ariaba"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-[#0D9488] transition-colors flex items-center gap-2"
-                  >
+                  <span className="text-gray-400 flex items-center gap-2 cursor-not-allowed">
                     <Linkedin className="h-5 w-5" />
-                    LinkedIn
-                  </a>
-                  <a
-                    href="https://twitter.com/ariaba_app"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-[#0D9488] transition-colors flex items-center gap-2"
-                  >
+                    LinkedIn (Coming soon)
+                  </span>
+                  <span className="text-gray-400 flex items-center gap-2 cursor-not-allowed">
                     <Twitter className="h-5 w-5" />
-                    Twitter
-                  </a>
+                    Twitter (Coming soon)
+                  </span>
                 </div>
               </div>
             </div>
