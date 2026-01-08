@@ -4,12 +4,12 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Sparkles, Save, AlertTriangle, RefreshCw, Loader2, Copy, ChevronDown, ChevronUp, Check } from "lucide-react"
 import { toast } from "sonner"
+import { EditableAIField } from "@/components/editable-ai-field"
 
 interface BarriersGeneralizationProps {
   onSave?: () => void
@@ -340,12 +340,12 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
 
           {/* How barriers will be addressed */}
           <div className="pt-4">
-            <Label className="text-sm font-medium text-gray-700">How barriers will be addressed</Label>
-            <Textarea
+            <EditableAIField
               value={formData.barriersAddressed}
-              onChange={(e) => setFormData((prev) => ({ ...prev, barriersAddressed: e.target.value }))}
+              onChange={(value) => setFormData((prev) => ({ ...prev, barriersAddressed: value }))}
+              label="How barriers will be addressed"
               placeholder="Describe how each identified barrier will be addressed in the treatment plan..."
-              className="mt-2 min-h-[120px] resize-none"
+              minHeight="120px"
             />
           </div>
 
@@ -462,12 +462,12 @@ export function BarriersGeneralization({ onSave }: BarriersGeneralizationProps) 
 
           {/* Generalization plan narrative */}
           <div className="pt-4">
-            <Label className="text-sm font-medium text-gray-700">Generalization Plan Narrative</Label>
-            <Textarea
+            <EditableAIField
               value={formData.generalizationPlan}
-              onChange={(e) => setFormData((prev) => ({ ...prev, generalizationPlan: e.target.value }))}
+              onChange={(value) => setFormData((prev) => ({ ...prev, generalizationPlan: value }))}
+              label="Generalization & Maintenance Plan"
               placeholder="Describe how skills will be generalized across settings, people, and materials..."
-              className="mt-2 min-h-[120px] resize-none"
+              minHeight="120px"
             />
           </div>
 

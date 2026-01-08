@@ -1,12 +1,12 @@
 "use client"
 
 import { Checkbox } from "@/components/ui/checkbox"
+import { EditableAIField } from "@/components/editable-ai-field"
 
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -554,12 +554,14 @@ ${plan.preventionStrategies.map((s: string) => `• ${s}`).join("\n")}
                 )}
               </Button>
             </div>
-            <Textarea
-              placeholder="Describe step-by-step emergency procedures, de-escalation strategies, when to call 911, safe places, etc."
+            <EditableAIField
               value={emergencyProcedures}
-              onChange={(e) => setEmergencyProcedures(e.target.value)}
-              rows={8}
-              className="resize-none"
+              onChange={(value) => setEmergencyProcedures(value)}
+              onGenerate={handleGenerateEmergencyProcedures}
+              isGenerating={isGeneratingEmergency}
+              label="Emergency Procedures"
+              placeholder="Describe step-by-step emergency procedures, de-escalation strategies, when to call 911, safe places, etc."
+              minHeight="200px"
             />
           </Card>
 
