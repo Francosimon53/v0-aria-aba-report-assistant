@@ -39,6 +39,7 @@ import { FadePlan } from "@/components/fade-plan"
 import { BarriersGeneralization } from "@/components/barriers-generalization"
 import { Card, CardContent } from "@/components/ui/card"
 import { SidebarHelpLinks } from "@/components/sidebar-help-links"
+import { saveAssessmentToSupabase, loadAssessmentFromSupabase, getOrCreateAssessmentId } from "@/lib/assessment-storage"
 
 type ActiveView =
   | "client"
@@ -328,27 +329,47 @@ export function InitialAssessmentDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+  const [assessmentId, setAssessmentId] = useState<string>("")
+  const [isLoadingData, setIsLoadingData] = useState(true)
   const { toast } = useToast()
 
   const allSteps: ActiveView[] = phases.flatMap((p) => p.items.map((i) => i.id))
 
-  // Load saved data on mount
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    const initializeAssessment = async () => {
+      if (typeof window === "undefined") return
+
       try {
+        const id = getOrCreateAssessmentId("initial")
+        setAssessmentId(id)
+
+        const { success, data, error } = await loadAssessmentFromSupabase(id)
+
+        if (success && data) {
+          console.log("[v0] Loaded assessment data from Supabase")
+          toast({
+            title: "Assessment Loaded",
+            description: "Your previous progress has been restored.",
+          })
+
+          window.dispatchEvent(new CustomEvent("aria-data-loaded"))
+        } else if (error && !error.includes("not found")) {
+          console.error("[v0] Error loading assessment:", error)
+        }
+
         const savedSteps = localStorage.getItem("aria-initial-completed-steps")
         if (savedSteps) {
           setCompletedSteps(new Set(JSON.parse(savedSteps)))
         }
       } catch (e) {
-        console.error("Error loading saved data:", e)
+        console.error("[v0] Error initializing assessment:", e)
+      } finally {
+        setIsLoadingData(false)
       }
     }
-  }, [])
 
-  // Calculate progress
-  const allItems = phases.flatMap((p) => p.items)
-  const progress = Math.round((completedSteps.size / allItems.length) * 100)
+    initializeAssessment()
+  }, [])
 
   const markStepComplete = useCallback((step: ActiveView) => {
     setCompletedSteps((prev) => {
@@ -375,32 +396,46 @@ export function InitialAssessmentDashboard() {
     }
   }
 
-  const handleSave = async () => {
-    // Trigger save event for current component
-    window.dispatchEvent(new CustomEvent("aria-save-all"))
-    await new Promise((resolve) => setTimeout(resolve, 300))
-    markStepComplete(activeView)
-  }
-
   const handleSaveAll = async () => {
     setIsSaving(true)
     try {
-      // Trigger save event for all components
       window.dispatchEvent(new CustomEvent("aria-save-all"))
       await new Promise((resolve) => setTimeout(resolve, 500))
-      toast({
-        title: "Progress Saved",
-        description: "All your data has been saved successfully.",
-      })
+
+      const { success, error } = await saveAssessmentToSupabase(assessmentId, "initial")
+
+      if (success) {
+        toast({
+          title: "Progress Saved",
+          description: "All your data has been saved successfully.",
+        })
+      } else {
+        toast({
+          title: "Save Warning",
+          description: `Data saved locally, but cloud sync failed: ${error}`,
+          variant: "destructive",
+        })
+      }
     } catch (error) {
+      console.error("[v0] Error saving:", error)
       toast({
-        title: "Save Failed",
-        description: "There was an error saving your data.",
+        title: "Save Error",
+        description: "There was an error saving your data. Please try again.",
         variant: "destructive",
       })
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleSave = async () => {
+    window.dispatchEvent(new CustomEvent("aria-save-all"))
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    markStepComplete(activeView)
+
+    saveAssessmentToSupabase(assessmentId, "initial").catch((error) => {
+      console.error("[v0] Background save failed:", error)
+    })
   }
 
   const handleSignOut = async () => {
@@ -454,6 +489,17 @@ export function InitialAssessmentDashboard() {
       default:
         return <ClientInformationForm onSave={() => markStepComplete("client")} />
     }
+  }
+
+  if (isLoadingData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your assessment...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -518,11 +564,13 @@ export function InitialAssessmentDashboard() {
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Progress</span>
-                <span className="text-sm font-bold text-teal-600">{progress}%</span>
+                <span className="text-sm font-bold text-teal-600">
+                  {(completedSteps.size * 100) / allSteps.length}%
+                </span>
               </div>
-              <Progress value={progress} className="h-2 bg-teal-100" />
+              <Progress value={(completedSteps.size * 100) / allSteps.length} className="h-2 bg-teal-100" />
               <p className="text-xs text-gray-500 mt-1">
-                {completedSteps.size} of {allItems.length} sections complete
+                {completedSteps.size} of {allSteps.length} sections complete
               </p>
             </div>
 
@@ -626,11 +674,11 @@ export function InitialAssessmentDashboard() {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Progress</span>
-            <span className="text-sm font-bold text-teal-600">{progress}%</span>
+            <span className="text-sm font-bold text-teal-600">{(completedSteps.size * 100) / allSteps.length}%</span>
           </div>
-          <Progress value={progress} className="h-2 bg-teal-100" />
+          <Progress value={(completedSteps.size * 100) / allSteps.length} className="h-2 bg-teal-100" />
           <p className="text-xs text-gray-500 mt-1">
-            {completedSteps.size} of {allItems.length} sections complete
+            {completedSteps.size} of {allSteps.length} sections complete
           </p>
         </div>
 

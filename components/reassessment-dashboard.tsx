@@ -43,6 +43,7 @@ import { MedicalNecessityGenerator } from "@/components/medical-necessity-genera
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { SidebarHelpLinks } from "@/components/sidebar-help-links"
+import { saveAssessmentToSupabase, loadAssessmentFromSupabase, getOrCreateAssessmentId } from "@/lib/assessment-storage"
 
 type ActiveView =
   | "client"
@@ -365,25 +366,50 @@ export function ReassessmentDashboard() {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
   const { toast } = useToast()
+  const [assessmentId, setAssessmentId] = useState<string>("")
+  const [isLoadingData, setIsLoadingData] = useState(true)
 
   const allSteps: ActiveView[] = phases.flatMap((p) => p.items.map((i) => i.id))
 
   // Load saved data on mount
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    const initializeAssessment = async () => {
+      if (typeof window === "undefined") return
+
       try {
-        const savedClient = localStorage.getItem("aria-reassessment-client-info")
-        if (savedClient) {
-          setClientData(JSON.parse(savedClient))
+        // Get or create assessment ID
+        const id = getOrCreateAssessmentId("reassessment")
+        setAssessmentId(id)
+
+        // Try to load existing data from Supabase
+        const { success, data, error } = await loadAssessmentFromSupabase(id)
+
+        if (success && data) {
+          console.log("[v0] Loaded reassessment data from Supabase")
+          toast({
+            title: "Assessment Loaded",
+            description: "Your previous progress has been restored.",
+          })
+
+          // Trigger a custom event so components can refresh their data
+          window.dispatchEvent(new CustomEvent("aria-data-loaded"))
+        } else if (error && !error.includes("not found")) {
+          console.error("[v0] Error loading assessment:", error)
         }
+
+        // Load saved completed steps
         const savedSteps = localStorage.getItem("aria-reassessment-completed-steps")
         if (savedSteps) {
           setCompletedSteps(new Set(JSON.parse(savedSteps)))
         }
       } catch (e) {
-        console.error("Error loading saved data:", e)
+        console.error("[v0] Error initializing reassessment:", e)
+      } finally {
+        setIsLoadingData(false)
       }
     }
+
+    initializeAssessment()
   }, [])
 
   // Calculate progress
@@ -427,14 +453,26 @@ export function ReassessmentDashboard() {
     try {
       window.dispatchEvent(new CustomEvent("aria-save-all"))
       await new Promise((resolve) => setTimeout(resolve, 500))
-      toast({
-        title: "Progress Saved",
-        description: "All your data has been saved successfully.",
-      })
+
+      const { success, error } = await saveAssessmentToSupabase(assessmentId, "reassessment")
+
+      if (success) {
+        toast({
+          title: "Progress Saved",
+          description: "All your data has been saved successfully.",
+        })
+      } else {
+        toast({
+          title: "Save Warning",
+          description: `Data saved locally, but cloud sync failed: ${error}`,
+          variant: "destructive",
+        })
+      }
     } catch (error) {
+      console.error("[v0] Error saving:", error)
       toast({
-        title: "Save Failed",
-        description: "There was an error saving your data.",
+        title: "Save Error",
+        description: "There was an error saving your data. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -508,6 +546,17 @@ export function ReassessmentDashboard() {
   const currentSectionLabel = useMemo(() => {
     return phases.flatMap((p) => p.items).find((i) => i.id === activeView)?.label || "Reassessment"
   }, [activeView])
+
+  if (isLoadingData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your reassessment...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">

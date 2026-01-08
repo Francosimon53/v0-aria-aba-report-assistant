@@ -251,3 +251,213 @@ export function exportAssessmentAsJSON(): string {
   const data = getCompleteAssessment()
   return JSON.stringify(data, null, 2)
 }
+
+import { createBrowserClient } from "@/lib/supabase/client"
+
+/**
+ * Get or create an assessment ID for the current session
+ */
+export function getOrCreateAssessmentId(type: "initial" | "reassessment"): string {
+  const storageKey = `aria-${type}-assessment-id`
+
+  if (typeof window === "undefined") {
+    return ""
+  }
+
+  let assessmentId = localStorage.getItem(storageKey)
+
+  if (!assessmentId) {
+    assessmentId = crypto.randomUUID()
+    localStorage.setItem(storageKey, assessmentId)
+    console.log(`[v0] Created new ${type} assessment ID:`, assessmentId)
+  }
+
+  return assessmentId
+}
+
+/**
+ * Save assessment data to Supabase
+ */
+export async function saveAssessmentToSupabase(
+  assessmentId: string,
+  type: "initial" | "reassessment",
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createBrowserClient()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      console.error("[v0] No authenticated user for Supabase save")
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const assessmentData = {
+      client_info: loadSection(STORAGE_KEYS.CLIENT_INFO),
+      background_history: loadSection(STORAGE_KEYS.BACKGROUND_HISTORY),
+      reason_for_referral: loadSection("aria-reason-for-referral" as StorageKey),
+      standardized_assessments: loadSection("aria-standardized-assessments" as StorageKey),
+      abc_observations: loadSection(STORAGE_KEYS.ABC_OBSERVATIONS),
+      risk_assessment: loadSection(STORAGE_KEYS.RISK_ASSESSMENT),
+      goals: loadSection(STORAGE_KEYS.GOALS),
+      goals_tracker: loadSection(STORAGE_KEYS.GOALS_TRACKER),
+      interventions: loadSection(STORAGE_KEYS.INTERVENTIONS),
+      selected_interventions: loadSection(STORAGE_KEYS.SELECTED_INTERVENTIONS),
+      teaching_protocols: loadSection(STORAGE_KEYS.TEACHING_PROTOCOLS),
+      parent_training: loadSection(STORAGE_KEYS.PARENT_TRAINING),
+      service_schedule: loadSection(STORAGE_KEYS.SERVICE_SCHEDULE),
+      medical_necessity: loadSection(STORAGE_KEYS.MEDICAL_NECESSITY),
+      consent_form: loadSection(STORAGE_KEYS.CONSENT_FORM),
+      cpt_authorization: loadSection("aria-cpt-authorization" as StorageKey),
+      fade_plan: loadSection("aria-fade-plan" as StorageKey),
+      barriers_generalization: loadSection("aria-barriers-generalization" as StorageKey),
+    }
+
+    const { data: existing } = await supabase.from("assessments").select("id").eq("id", assessmentId).single()
+
+    if (existing) {
+      const { error } = await supabase
+        .from("assessments")
+        .update({
+          data: assessmentData,
+          evaluation_type: type,
+          status: "in_progress",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", assessmentId)
+
+      if (error) {
+        console.error("[v0] Supabase update error:", error)
+        return { success: false, error: error.message }
+      }
+
+      console.log("[v0] Assessment updated in Supabase:", assessmentId)
+    } else {
+      const { error } = await supabase.from("assessments").insert({
+        id: assessmentId,
+        user_id: user.id,
+        data: assessmentData,
+        evaluation_type: type,
+        status: "in_progress",
+        title: `${type === "initial" ? "Initial Assessment" : "Reassessment"} - ${new Date().toLocaleDateString()}`,
+      })
+
+      if (error) {
+        console.error("[v0] Supabase insert error:", error)
+        return { success: false, error: error.message }
+      }
+
+      console.log("[v0] Assessment saved to Supabase:", assessmentId)
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("[v0] Error saving to Supabase:", error)
+    return { success: false, error: String(error) }
+  }
+}
+
+/**
+ * Load assessment data from Supabase
+ */
+export async function loadAssessmentFromSupabase(
+  assessmentId: string,
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const supabase = createBrowserClient()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const { data, error } = await supabase
+      .from("assessments")
+      .select("*")
+      .eq("id", assessmentId)
+      .eq("user_id", user.id)
+      .single()
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        return { success: false, error: "Assessment not found" }
+      }
+      console.error("[v0] Supabase load error:", error)
+      return { success: false, error: error.message }
+    }
+
+    if (!data || !data.data) {
+      return { success: false, error: "No data in assessment" }
+    }
+
+    const assessmentData = data.data as any
+
+    if (assessmentData.client_info) {
+      saveSection(STORAGE_KEYS.CLIENT_INFO, assessmentData.client_info)
+    }
+    if (assessmentData.background_history) {
+      saveSection(STORAGE_KEYS.BACKGROUND_HISTORY, assessmentData.background_history)
+    }
+    if (assessmentData.reason_for_referral) {
+      localStorage.setItem("aria-reason-for-referral", JSON.stringify(assessmentData.reason_for_referral))
+    }
+    if (assessmentData.standardized_assessments) {
+      localStorage.setItem("aria-standardized-assessments", JSON.stringify(assessmentData.standardized_assessments))
+    }
+    if (assessmentData.abc_observations) {
+      saveSection(STORAGE_KEYS.ABC_OBSERVATIONS, assessmentData.abc_observations)
+    }
+    if (assessmentData.risk_assessment) {
+      saveSection(STORAGE_KEYS.RISK_ASSESSMENT, assessmentData.risk_assessment)
+    }
+    if (assessmentData.goals) {
+      saveSection(STORAGE_KEYS.GOALS, assessmentData.goals)
+    }
+    if (assessmentData.goals_tracker) {
+      saveSection(STORAGE_KEYS.GOALS_TRACKER, assessmentData.goals_tracker)
+    }
+    if (assessmentData.interventions) {
+      saveSection(STORAGE_KEYS.INTERVENTIONS, assessmentData.interventions)
+    }
+    if (assessmentData.selected_interventions) {
+      saveSection(STORAGE_KEYS.SELECTED_INTERVENTIONS, assessmentData.selected_interventions)
+    }
+    if (assessmentData.teaching_protocols) {
+      saveSection(STORAGE_KEYS.TEACHING_PROTOCOLS, assessmentData.teaching_protocols)
+    }
+    if (assessmentData.parent_training) {
+      saveSection(STORAGE_KEYS.PARENT_TRAINING, assessmentData.parent_training)
+    }
+    if (assessmentData.service_schedule) {
+      saveSection(STORAGE_KEYS.SERVICE_SCHEDULE, assessmentData.service_schedule)
+    }
+    if (assessmentData.medical_necessity) {
+      saveSection(STORAGE_KEYS.MEDICAL_NECESSITY, assessmentData.medical_necessity)
+    }
+    if (assessmentData.consent_form) {
+      saveSection(STORAGE_KEYS.CONSENT_FORM, assessmentData.consent_form)
+    }
+    if (assessmentData.cpt_authorization) {
+      localStorage.setItem("aria-cpt-authorization", JSON.stringify(assessmentData.cpt_authorization))
+    }
+    if (assessmentData.fade_plan) {
+      localStorage.setItem("aria-fade-plan", JSON.stringify(assessmentData.fade_plan))
+    }
+    if (assessmentData.barriers_generalization) {
+      localStorage.setItem("aria-barriers-generalization", JSON.stringify(assessmentData.barriers_generalization))
+    }
+
+    updateCompleteAssessment()
+
+    console.log("[v0] Assessment data loaded from Supabase and restored to localStorage")
+    return { success: true, data: assessmentData }
+  } catch (error) {
+    console.error("[v0] Error loading from Supabase:", error)
+    return { success: false, error: String(error) }
+  }
+}
