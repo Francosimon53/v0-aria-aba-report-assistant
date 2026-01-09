@@ -292,6 +292,7 @@ export function clearAssessmentById(assessmentId: string): void {
 
 /**
  * Get or create an assessment ID for the current session
+ * This no longer creates DB records - only manages localStorage ID
  */
 export function getOrCreateAssessmentId(type: "initial" | "reassessment", mode?: "new" | "existing"): string {
   const storageKey = `aria-${type}-assessment-id`
@@ -308,7 +309,7 @@ export function getOrCreateAssessmentId(type: "initial" | "reassessment", mode?:
     clearAssessmentCache()
     const newId = crypto.randomUUID()
     localStorage.setItem(storageKey, newId)
-    console.log(`[v0] Created NEW ${type} assessment ID (fresh start):`, newId)
+    console.log(`[v0] Created NEW local ${type} assessment ID (no DB record yet):`, newId)
 
     // Update URL with new ID
     const newUrl = new URL(window.location.href)
@@ -331,7 +332,7 @@ export function getOrCreateAssessmentId(type: "initial" | "reassessment", mode?:
   if (!assessmentId) {
     assessmentId = crypto.randomUUID()
     localStorage.setItem(storageKey, assessmentId)
-    console.log(`[v0] Created new ${type} assessment ID:`, assessmentId)
+    console.log(`[v0] Created new local ${type} assessment ID (no DB record yet):`, assessmentId)
 
     const newUrl = new URL(window.location.href)
     newUrl.searchParams.set("id", assessmentId)
@@ -373,13 +374,16 @@ export function getClientNameFromData(data: any): string | null {
 
 /**
  * Save assessment data to Supabase
+ * Now this is the ONLY place that should create/update DB records
+ * This should ONLY be called when user explicitly clicks Save
  */
 export async function saveAssessmentToSupabase(
   assessmentId: string,
   assessmentType: "initial" | "reassessment" = "initial",
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; isNew?: boolean }> {
   try {
-    console.log("[v0] Starting saveAssessmentToSupabase for ID:", assessmentId)
+    console.log("[v0] saveAssessmentToSupabase called for ID:", assessmentId)
+    console.log("[v0] This should ONLY happen when user clicks Save button")
 
     const supabase = createBrowserClient()
 
@@ -439,6 +443,7 @@ export async function saveAssessmentToSupabase(
     }
 
     if (existingAssessment) {
+      // UPDATE existing assessment
       console.log("[v0] Updating existing assessment")
       const { error } = await supabase.from("assessments").update(assessmentPayload).eq("id", assessmentId)
 
@@ -446,8 +451,10 @@ export async function saveAssessmentToSupabase(
         console.error("[v0] Error updating assessment:", error)
         return { success: false, error: error.message }
       }
+      return { success: true, isNew: false }
     } else {
-      console.log("[v0] Creating new assessment")
+      // INSERT new assessment - this should ONLY happen on first explicit save
+      console.log("[v0] Creating NEW assessment in database (first save)")
       const { error } = await supabase.from("assessments").insert({
         id: assessmentId,
         ...assessmentPayload,
@@ -458,10 +465,16 @@ export async function saveAssessmentToSupabase(
         console.error("[v0] Error creating assessment:", error)
         return { success: false, error: error.message }
       }
-    }
 
-    console.log("[v0] Assessment saved successfully with progress:", progressResult.percentage)
-    return { success: true }
+      // Update URL to include the ID so future saves update instead of insert
+      const newUrl = new URL(window.location.href)
+      if (!newUrl.searchParams.has("id")) {
+        newUrl.searchParams.set("id", assessmentId)
+        window.history.replaceState({}, "", newUrl.toString())
+      }
+
+      return { success: true, isNew: true }
+    }
   } catch (error: any) {
     console.error("[v0] Error in saveAssessmentToSupabase:", error)
     return { success: false, error: error.message }

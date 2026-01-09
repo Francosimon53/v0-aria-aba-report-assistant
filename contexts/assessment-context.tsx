@@ -103,6 +103,7 @@ interface AssessmentContextType {
   isSaving: boolean
   hasUnsavedChanges: boolean
   lastSaved: Date | null
+  isNewAssessment: boolean
   // Actions
   updateField: (field: keyof AssessmentData, value: any) => void
   updateMultipleFields: (fields: Partial<AssessmentData>) => void
@@ -121,33 +122,24 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
   const [isSaving, setIsSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [isNewAssessment, setIsNewAssessment] = useState(false)
 
   const searchParams = useSearchParams()
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createClient()
 
-  // Load assessment on mount if ID exists in URL
   useEffect(() => {
     const id = searchParams.get("id")
     if (id) {
       loadAssessment(id)
     } else {
+      setIsNewAssessment(true)
+      setAssessment(DEFAULT_ASSESSMENT)
       setIsLoading(false)
+      console.log("[v0] New assessment mode - no DB record created yet")
     }
   }, [searchParams])
-
-  // Auto-save every 60 seconds if there are unsaved changes
-  useEffect(() => {
-    if (!hasUnsavedChanges || !assessmentId) return
-
-    const timer = setTimeout(() => {
-      console.log("[v0] Auto-saving assessment...")
-      saveAssessment()
-    }, 60000)
-
-    return () => clearTimeout(timer)
-  }, [hasUnsavedChanges, assessmentId])
 
   const loadAssessment = useCallback(
     async (id: string) => {
@@ -156,13 +148,21 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       try {
         const { data, error } = await supabase.from("assessments").select("*").eq("id", id).single()
 
-        if (error) throw error
+        if (error) {
+          if (error.code === "PGRST116") {
+            console.log("[v0] Assessment not found, treating as new")
+            setIsNewAssessment(true)
+            setAssessment(DEFAULT_ASSESSMENT)
+            setIsLoading(false)
+            return
+          }
+          throw error
+        }
 
         if (data) {
           setAssessment({
             ...DEFAULT_ASSESSMENT,
             ...data,
-            // Parse JSON fields if they're strings
             background_history:
               typeof data.background_history === "string"
                 ? JSON.parse(data.background_history)
@@ -191,6 +191,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
                 : data.secondary_diagnoses || [],
           })
           setAssessmentId(id)
+          setIsNewAssessment(false)
           setHasUnsavedChanges(false)
           console.log("[v0] Assessment loaded successfully")
         }
@@ -209,7 +210,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
   )
 
   const createNewAssessment = useCallback(async (): Promise<string | null> => {
-    console.log("[v0] Creating new assessment...")
+    console.log("[v0] Creating new assessment in database (user triggered save)...")
     try {
       const {
         data: { user },
@@ -232,11 +233,11 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       if (error) throw error
 
       setAssessmentId(data.id)
-      setAssessment({ ...DEFAULT_ASSESSMENT, id: data.id, user_id: user.id })
+      setIsNewAssessment(false)
+      setAssessment((prev) => ({ ...prev, id: data.id, user_id: user.id }))
 
-      // Update URL with new assessment ID
       const currentPath = window.location.pathname
-      router.push(`${currentPath}?id=${data.id}`)
+      router.replace(`${currentPath}?id=${data.id}`)
 
       console.log("[v0] Created new assessment:", data.id)
       return data.id
@@ -252,15 +253,23 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
   }, [supabase, router, toast])
 
   const saveAssessment = useCallback(async () => {
-    if (!assessmentId) {
-      console.log("[v0] No assessment ID, creating new assessment...")
-      const newId = await createNewAssessment()
-      if (!newId) return
-    }
-
-    console.log("[v0] Saving assessment:", assessmentId)
+    console.log("[v0] User triggered save. isNewAssessment:", isNewAssessment, "assessmentId:", assessmentId)
     setIsSaving(true)
+
     try {
+      let currentId = assessmentId
+
+      if (isNewAssessment || !currentId) {
+        console.log("[v0] First save - creating new assessment record in database...")
+        const newId = await createNewAssessment()
+        if (!newId) {
+          setIsSaving(false)
+          return
+        }
+        currentId = newId
+      }
+
+      console.log("[v0] Updating assessment:", currentId)
       const progress = calculateProgress()
 
       const { error } = await supabase
@@ -268,10 +277,10 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
         .update({
           ...assessment,
           progress,
-          status: progress === 100 ? "complete" : assessment.progress > 0 ? "in_progress" : "draft",
+          status: progress === 100 ? "complete" : progress > 0 ? "in_progress" : "draft",
           updated_at: new Date().toISOString(),
         })
-        .eq("id", assessmentId)
+        .eq("id", currentId)
 
       if (error) throw error
 
@@ -294,7 +303,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
     } finally {
       setIsSaving(false)
     }
-  }, [assessmentId, assessment, supabase, toast, createNewAssessment])
+  }, [assessmentId, assessment, supabase, toast, createNewAssessment, isNewAssessment])
 
   const updateField = useCallback((field: keyof AssessmentData, value: any) => {
     console.log("[v0] Updating field:", field)
@@ -338,6 +347,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
         isSaving,
         hasUnsavedChanges,
         lastSaved,
+        isNewAssessment,
         updateField,
         updateMultipleFields,
         saveAssessment,
