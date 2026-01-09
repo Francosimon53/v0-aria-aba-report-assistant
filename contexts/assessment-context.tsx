@@ -146,55 +146,53 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       console.log("[v0] Loading assessment:", id)
       setIsLoading(true)
       try {
-        const { data, error } = await supabase.from("assessments").select("*").eq("id", id).single()
+        const { data, error } = await supabase.from("assessments").select("*").eq("id", id).maybeSingle()
 
         if (error) {
-          if (error.code === "PGRST116") {
-            console.log("[v0] Assessment not found, treating as new")
-            setIsNewAssessment(true)
-            setAssessment(DEFAULT_ASSESSMENT)
-            setIsLoading(false)
-            return
-          }
+          console.error("[v0] Error loading assessment:", error)
           throw error
         }
 
-        if (data) {
-          setAssessment({
-            ...DEFAULT_ASSESSMENT,
-            ...data,
-            background_history:
-              typeof data.background_history === "string"
-                ? JSON.parse(data.background_history)
-                : data.background_history || {},
-            daily_schedule:
-              typeof data.daily_schedule === "string" ? JSON.parse(data.daily_schedule) : data.daily_schedule || [],
-            standardized_assessments:
-              typeof data.standardized_assessments === "string"
-                ? JSON.parse(data.standardized_assessments)
-                : data.standardized_assessments || [],
-            abc_observations:
-              typeof data.abc_observations === "string"
-                ? JSON.parse(data.abc_observations)
-                : data.abc_observations || [],
-            selected_goals:
-              typeof data.selected_goals === "string" ? JSON.parse(data.selected_goals) : data.selected_goals || [],
-            selected_interventions:
-              typeof data.selected_interventions === "string"
-                ? JSON.parse(data.selected_interventions)
-                : data.selected_interventions || [],
-            report_sections:
-              typeof data.report_sections === "string" ? JSON.parse(data.report_sections) : data.report_sections || [],
-            secondary_diagnoses:
-              typeof data.secondary_diagnoses === "string"
-                ? JSON.parse(data.secondary_diagnoses)
-                : data.secondary_diagnoses || [],
-          })
-          setAssessmentId(id)
-          setIsNewAssessment(false)
-          setHasUnsavedChanges(false)
-          console.log("[v0] Assessment loaded successfully")
+        if (!data) {
+          console.log("[v0] Assessment not found, treating as new")
+          setIsNewAssessment(true)
+          setAssessment(DEFAULT_ASSESSMENT)
+          setIsLoading(false)
+          return
         }
+
+        setAssessment({
+          ...DEFAULT_ASSESSMENT,
+          ...data,
+          background_history:
+            typeof data.background_history === "string"
+              ? JSON.parse(data.background_history)
+              : data.background_history || {},
+          daily_schedule:
+            typeof data.daily_schedule === "string" ? JSON.parse(data.daily_schedule) : data.daily_schedule || [],
+          standardized_assessments:
+            typeof data.standardized_assessments === "string"
+              ? JSON.parse(data.standardized_assessments)
+              : data.standardized_assessments || [],
+          abc_observations:
+            typeof data.abc_observations === "string" ? JSON.parse(data.abc_observations) : data.abc_observations || [],
+          selected_goals:
+            typeof data.selected_goals === "string" ? JSON.parse(data.selected_goals) : data.selected_goals || [],
+          selected_interventions:
+            typeof data.selected_interventions === "string"
+              ? JSON.parse(data.selected_interventions)
+              : data.selected_interventions || [],
+          report_sections:
+            typeof data.report_sections === "string" ? JSON.parse(data.report_sections) : data.report_sections || [],
+          secondary_diagnoses:
+            typeof data.secondary_diagnoses === "string"
+              ? JSON.parse(data.secondary_diagnoses)
+              : data.secondary_diagnoses || [],
+        })
+        setAssessmentId(id)
+        setIsNewAssessment(false)
+        setHasUnsavedChanges(false)
+        console.log("[v0] Assessment loaded successfully")
       } catch (error) {
         console.error("[v0] Error loading assessment:", error)
         toast({

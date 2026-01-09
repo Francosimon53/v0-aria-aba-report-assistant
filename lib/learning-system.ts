@@ -110,8 +110,11 @@ export async function saveApprovedContent({
   if (results.length > 0) {
     const avgEditPercentage = results.reduce((sum, r) => sum + r.editPercentage, 0) / results.length
 
-    // Upsert preferences
-    const { data: existingPrefs } = await supabase.from("bcba_preferences").select("*").eq("user_id", user.id).single()
+    const { data: existingPrefs } = await supabase
+      .from("bcba_preferences")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle()
 
     if (existingPrefs) {
       await supabase

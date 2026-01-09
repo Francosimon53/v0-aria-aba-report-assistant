@@ -430,7 +430,11 @@ export async function saveAssessmentToSupabase(
       status = "in_progress"
     }
 
-    const { data: existingAssessment } = await supabase.from("assessments").select("id").eq("id", assessmentId).single()
+    const { data: existingAssessment } = await supabase
+      .from("assessments")
+      .select("id")
+      .eq("id", assessmentId)
+      .maybeSingle()
 
     const assessmentPayload = {
       user_id: user.id,
@@ -503,17 +507,18 @@ export async function loadAssessmentFromSupabase(
       .select("*")
       .eq("id", assessmentId)
       .eq("user_id", user.id)
-      .single()
+      .maybeSingle()
 
     if (error) {
-      if (error.code === "PGRST116") {
-        return { success: false, error: "Assessment not found" }
-      }
       console.error("[v0] Supabase load error:", error)
       return { success: false, error: error.message }
     }
 
-    if (!data || !data.data) {
+    if (!data) {
+      return { success: false, error: "Assessment not found" }
+    }
+
+    if (!data.data) {
       return { success: false, error: "No data in assessment" }
     }
 

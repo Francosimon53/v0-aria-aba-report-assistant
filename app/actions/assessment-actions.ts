@@ -28,8 +28,11 @@ export async function createAssessment(userId: string, clientData: any) {
 
 export async function getAssessment(assessmentId: string) {
   const supabase = await createClient()
-  const { data, error } = await supabase.from("assessments").select("*").eq("id", assessmentId).single()
+  const { data, error } = await supabase.from("assessments").select("*").eq("id", assessmentId).maybeSingle()
+
   if (error) throw error
+  if (!data) throw new Error("Assessment not found")
+
   return data
 }
 
