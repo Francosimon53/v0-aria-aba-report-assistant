@@ -146,14 +146,19 @@ export function ClientForm({ clientData, onSave, assessmentType: propAssessmentT
     const loadFromStorage = () => {
       try {
         const stored = localStorage.getItem("aria-client-info")
+        console.log("[v0] ClientForm - Raw localStorage value:", stored)
         if (stored) {
           const parsed = JSON.parse(stored)
+          console.log("[v0] ClientForm - Parsed localStorage:", parsed)
           const data = parsed.data !== undefined ? parsed.data : parsed
-          console.log("[v0] ClientForm loaded data from localStorage:", data)
-          setFormData((prev) => ({
-            ...prev,
-            ...data,
-          }))
+          console.log("[v0] ClientForm - Extracted data:", data)
+          console.log("[v0] ClientForm - firstName:", data.firstName, "lastName:", data.lastName)
+          if (data.firstName || data.lastName) {
+            setFormData((prev) => ({
+              ...prev,
+              ...data,
+            }))
+          }
         }
       } catch (error) {
         console.error("[v0] Error loading client data from localStorage:", error)
@@ -174,17 +179,19 @@ export function ClientForm({ clientData, onSave, assessmentType: propAssessmentT
   }, [])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(
-        "aria-client-info",
-        JSON.stringify({
-          data: formData,
-          savedAt: new Date().toISOString(),
-        }),
-      )
-    } catch (error) {
-      console.error("[v0] Error saving client data to localStorage:", error)
+    // Only save if we have meaningful data (at least firstName or lastName)
+    const hasData = formData.firstName?.trim() || formData.lastName?.trim()
+    if (!hasData) {
+      console.log("[v0] Skipping save - no meaningful data yet")
+      return
     }
+
+    const dataToSave = {
+      data: formData,
+      savedAt: new Date().toISOString(),
+    }
+    localStorage.setItem("aria-client-info", JSON.stringify(dataToSave))
+    console.log("[v0] Client form auto-saved:", { firstName: formData.firstName, lastName: formData.lastName })
   }, [formData])
 
   useEffect(() => {

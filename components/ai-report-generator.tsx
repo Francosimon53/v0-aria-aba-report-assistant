@@ -454,106 +454,156 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
   }
 
   const extractNestedData = (obj: any, key: string): any => {
-    console.log(`[v0] extractNestedData for ${key}:`, obj)
+    // console.log(`[v0] extractNestedData for ${key}:`, obj) // REMOVED for cleaner logs
 
     if (!obj || typeof obj !== "object") {
-      console.log(`[v0] ${key}: Input is null/undefined or not an object`)
+      // console.log(`[v0] ${key}: Input is null/undefined or not an object`) // REMOVED for cleaner logs
       return {}
     }
 
     // If the object has a 'data' property and it's an object, return that
     // This handles the localStorage structure: { data: { firstName: "liam", ... }, savedAt: "..." }
     if (obj.data && typeof obj.data === "object") {
-      console.log(`[v0] ${key}: Found nested data property:`, obj.data)
+      // console.log(`[v0] ${key}: Found nested data property:`, obj.data) // REMOVED for cleaner logs
       return obj.data
     }
 
     // If no nested data, return the object itself
-    console.log(`[v0] ${key}: No nested data, returning object as-is`)
+    // console.log(`[v0] ${key}: No nested data, returning object as-is`) // REMOVED for cleaner logs
     return obj
+  }
+
+  const loadAllLocalStorageData = () => {
+    console.log("[v0] Loading all localStorage data for report...")
+
+    // Helper to safely parse and extract nested data
+    const safeParseAndExtract = (key: string) => {
+      try {
+        const raw = localStorage.getItem(key)
+        if (!raw) {
+          console.log(`[v0] Key ${key} not found in localStorage`)
+          return null
+        }
+        const parsed = JSON.parse(raw)
+        // Extract nested .data if it exists (our save format is { data: {...}, savedAt: "..." })
+        const extracted = parsed.data || parsed
+        console.log(`[v0] Extracted from ${key}:`, extracted)
+        return extracted
+      } catch (e) {
+        console.error(`[v0] Error parsing ${key}:`, e)
+        return null
+      }
+    }
+
+    const clientInfo = safeParseAndExtract("aria-client-info")
+    const backgroundHistory =
+      safeParseAndExtract("aria-background-history") || safeParseAndExtract("aria_background_history")
+    const reasonForReferral = safeParseAndExtract("aria-reason-for-referral")
+    const riskAssessment = safeParseAndExtract("aria-risk-assessment")
+    const abcObservation = safeParseAndExtract("aria-abc-observation")
+    const goals = safeParseAndExtract("aria-goals")
+    const standardizedAssessments = safeParseAndExtract("aria-standardized-assessments")
+
+    // Build client_info in the format expected by the report
+    const assembledData = {
+      client_info: clientInfo
+        ? {
+            firstName: clientInfo.firstName || clientInfo.first_name || "",
+            lastName: clientInfo.lastName || clientInfo.last_name || "",
+            dateOfBirth: clientInfo.dateOfBirth || clientInfo.date_of_birth || "",
+            age: clientInfo.age || "",
+            gender: clientInfo.gender || "",
+            diagnosis: clientInfo.primaryDiagnosis || clientInfo.diagnosis || "",
+            icd10Code: clientInfo.icd10Code || clientInfo.icd_10_code || "",
+            providerName: clientInfo.providerName || clientInfo.provider_name || "",
+            providerPhone: clientInfo.providerPhone || clientInfo.provider_phone || "",
+            insuranceProvider: clientInfo.insuranceProvider || clientInfo.insurance_provider || "",
+            insuranceId: clientInfo.insuranceId || clientInfo.insurance_id || "",
+          }
+        : null,
+      background_history: backgroundHistory,
+      reason_for_referral: reasonForReferral,
+      risk_assessment: riskAssessment,
+      abc_observation: abcObservation,
+      goals: goals,
+      standardized_assessments: standardizedAssessments,
+    }
+
+    console.log("[v0] Assembled assessment data:", assembledData)
+
+    // Check if we have minimum required data
+    if (!assembledData.client_info?.firstName && !assembledData.client_info?.lastName) {
+      console.warn("[v0] WARNING: No client name found in localStorage!")
+    }
+
+    return assembledData
   }
 
   useEffect(() => {
     if (!initialData) {
-      const rawAbcObs = safeParseJSON("aria-abc-observation") || []
-      const abcObservations = Array.isArray(rawAbcObs) ? rawAbcObs : rawAbcObs.observations || []
+      // CHANGE: Adding more detailed debugging
+      console.log("[v0] AI Report Generator - Starting data load from localStorage")
 
-      const rawClientInfo = safeParseJSON("aria-client-info") || {}
-      const rawBackground = safeParseJSON("aria-background-history") || {}
-      const rawRiskAssessment = safeParseJSON("aria-risk-assessment") || {}
-      const rawReasonForReferral = safeParseJSON("aria-reason-for-referral") || {}
-
-      const clientInfo = extractNestedData(rawClientInfo, "client-info")
-      const background = extractNestedData(rawBackground, "background")
-      const riskAssessment = extractNestedData(rawRiskAssessment, "risk-assessment")
-      const reasonForReferral = extractNestedData(rawReasonForReferral, "reason-for-referral")
-
-      console.log("[v0] Extracted clientInfo fields:", {
-        firstName: clientInfo.firstName,
-        lastName: clientInfo.lastName,
-        age: clientInfo.age,
-        gender: clientInfo.gender,
-        dateOfBirth: clientInfo.dateOfBirth,
-        diagnosis: clientInfo.diagnosis,
-      })
+      const loadedData = loadAllLocalStorageData()
 
       const userData: AssessmentData = {
         clientInfo: {
-          firstName: clientInfo.firstName || "",
-          lastName: clientInfo.lastName || "",
-          dob: clientInfo.dateOfBirth || clientInfo.dob || "",
-          age: String(clientInfo.age || ""),
-          gender: clientInfo.gender || "",
-          diagnosis: clientInfo.diagnosis || clientInfo.primaryDiagnosis || "",
-          icd10Code: clientInfo.icd10Code || "",
-          clientId: clientInfo.clientId || "",
-          address: clientInfo.address || clientInfo.providerAddress || "",
-          caregiver: clientInfo.caregiver || clientInfo.caregiverName || "",
-          phone: clientInfo.phone || clientInfo.providerPhone || "",
-          assessmentType: clientInfo.assessmentType || "initial",
+          firstName: loadedData?.client_info?.firstName || "",
+          lastName: loadedData?.client_info?.lastName || "",
+          dob: loadedData?.client_info?.dateOfBirth || "",
+          age: String(loadedData?.client_info?.age || ""),
+          gender: loadedData?.client_info?.gender || "",
+          diagnosis: loadedData?.client_info?.diagnosis || "",
+          icd10Code: loadedData?.client_info?.icd10Code || "",
+          clientId: loadedData?.client_info?.clientId || "", // Assuming clientId might be in clientInfo directly
+          address: loadedData?.client_info?.address || "", // Assuming address might be in clientInfo directly
+          caregiver: loadedData?.client_info?.caregiver || "", // Assuming caregiver might be in clientInfo directly
+          phone: loadedData?.client_info?.phone || "", // Assuming phone might be in clientInfo directly
+          assessmentType: (safeGetItem("aria-assessment-data") || {}).assessmentType || "initial", // Accessing from general assessment data
         },
         providerInfo: {
-          name: clientInfo.providerName || "",
-          bcbaName: clientInfo.bcbaName || "",
-          bcbaLicense: clientInfo.bcbaLicense || "",
-          bcbaPhone: clientInfo.bcbaPhone || clientInfo.providerPhone || "",
-          bcbaEmail: clientInfo.bcbaEmail || "",
-          npi: clientInfo.npiNumber || "",
-          agencyLogo: clientInfo.agencyLogo || "",
+          name: loadedData?.client_info?.providerName || "",
+          bcbaName: loadedData?.client_info?.providerName || "", // Assuming BCBA name might be provider name
+          bcbaLicense: (safeGetItem("aria-provider-info") || {}).bcbaLicense || "",
+          bcbaPhone: loadedData?.client_info?.providerPhone || "",
+          bcbaEmail: (safeGetItem("aria-provider-info") || {}).bcbaEmail || "",
+          npi: (safeGetItem("aria-provider-info") || {}).npi || "",
+          agencyLogo: (safeGetItem("aria-provider-info") || {}).agencyLogo || "",
         },
         insurance: {
-          provider: clientInfo.insuranceProvider || "",
-          policyNumber: clientInfo.insuranceId || clientInfo.insurancePolicyNumber || "",
-          authNumber: clientInfo.authNumber || clientInfo.authorizationNumber || "",
+          provider: loadedData?.client_info?.insuranceProvider || "",
+          policyNumber: loadedData?.client_info?.insuranceId || "",
+          authNumber: (safeGetItem("aria-insurance-info") || {}).authNumber || "",
         },
         background: {
-          developmental: background.developmentalHistory || background.developmental || "",
-          medical: background.medicalHistory || background.medical || "",
-          educational: background.educationalHistory || background.educational || "",
-          family: background.familyHistory || background.family || "",
-          previousTreatments: background.previousTreatments || background.treatmentHistory || "",
-          strengths: background.strengths || "",
-          weaknesses: background.weaknesses || background.concerns || "",
-          dailySchedule: background.dailySchedule || "",
+          developmental: loadedData?.background_history?.developmental || "",
+          medical: loadedData?.background_history?.medical || "",
+          educational: loadedData?.background_history?.educational || "",
+          family: loadedData?.background_history?.family || "",
+          previousTreatments: loadedData?.background_history?.previousTreatments || "",
+          strengths: loadedData?.background_history?.strengths || "",
+          weaknesses: loadedData?.background_history?.weaknesses || "",
+          dailySchedule: loadedData?.background_history?.dailySchedule || "",
         },
         reasonForReferral: {
-          // Added reasonForReferral field
-          referralSource: reasonForReferral.referralSource || "",
-          referralDate: reasonForReferral.referralDate || "",
-          currentProblemAreas: reasonForReferral.currentProblemAreas || "",
-          familyGoals: reasonForReferral.familyGoals || "",
+          referralSource: loadedData?.reason_for_referral?.referralSource || "",
+          referralDate: loadedData?.reason_for_referral?.referralDate || "",
+          currentProblemAreas: loadedData?.reason_for_referral?.currentProblemAreas || "",
+          familyGoals: loadedData?.reason_for_referral?.familyGoals || "",
         },
         assessmentTools: (safeParseJSON("aria-assessment-data") || {}).tools || [],
+        assessmentDates: (safeParseJSON("aria-assessment-data") || {}).dates || "",
+        observationSettings: (safeParseJSON("aria-assessment-data") || {}).settings || "",
         domains: safeParseJSON("aria-domains") || {},
-        abcObservations: abcObservations, // Use the processed abcObservations
+        abcObservations: loadedData?.abc_observation || [],
         behaviors: safeParseJSON("aria-behavior-library-data") || [],
-        goals: safeParseJSON("aria-goals") || [],
+        goals: loadedData?.goals || [],
         servicePlan: safeParseJSON("aria-service-plan") || {},
         medicalNecessity: safeParseJSON("aria_medical_necessity") || {},
         riskAssessment: {
-          extinctionBurst: riskAssessment.extinctionBurst || "",
-          safetyProtocols: riskAssessment.safetyProtocols || riskAssessment.emergencyProcedures || "",
-          emergencyContacts: riskAssessment.emergencyContacts || "",
+          extinctionBurst: loadedData?.risk_assessment?.extinctionBurst || "",
+          safetyProtocols: loadedData?.risk_assessment?.safetyProtocols || "",
+          emergencyContacts: loadedData?.risk_assessment?.emergencyContacts || "",
         },
       }
 
@@ -896,7 +946,7 @@ Each subsection should be thorough and clinical in tone.`,
       assessments: `Write the ASSESSMENTS CONDUCTED section for a professional ABA assessment report.
 
 Assessment Dates: ${data.assessmentDates || "[Assessment Dates]"}
-Observation Settings: ${data.observationSettings || "Home, community settings"}
+Observation Settings: ${data.observationSettings || "Home and community"}
 Total Assessment Hours: 18 units (97151 TS)
 
 Assessment Tools Used:
@@ -1059,6 +1109,7 @@ ${
     ? abcObs
         .map(
           (obs, i) => `
+
 Observation ${i + 1}:
 - Antecedent: ${obs.antecedent}
 - Behavior: ${obs.behavior}
@@ -2652,8 +2703,7 @@ This collaborative approach ensures a holistic and consistent intervention plan,
                 doc.setFontSize(9)
                 doc.setFont("helvetica", "normal")
                 doc.setTextColor(51, 65, 85)
-                const bulletText = `• ${cleanLine.replace(/^[•-]\s*/, "")}`
-                const bulletLines = doc.splitTextToSize(bulletText, maxWidth - 15)
+                const bulletLines = doc.splitTextToSize(cleanLine, maxWidth - 15)
                 bulletLines.forEach((bl: string, idx: number) => {
                   checkPageBreak(12)
                   doc.text(idx === 0 ? bl : `  ${bl}`, margin + 10, yPosition)
@@ -3640,7 +3690,7 @@ This collaborative approach ensures a holistic and consistent intervention plan,
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-gray-900 truncate">{section.title}</h3>
                       {NEW_SECTION_IDS.includes(section.id) && section.status === "pending" && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full animate-pulse">
+                        <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full animate-pulse">
                           NEW
                         </span>
                       )}
