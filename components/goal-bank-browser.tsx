@@ -73,6 +73,7 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
   const [targetDate, setTargetDate] = useState("")
   const [isSuggestingDate, setIsSuggestingDate] = useState(false)
   const [targetDateReasoning, setTargetDateReasoning] = useState("") // Added state to store AI reasoning for target date
+  const [isAddingGoal, setIsAddingGoal] = useState(false) // Added state for loading indicator
   const [baseline, setBaseline] = useState<BaselineData>({
     measurementType: "",
     promptLevel: "Independent",
@@ -163,37 +164,124 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
     return `Client currently demonstrates ${performanceText}${promptText}${settingText}${dataText}.`
   }
 
-  const handleAddGoal = () => {
-    if (!selectedGoalForAdd) return
-
-    const baselineStatement = generateBaselineStatement()
-
-    const newGoal: SelectedGoal = {
-      goalId: selectedGoalForAdd,
-      priority,
-      targetDate,
-      baselineData: baselineStatement,
-      customizations,
+  const handleAddGoal = async () => {
+    if (!selectedGoalForAdd) {
+      toast({
+        title: "No goal selected",
+        description: "Please select a goal first.",
+        variant: "destructive",
+      })
+      return
     }
 
-    onGoalSelect(newGoal)
-    setShowAddDialog(false)
-    setSelectedGoalForAdd(null)
-    setPriority("medium")
-    setTargetDate("")
-    setBaseline({
-      measurementType: "",
-      promptLevel: "Independent",
-      setting: "Clinic",
-      dataSource: "Direct Observation",
-      collectionPeriod: "5",
-    })
-    setCustomizations("")
+    setIsAddingGoal(true)
 
-    toast({
-      title: "Goal Added",
-      description: "The goal has been added to your assessment.",
-    })
+    try {
+      const goal = goalBank.find((g) => g.id === selectedGoalForAdd)
+
+      // Generate baseline statement from form fields
+      const baselineStatement = generateBaselineStatement()
+
+      const goalToAdd = {
+        id: crypto.randomUUID(),
+        goalId: selectedGoalForAdd,
+        title: goal?.title || "",
+        description: goal?.description || "",
+        domain: goal?.domain || "",
+        measurementType: goal?.measurementType || "",
+        priority,
+        targetDate,
+        baselineData: {
+          statement: baselineStatement,
+          dataSource: baseline.dataSource,
+          collectionPeriod: baseline.collectionPeriod,
+          promptLevel: baseline.promptLevel,
+          setting: baseline.setting,
+          currentRate: baseline.currentRate,
+          percentCorrect: baseline.percentCorrect,
+          ratePer: baseline.ratePer,
+          totalTrials: baseline.totalTrials,
+          averageDuration: baseline.averageDuration,
+          durationUnit: baseline.durationUnit,
+          minDuration: baseline.minDuration,
+          maxDuration: baseline.maxDuration,
+          stepsCompleted: baseline.stepsCompleted,
+          totalSteps: baseline.totalSteps,
+          percentOfIntervals: baseline.percentOfIntervals,
+          observationDuration: baseline.observationDuration,
+          notes: baseline.notes,
+        },
+        customizations,
+        addedAt: new Date().toISOString(),
+      }
+
+      // Save to localStorage
+      const storageKey = "aria-assessment-selected-goals"
+      const existingData = localStorage.getItem(storageKey)
+      let allGoals = []
+
+      if (existingData) {
+        try {
+          const parsed = JSON.parse(existingData)
+          allGoals = parsed.data || []
+        } catch (e) {
+          console.warn("Could not parse existing goals")
+        }
+      }
+
+      // Check for duplicates
+      const exists = allGoals.some((g: any) => g.goalId === selectedGoalForAdd)
+      if (exists) {
+        toast({
+          title: "Goal already added",
+          description: "This goal is already in your assessment.",
+          variant: "destructive",
+        })
+        setIsAddingGoal(false)
+        return
+      }
+
+      allGoals.push(goalToAdd)
+
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          data: allGoals,
+          timestamp: new Date().toISOString(),
+        }),
+      )
+
+      console.log("[v0] Goal added:", goalToAdd)
+
+      // Also call parent callback
+      const newGoal: SelectedGoal = {
+        goalId: selectedGoalForAdd,
+        priority,
+        targetDate,
+        baselineData: baselineStatement,
+        customizations,
+      }
+      onGoalSelect(newGoal)
+
+      toast({
+        title: "✓ Goal Added",
+        description: `"${goal?.title}" has been added to the assessment.`,
+      })
+
+      // Reset form and close modal
+      resetFormFields()
+      setShowAddDialog(false)
+      setSelectedGoalForAdd(null)
+    } catch (error) {
+      console.error("Error adding goal:", error)
+      toast({
+        title: "Error",
+        description: "Could not add goal. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAddingGoal(false)
+    }
   }
 
   const handleAutoGenerate = async () => {
@@ -352,6 +440,20 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
       }))
     }
     setShowAddDialog(true)
+  }
+
+  const resetFormFields = () => {
+    setPriority("medium")
+    setTargetDate("")
+    setTargetDateReasoning("")
+    setBaseline({
+      measurementType: "",
+      promptLevel: "Independent",
+      setting: "Clinic",
+      dataSource: "Direct Observation",
+      collectionPeriod: "5",
+    })
+    setCustomizations("")
   }
 
   return (
@@ -893,8 +995,15 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
             <Button variant="outline" onClick={() => setShowAddDialog(false)} className="flex-1">
               Cancel
             </Button>
-            <Button onClick={handleAddGoal} className="flex-1 bg-[#0D9488] hover:bg-[#0F766E]">
-              Add Goal
+            <Button onClick={handleAddGoal} disabled={isAddingGoal} className="flex-1 bg-[#0D9488] hover:bg-[#0F766E]">
+              {isAddingGoal ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                "Add Goal"
+              )}
             </Button>
           </div>
         </DialogContent>
