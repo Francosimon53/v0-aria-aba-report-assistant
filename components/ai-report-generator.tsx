@@ -101,6 +101,13 @@ interface AssessmentData {
     weaknesses?: string
     dailySchedule?: string
   }
+  reasonForReferral?: {
+    // Added reasonForReferral field
+    referralSource?: string
+    referralDate?: string
+    currentProblemAreas?: string
+    familyGoals?: string
+  }
   assessmentTools?: string[]
   assessmentDates?: string
   observationSettings?: string
@@ -446,14 +453,81 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
     return safeGetItem(key)
   }
 
+  const extractNestedData = (obj: any): any => {
+    // If the object has a 'data' property and it's an object, return that
+    // This handles the localStorage structure: { data: { firstName: "liam", ... } }
+    if (obj && typeof obj === "object" && obj.data && typeof obj.data === "object") {
+      return obj.data
+    }
+    return obj
+  }
+
   useEffect(() => {
     if (!initialData) {
       const rawAbcObs = safeParseJSON("aria-abc-observation") || []
       const abcObservations = Array.isArray(rawAbcObs) ? rawAbcObs : rawAbcObs.observations || []
 
+      const rawClientInfo = safeParseJSON("aria-client-info") || {}
+      const rawBackground = safeParseJSON("aria-background-history") || {}
+      const rawRiskAssessment = safeParseJSON("aria-risk-assessment") || {}
+      const rawReasonForReferral = safeParseJSON("aria-reason-for-referral") || {}
+
+      // Extract the nested data property if it exists
+      const clientInfo = extractNestedData(rawClientInfo)
+      const background = extractNestedData(rawBackground)
+      const riskAssessment = extractNestedData(rawRiskAssessment)
+      const reasonForReferral = extractNestedData(rawReasonForReferral)
+
+      console.log("[v0] Raw client info from localStorage:", rawClientInfo)
+      console.log("[v0] Extracted client info:", clientInfo)
+
       const userData: AssessmentData = {
-        clientInfo: safeParseJSON("aria-client-info") || {},
-        background: safeParseJSON("aria-background-history") || {},
+        clientInfo: {
+          // Map from localStorage field names to expected field names
+          firstName: clientInfo.firstName || clientInfo.first_name || "",
+          lastName: clientInfo.lastName || clientInfo.last_name || "",
+          dob: clientInfo.dateOfBirth || clientInfo.dob || clientInfo.date_of_birth || "",
+          age: clientInfo.age || "",
+          gender: clientInfo.gender || "",
+          diagnosis: clientInfo.diagnosis || clientInfo.primaryDiagnosis || "",
+          icd10Code: clientInfo.icd10Code || clientInfo.icd10 || "",
+          clientId: clientInfo.clientId || clientInfo.client_id || "",
+          address: clientInfo.address || clientInfo.providerAddress || "",
+          caregiver: clientInfo.caregiver || clientInfo.caregiverName || "",
+          phone: clientInfo.phone || clientInfo.providerPhone || "",
+          assessmentType: clientInfo.assessmentType || "initial",
+        },
+        providerInfo: {
+          name: clientInfo.providerName || clientInfo.provider_name || "",
+          bcbaName: clientInfo.bcbaName || "",
+          bcbaLicense: clientInfo.bcbaLicense || "",
+          bcbaPhone: clientInfo.bcbaPhone || clientInfo.providerPhone || "",
+          bcbaEmail: clientInfo.bcbaEmail || "",
+          npi: clientInfo.npiNumber || clientInfo.npi || "",
+          agencyLogo: clientInfo.agencyLogo || "",
+        },
+        insurance: {
+          provider: clientInfo.insuranceProvider || clientInfo.insurance_provider || "",
+          policyNumber: clientInfo.insuranceId || clientInfo.insurancePolicyNumber || "",
+          authNumber: clientInfo.authNumber || clientInfo.authorizationNumber || "",
+        },
+        background: {
+          developmental: background.developmentalHistory || background.developmental || "",
+          medical: background.medicalHistory || background.medical || "",
+          educational: background.educationalHistory || background.educational || "",
+          family: background.familyHistory || background.family || "",
+          previousTreatments: background.previousTreatments || background.treatmentHistory || "",
+          strengths: background.strengths || "",
+          weaknesses: background.weaknesses || background.concerns || "",
+          dailySchedule: background.dailySchedule || "",
+        },
+        reasonForReferral: {
+          // Added reasonForReferral field
+          referralSource: reasonForReferral.referralSource || "",
+          referralDate: reasonForReferral.referralDate || "",
+          currentProblemAreas: reasonForReferral.currentProblemAreas || "",
+          familyGoals: reasonForReferral.familyGoals || "",
+        },
         assessmentTools: (safeParseJSON("aria-assessment-data") || {}).tools || [],
         domains: safeParseJSON("aria-domains") || {},
         abcObservations: abcObservations, // Use the processed abcObservations
@@ -461,13 +535,19 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
         goals: safeParseJSON("aria-goals") || [],
         servicePlan: safeParseJSON("aria-service-plan") || {},
         medicalNecessity: safeParseJSON("aria_medical_necessity") || {},
-        riskAssessment: safeParseJSON("aria-risk-assessment") || {},
+        riskAssessment: {
+          extinctionBurst: riskAssessment.extinctionBurst || "",
+          safetyProtocols: riskAssessment.safetyProtocols || riskAssessment.emergencyProcedures || "",
+          emergencyContacts: riskAssessment.emergencyContacts || "",
+        },
       }
 
-      console.log("[v0] Loaded user data:", userData)
+      console.log("[v0] Final assembled user data:", userData)
 
       // Always use user data if available
-      const hasClientInfo = userData.clientInfo && Object.keys(userData.clientInfo).length > 0
+      const hasClientInfo =
+        userData.clientInfo &&
+        (userData.clientInfo.firstName || userData.clientInfo.lastName || userData.clientInfo.diagnosis)
       const hasDomains = userData.domains && Object.keys(userData.domains).length > 0
       const hasGoals = userData.goals && userData.goals.length > 0
 
@@ -476,8 +556,10 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
         setAssessmentData(userData)
         setSampleDataLoaded(false)
       } else {
-        console.log("[v0] No user data found, using sample data")
-        loadSampleData()
+        console.log("[v0] No user data found - showing warning instead of sample data")
+        setAssessmentData(userData) // Use empty structure
+        setSampleDataLoaded(false)
+        setError("No assessment data found. Please complete the assessment sections before generating the report.")
       }
     }
   }, [initialData])
