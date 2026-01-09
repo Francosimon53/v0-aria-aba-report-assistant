@@ -16,10 +16,11 @@ import {
   UserPlusIcon,
   SparklesIcon,
 } from "@/components/icons"
-import { safeParseDate } from "@/lib/safe-date"
 import { loadDemoData } from "@/lib/load-demo-data"
 import { TrialBanner } from "@/components/trial-banner"
 import { TrialExpiredModal } from "@/components/trial-expired-modal"
+import { clearAssessmentCache } from "@/lib/assessment-storage"
+import { createClient } from "@/lib/supabase/client"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -31,36 +32,60 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    const loadStats = async () => {
       try {
-        const saved = localStorage.getItem("aria-assessments")
-        if (saved) {
-          const data = JSON.parse(saved)
-          const assessments = Array.isArray(data) ? data : []
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
 
-          const validAssessments = assessments.filter((a: any) => {
-            if (a.createdAt) {
-              return safeParseDate(a.createdAt) !== null
-            }
-            return true
-          })
-
+        if (!user) {
           setStats({
-            totalAssessments: validAssessments.length || 0,
-            completedReports: validAssessments.filter((a: any) => a?.status === "complete").length || 0,
-            inProgress: validAssessments.filter((a: any) => a?.status === "in_progress").length || 0,
-            timeSaved: validAssessments.length * 45 || 0,
+            totalAssessments: 0,
+            completedReports: 0,
+            inProgress: 0,
+            timeSaved: 0,
           })
+          return
         }
+
+        const { data, error } = await supabase.from("assessments").select("status").eq("user_id", user.id)
+
+        if (error) {
+          console.error("[v0] Error loading stats:", error)
+          return
+        }
+
+        const assessments = data || []
+        setStats({
+          totalAssessments: assessments.length,
+          completedReports: assessments.filter((a) => a.status === "complete").length,
+          inProgress: assessments.filter((a) => a.status === "in_progress").length,
+          timeSaved: assessments.length * 45,
+        })
       } catch (e) {
-        console.error("Error loading stats:", e)
+        console.error("[v0] Error loading stats:", e)
       }
     }
+
+    loadStats()
   }, [])
 
   const handleTryDemo = () => {
     loadDemoData()
     router.push("/assessment/initial/new")
+  }
+
+  const handleNewInitialAssessment = () => {
+    clearAssessmentCache()
+    console.log("[v0] Starting new initial assessment with clean slate")
+    router.push("/assessment/initial/new")
+  }
+
+  const handleNewReassessment = () => {
+    clearAssessmentCache()
+    console.log("[v0] Starting new reassessment with clean slate")
+    router.push("/assessment/reassessment/new")
   }
 
   return (
@@ -155,98 +180,100 @@ export default function DashboardPage() {
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Start New Assessment</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
             {/* Initial Assessment Card */}
-            <Link href="/assessment/initial/new">
-              <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-teal-500 hover:scale-[1.02] h-full">
-                <CardHeader>
-                  <div className="h-14 w-14 bg-gradient-to-br from-teal-100 to-teal-200 rounded-xl flex items-center justify-center mb-4 shadow-sm">
-                    <UserPlusIcon className="h-7 w-7 text-teal-600" />
-                  </div>
-                  <CardTitle className="text-xl text-teal-700">Initial Assessment</CardTitle>
-                  <CardDescription className="text-base">
-                    Comprehensive first-time evaluation for new clients
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 text-sm text-gray-600">
-                    <li className="flex items-center gap-3">
-                      <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
-                        <CheckCircleIcon className="h-3 w-3 text-teal-600" />
-                      </div>
-                      Complete diagnostic evaluation
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
-                        <CheckCircleIcon className="h-3 w-3 text-teal-600" />
-                      </div>
-                      Baseline skill assessment
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
-                        <CheckCircleIcon className="h-3 w-3 text-teal-600" />
-                      </div>
-                      Initial treatment plan
-                    </li>
-                  </ul>
-                  <div className="flex justify-between items-center mt-6 pt-4 border-t border-teal-100">
-                    <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-1 rounded">NEW CLIENT</span>
-                    <span className="text-sm font-semibold text-teal-600 flex items-center gap-1">
-                      First Evaluation
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <Card
+              onClick={handleNewInitialAssessment}
+              className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-teal-500 hover:scale-[1.02] h-full"
+            >
+              <CardHeader>
+                <div className="h-14 w-14 bg-gradient-to-br from-teal-100 to-teal-200 rounded-xl flex items-center justify-center mb-4 shadow-sm">
+                  <UserPlusIcon className="h-7 w-7 text-teal-600" />
+                </div>
+                <CardTitle className="text-xl text-teal-700">Initial Assessment</CardTitle>
+                <CardDescription className="text-base">
+                  Comprehensive first-time evaluation for new clients
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 text-sm text-gray-600">
+                  <li className="flex items-center gap-3">
+                    <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
+                      <CheckCircleIcon className="h-3 w-3 text-teal-600" />
+                    </div>
+                    Complete diagnostic evaluation
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
+                      <CheckCircleIcon className="h-3 w-3 text-teal-600" />
+                    </div>
+                    Baseline skill assessment
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
+                      <CheckCircleIcon className="h-3 w-3 text-teal-600" />
+                    </div>
+                    Initial treatment plan
+                  </li>
+                </ul>
+                <div className="flex justify-between items-center mt-6 pt-4 border-t border-teal-100">
+                  <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-1 rounded">NEW CLIENT</span>
+                  <span className="text-sm font-semibold text-teal-600 flex items-center gap-1">
+                    First Evaluation
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Reassessment Card */}
-            <Link href="/assessment/reassessment/new">
-              <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-orange-500 hover:scale-[1.02] h-full">
-                <CardHeader>
-                  <div className="h-14 w-14 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center mb-4 shadow-sm">
-                    <RefreshCwIcon className="h-7 w-7 text-orange-600" />
-                  </div>
-                  <CardTitle className="text-xl text-orange-600">Reassessment</CardTitle>
-                  <CardDescription className="text-base">
-                    Periodic review to measure progress and update treatment
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 text-sm text-gray-600">
-                    <li className="flex items-center gap-3">
-                      <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
-                        <TrendingUpIcon className="h-3 w-3 text-orange-600" />
-                      </div>
-                      Progress analysis & comparison
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
-                        <TargetIcon className="h-3 w-3 text-orange-600" />
-                      </div>
-                      Goal achievement review
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
-                        <FileCheckIcon className="h-3 w-3 text-orange-600" />
-                      </div>
-                      Authorization renewal
-                    </li>
-                  </ul>
-                  <div className="flex justify-between items-center mt-6 pt-4 border-t border-orange-100">
-                    <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                      EXISTING CLIENT
-                    </span>
-                    <span className="text-sm font-semibold text-orange-600 flex items-center gap-1">
-                      6-Month Review
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <Card
+              onClick={handleNewReassessment}
+              className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-orange-500 hover:scale-[1.02] h-full"
+            >
+              <CardHeader>
+                <div className="h-14 w-14 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center mb-4 shadow-sm">
+                  <RefreshCwIcon className="h-7 w-7 text-orange-600" />
+                </div>
+                <CardTitle className="text-xl text-orange-600">Reassessment</CardTitle>
+                <CardDescription className="text-base">
+                  Periodic review to measure progress and update treatment
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 text-sm text-gray-600">
+                  <li className="flex items-center gap-3">
+                    <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
+                      <TrendingUpIcon className="h-3 w-3 text-orange-600" />
+                    </div>
+                    Progress analysis & comparison
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
+                      <TargetIcon className="h-3 w-3 text-orange-600" />
+                    </div>
+                    Goal achievement review
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
+                      <FileCheckIcon className="h-3 w-3 text-orange-600" />
+                    </div>
+                    Authorization renewal
+                  </li>
+                </ul>
+                <div className="flex justify-between items-center mt-6 pt-4 border-t border-orange-100">
+                  <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                    EXISTING CLIENT
+                  </span>
+                  <span className="text-sm font-semibold text-orange-600 flex items-center gap-1">
+                    6-Month Review
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 

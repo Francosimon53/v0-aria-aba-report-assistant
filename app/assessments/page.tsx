@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { safeParseDate, safeFormatDate } from "@/lib/safe-date"
 import { createClient } from "@/lib/supabase/client"
+import { clearAssessmentCache, clearAssessmentById } from "@/lib/assessment-storage"
 
 interface Assessment {
   id: string
@@ -47,7 +48,6 @@ export default function AssessmentsPage() {
       setIsLoading(true)
       const supabase = createClient()
 
-      // Get current user
       const {
         data: { user },
       } = await supabase.auth.getUser()
@@ -58,7 +58,6 @@ export default function AssessmentsPage() {
         return
       }
 
-      // Fetch assessments from Supabase
       const { data, error } = await supabase
         .from("assessments")
         .select("*")
@@ -71,11 +70,10 @@ export default function AssessmentsPage() {
         return
       }
 
-      // Transform Supabase data to match Assessment interface
       const assessmentList: Assessment[] = (data || []).map((item) => {
         const clientInfo = item.data?.client_info || item.data?.clientInformation
-        const firstName = clientInfo?.firstName || clientInfo?.first_name
-        const lastName = clientInfo?.lastName || clientInfo?.last_name
+        const firstName = clientInfo?.firstName || clientInfo?.first_name || clientInfo?.client_first_name
+        const lastName = clientInfo?.lastName || clientInfo?.last_name || clientInfo?.client_last_name
 
         return {
           id: item.id,
@@ -83,13 +81,13 @@ export default function AssessmentsPage() {
           status: item.status || "draft",
           createdAt: item.created_at,
           updatedAt: item.updated_at,
-          progress: item.progress || 0, // Use stored progress
+          progress: item.progress || 0,
           data: item.data,
         }
       })
 
       setAssessments(assessmentList)
-      console.log("[v0] Loaded", assessmentList.length, "assessments from Supabase")
+      console.log("[v0] Loaded", assessmentList.length, "assessments from Supabase (source of truth)")
     } catch (error) {
       console.error("[v0] Error loading assessments:", error)
       setAssessments([])
@@ -110,12 +108,14 @@ export default function AssessmentsPage() {
         return
       }
 
-      // Also clear localStorage for this assessment
-      localStorage.removeItem(`aria-initial-assessment-${id}`)
-      localStorage.removeItem(`aria-reassessment-${id}`)
+      clearAssessmentById(id)
 
       setAssessments((prev) => prev.filter((a) => a.id !== id))
       setDeleteId(null)
+
+      await fetchAssessments()
+
+      console.log("[v0] Assessment deleted successfully:", id)
     } catch (error) {
       console.error("[v0] Error deleting assessment:", error)
     }
@@ -168,6 +168,12 @@ export default function AssessmentsPage() {
       return dateB.getTime() - dateA.getTime()
     })
 
+  const handleNewAssessment = () => {
+    clearAssessmentCache()
+    console.log("[v0] Starting new assessment with clean slate")
+    router.push("/assessment/initial/new")
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 flex items-center justify-center">
@@ -188,7 +194,7 @@ export default function AssessmentsPage() {
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">Your Assessments</h1>
             <p className="text-gray-600 dark:text-gray-400">Manage all your client assessments in one place</p>
           </div>
-          <Button onClick={() => router.push("/assessment/new")} className="bg-teal-600 hover:bg-teal-700">
+          <Button onClick={handleNewAssessment} className="bg-teal-600 hover:bg-teal-700">
             <PlusIcon className="w-4 h-4 mr-2" />
             New Assessment
           </Button>
@@ -252,7 +258,7 @@ export default function AssessmentsPage() {
                 : "Create your first assessment to get started"}
             </p>
             {!searchQuery && filterStatus === "all" && (
-              <Button onClick={() => router.push("/assessment/new")} className="bg-teal-600 hover:bg-teal-700">
+              <Button onClick={handleNewAssessment} className="bg-teal-600 hover:bg-teal-700">
                 <PlusIcon className="w-4 h-4 mr-2" />
                 Create Assessment
               </Button>

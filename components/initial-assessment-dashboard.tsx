@@ -39,7 +39,7 @@ import { FadePlan } from "@/components/fade-plan"
 import { BarriersGeneralization } from "@/components/barriers-generalization"
 import { Card, CardContent } from "@/components/ui/card"
 import { SidebarHelpLinks } from "@/components/sidebar-help-links"
-import { saveAssessmentToSupabase, loadAssessmentFromSupabase, getOrCreateAssessmentId } from "@/lib/assessment-storage"
+import { saveAssessmentToSupabase, loadAssessmentFromSupabase } from "@/lib/assessment-storage"
 import { calculateAssessmentProgress, getAssessmentDataFromStorage } from "@/lib/calculate-progress"
 
 type ActiveView =
@@ -323,7 +323,7 @@ function StepNavigationBar({
   )
 }
 
-export function InitialAssessmentDashboard() {
+export default function InitialAssessmentDashboard() {
   const [activeView, setActiveView] = useState<ActiveView>("client")
   const [completedSteps, setCompletedSteps] = useState<Set<ActiveView>>(new Set())
   const [isSaving, setIsSaving] = useState(false)
@@ -500,39 +500,49 @@ export function InitialAssessmentDashboard() {
 
   useEffect(() => {
     const initializeAssessment = async () => {
-      if (typeof window === "undefined") return
+      setIsLoadingData(true)
 
-      try {
-        const id = getOrCreateAssessmentId("initial")
-        setAssessmentId(id)
+      const urlParams = new URLSearchParams(window.location.search)
+      const urlId = urlParams.get("id")
 
-        const { success, data, error } = await loadAssessmentFromSupabase(id)
+      if (urlId) {
+        // EXISTING assessment - load from Supabase
+        console.log("[v0] Loading existing assessment:", urlId)
+        setAssessmentId(urlId)
 
-        if (success && data) {
+        const result = await loadAssessmentFromSupabase(urlId)
+        if (result.success) {
           console.log("[v0] Loaded assessment data from Supabase")
           toast({
             title: "Assessment Loaded",
-            description: "Your previous progress has been restored.",
+            description: "Your saved data has been restored.",
           })
-
+          // Dispatch event to notify form components to reload their data
           window.dispatchEvent(new CustomEvent("aria-data-loaded"))
-        } else if (error && !error.includes("not found")) {
-          console.error("[v0] Error loading assessment:", error)
+        } else {
+          console.log("[v0] No existing data found, starting fresh")
         }
+      } else {
+        // NEW assessment - start with empty form
+        console.log("[v0] Starting new assessment with empty form")
 
-        const savedSteps = localStorage.getItem("aria-initial-completed-steps")
-        if (savedSteps) {
-          setCompletedSteps(new Set(JSON.parse(savedSteps)))
-        }
-      } catch (e) {
-        console.error("[v0] Error initializing assessment:", e)
-      } finally {
-        setIsLoadingData(false)
+        // Generate new ID and update URL
+        const newId = crypto.randomUUID()
+        setAssessmentId(newId)
+        localStorage.setItem("aria-initial-assessment-id", newId)
+
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.set("id", newId)
+        window.history.replaceState({}, "", newUrl.toString())
+
+        console.log("[v0] Created new assessment ID:", newId)
       }
+
+      setIsLoadingData(false)
     }
 
     initializeAssessment()
-  }, [])
+  }, [toast])
 
   if (isLoadingData) {
     return (
@@ -863,3 +873,5 @@ export function InitialAssessmentDashboard() {
     </div>
   )
 }
+
+export { InitialAssessmentDashboard }

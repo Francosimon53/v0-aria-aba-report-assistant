@@ -245,19 +245,55 @@ export function clearAllAssessmentData(): void {
 }
 
 /**
- * Export all data as JSON (for backup)
+ * Clear ALL assessment-related localStorage data
+ * Call this when:
+ * - Starting a new assessment
+ * - Deleting an assessment
+ * - Logging out
  */
-export function exportAssessmentAsJSON(): string {
-  const data = getCompleteAssessment()
-  return JSON.stringify(data, null, 2)
+export function clearAssessmentCache(): void {
+  const keysToRemove: string[] = []
+
+  // Find all aria-related keys
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && (key.startsWith("aria-") || key.startsWith("aria_") || key.includes("assessment"))) {
+      keysToRemove.push(key)
+    }
+  }
+
+  // Remove all found keys
+  keysToRemove.forEach((key) => {
+    localStorage.removeItem(key)
+  })
+
+  console.log("[ARIA] Cleared assessment cache:", keysToRemove.length, "keys removed")
 }
 
-import { createBrowserClient } from "@/lib/supabase/client"
+/**
+ * Clear cache for a specific assessment ID
+ */
+export function clearAssessmentById(assessmentId: string): void {
+  const keysToRemove: string[] = []
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && key.includes(assessmentId)) {
+      keysToRemove.push(key)
+    }
+  }
+
+  keysToRemove.forEach((key) => {
+    localStorage.removeItem(key)
+  })
+
+  console.log(`[ARIA] Cleared cache for assessment ${assessmentId}:`, keysToRemove.length, "keys removed")
+}
 
 /**
  * Get or create an assessment ID for the current session
  */
-export function getOrCreateAssessmentId(type: "initial" | "reassessment"): string {
+export function getOrCreateAssessmentId(type: "initial" | "reassessment", mode?: "new" | "existing"): string {
   const storageKey = `aria-${type}-assessment-id`
 
   if (typeof window === "undefined") {
@@ -267,6 +303,21 @@ export function getOrCreateAssessmentId(type: "initial" | "reassessment"): strin
   const urlParams = new URLSearchParams(window.location.search)
   const urlId = urlParams.get("id")
 
+  // If mode is "new", always create a new ID and clear old cache
+  if (mode === "new" && !urlId) {
+    clearAssessmentCache()
+    const newId = crypto.randomUUID()
+    localStorage.setItem(storageKey, newId)
+    console.log(`[v0] Created NEW ${type} assessment ID (fresh start):`, newId)
+
+    // Update URL with new ID
+    const newUrl = new URL(window.location.href)
+    newUrl.searchParams.set("id", newId)
+    window.history.replaceState({}, "", newUrl.toString())
+
+    return newId
+  }
+
   if (urlId) {
     // Store the URL ID in localStorage for future use
     localStorage.setItem(storageKey, urlId)
@@ -274,7 +325,7 @@ export function getOrCreateAssessmentId(type: "initial" | "reassessment"): strin
     return urlId
   }
 
-  // Check localStorage
+  // Check localStorage for existing assessment
   let assessmentId = localStorage.getItem(storageKey)
 
   if (!assessmentId) {
@@ -289,6 +340,16 @@ export function getOrCreateAssessmentId(type: "initial" | "reassessment"): strin
 
   return assessmentId
 }
+
+/**
+ * Export all data as JSON (for backup)
+ */
+export function exportAssessmentAsJSON(): string {
+  const data = getCompleteAssessment()
+  return JSON.stringify(data, null, 2)
+}
+
+import { createBrowserClient } from "@/lib/supabase/client"
 
 /**
  * Update function to extract client name from assessment data
