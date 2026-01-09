@@ -521,7 +521,17 @@ export function ReassessmentDashboard() {
       case "goals-review":
         return <GoalsReview onSave={() => markStepComplete("goals-review")} />
       case "new-goals":
-        return <GoalBankBrowser onSave={() => markStepComplete("new-goals")} />
+        return (
+          <GoalBankBrowser
+            onGoalSelect={(goal) => {
+              console.log("[v0] Goal selected:", goal)
+            }}
+            onGoalRemove={(goalId) => {
+              console.log("[v0] Goal removed:", goalId)
+            }}
+            onSave={() => markStepComplete("new-goals")}
+          />
+        )
       case "interventions":
         return <FadePlan onSave={() => markStepComplete("interventions")} />
       case "protocols":
