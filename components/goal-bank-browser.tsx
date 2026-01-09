@@ -174,21 +174,40 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
       return
     }
 
+    if (!baseline.measurementType) {
+      toast({
+        title: "Baseline Required",
+        description: "Please complete the baseline data fields.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsAddingGoal(true)
 
     try {
       const goal = goalBank.find((g) => g.id === selectedGoalForAdd)
 
+      if (!goal) {
+        throw new Error("Goal not found")
+      }
+
       // Generate baseline statement from form fields
       const baselineStatement = generateBaselineStatement()
+
+      console.log("[v0] Adding goal with data:", {
+        goalId: selectedGoalForAdd,
+        baseline,
+        baselineStatement,
+      })
 
       const goalToAdd = {
         id: crypto.randomUUID(),
         goalId: selectedGoalForAdd,
-        title: goal?.title || "",
-        description: goal?.description || "",
-        domain: goal?.domain || "",
-        measurementType: goal?.measurementType || "",
+        title: goal.title,
+        description: goal.description,
+        domain: goal.domain,
+        measurementType: goal.measurementType,
         priority,
         targetDate,
         baselineData: {
@@ -225,7 +244,7 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
           const parsed = JSON.parse(existingData)
           allGoals = parsed.data || []
         } catch (e) {
-          console.warn("Could not parse existing goals")
+          console.warn("[v0] Could not parse existing goals:", e)
         }
       }
 
@@ -251,21 +270,20 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
         }),
       )
 
-      console.log("[v0] Goal added:", goalToAdd)
+      console.log("[v0] Goal successfully saved to localStorage:", goalToAdd)
 
-      // Also call parent callback
       const newGoal: SelectedGoal = {
         goalId: selectedGoalForAdd,
         priority,
         targetDate,
-        baselineData: baselineStatement,
+        baselineData: goalToAdd.baselineData,
         customizations,
       }
       onGoalSelect(newGoal)
 
       toast({
         title: "✓ Goal Added",
-        description: `"${goal?.title}" has been added to the assessment.`,
+        description: `"${goal.title}" has been added to the assessment.`,
       })
 
       // Reset form and close modal
@@ -273,10 +291,10 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
       setShowAddDialog(false)
       setSelectedGoalForAdd(null)
     } catch (error) {
-      console.error("Error adding goal:", error)
+      console.error("[v0] Error adding goal:", error)
       toast({
         title: "Error",
-        description: "Could not add goal. Please try again.",
+        description: `Could not add goal: ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: "destructive",
       })
     } finally {
