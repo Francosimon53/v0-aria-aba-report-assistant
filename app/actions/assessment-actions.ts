@@ -3,15 +3,29 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
+function extractClientName(clientData: any): string {
+  // Handle nested data structure: { data: { firstName: ... } } or direct { firstName: ... }
+  const data = clientData?.data || clientData || {}
+
+  const firstName = data.firstName || data.first_name || data.client_first_name || ""
+  const lastName = data.lastName || data.last_name || data.client_last_name || ""
+
+  const fullName = `${firstName} ${lastName}`.trim()
+  return fullName || "Unnamed Client"
+}
+
 export async function createAssessment(userId: string, clientData: any) {
   const supabase = await createClient()
+
+  const clientName = extractClientName(clientData)
+  const assessmentType = clientData?.assessmentType || clientData?.evaluation_type || "Initial Assessment"
 
   const { data, error } = await supabase
     .from("assessments")
     .insert({
       user_id: userId,
-      title: `${clientData?.name || "Unnamed Client"} - ${clientData?.diagnosis || "Unknown"}`,
-      evaluation_type: clientData?.assessmentType || "Initial Assessment",
+      title: `${clientName} - ${assessmentType}`,
+      evaluation_type: assessmentType,
       status: "draft",
       data: clientData,
     })
@@ -128,11 +142,19 @@ export async function getDashboardStats(userId: string) {
 export async function saveCurrentAssessment(userId: string, assessmentId: string | null, allData: any) {
   const supabase = await createClient()
   try {
+    const clientInfoRaw = allData?.client_info || allData?.clientData || {}
+    const clientInfoData = clientInfoRaw.data || clientInfoRaw
+    const firstName = clientInfoData.firstName || clientInfoData.first_name || ""
+    const lastName = clientInfoData.lastName || clientInfoData.last_name || ""
+    const clientName = `${firstName} ${lastName}`.trim() || allData.clientData?.name || allData.name || "Unnamed Client"
+    const assessmentType = allData.assessmentType || allData.evaluation_type || "Initial Assessment"
+
     if (assessmentId) {
       const { data, error } = await supabase
         .from("assessments")
         .update({
           data: allData,
+          title: `${clientName} - ${assessmentType}`, // Update title with client name
           status: allData.status || "draft",
           updated_at: new Date().toISOString(),
         })
@@ -144,13 +166,12 @@ export async function saveCurrentAssessment(userId: string, assessmentId: string
       revalidatePath("/dashboard")
       return { success: true, assessmentId, data }
     } else {
-      const clientName = allData.clientData?.name || allData.name || "Unnamed Client"
       const { data, error } = await supabase
         .from("assessments")
         .insert({
           user_id: userId,
-          title: clientName,
-          evaluation_type: allData.assessmentType || "Initial Assessment",
+          title: `${clientName} - ${assessmentType}`,
+          evaluation_type: assessmentType,
           status: "draft",
           data: allData,
         })

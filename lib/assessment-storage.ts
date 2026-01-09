@@ -417,11 +417,18 @@ export async function saveAssessmentToSupabase(
 
     // Extract client name for better display
     let clientName = "Unnamed Client"
-    if (allData.client_info?.firstName && allData.client_info?.lastName) {
-      clientName = `${allData.client_info.firstName} ${allData.client_info.lastName}`
-    } else if (allData.client_info?.client_first_name && allData.client_info?.client_last_name) {
-      clientName = `${allData.client_info.client_first_name} ${allData.client_info.client_last_name}`
+    const clientInfoRaw = allData.client_info || {}
+    // Handle nested data structure: { data: { firstName: ... } } or direct { firstName: ... }
+    const clientInfoData = clientInfoRaw.data || clientInfoRaw
+
+    const firstName = clientInfoData.firstName || clientInfoData.first_name || clientInfoData.client_first_name || ""
+    const lastName = clientInfoData.lastName || clientInfoData.last_name || clientInfoData.client_last_name || ""
+
+    if (firstName || lastName) {
+      clientName = `${firstName} ${lastName}`.trim()
     }
+
+    console.log("[v0] Extracted client name:", clientName, "from data:", clientInfoData)
 
     let status = "draft"
     if (progressResult.percentage === 100) {
