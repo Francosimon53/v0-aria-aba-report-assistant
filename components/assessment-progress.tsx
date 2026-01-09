@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { CheckCircle2Icon, ChevronDownIcon, ChevronRightIcon, FileTextIcon, SparklesIcon } from "@/components/icons"
 import { STORAGE_KEYS } from "@/lib/assessment-storage"
+import { calculateAssessmentProgress, getAssessmentDataFromStorage } from "@/lib/calculate-progress"
 
 interface AssessmentProgressProps {
   onNavigate?: (view: string) => void
@@ -197,24 +198,43 @@ export function AssessmentProgress({ onNavigate }: AssessmentProgressProps) {
   const [sectionData, setSectionData] = useState<
     Record<string, { hasData: boolean; preview: string; fullContent: string }>
   >({})
+  const [completedCount, setCompletedCount] = useState(0)
+  const [totalCount, setTotalCount] = useState(0)
+  const [progressPercent, setProgressPercent] = useState(0)
+  const [completedRequired, setCompletedRequired] = useState(0)
+  const [allRequiredComplete, setAllRequiredComplete] = useState(false)
 
   useEffect(() => {
     const loadSectionData = () => {
+      const assessmentData = getAssessmentDataFromStorage()
+      const progress = calculateAssessmentProgress(assessmentData)
+
       const data: Record<string, { hasData: boolean; preview: string; fullContent: string }> = {}
 
-      SECTION_CONFIG.forEach((section) => {
-        const raw = localStorage.getItem(section.key)
-        const hasData = raw !== null && raw !== "{}" && raw !== "null" && raw !== ""
-
+      progress.sections.forEach((section) => {
         data[section.key] = {
-          hasData,
-          preview: hasData ? getPreviewText(section.key) : "",
-          fullContent: hasData ? getFullContent(section.key) : "",
+          hasData: section.isComplete,
+          preview: section.isComplete ? getPreviewText(section.key) : "",
+          fullContent: section.isComplete ? getFullContent(section.key) : "",
         }
       })
 
       setSectionData(data)
-      setSections(SECTION_CONFIG)
+      setSections(
+        progress.sections.map((s) => ({
+          name: s.name,
+          key: s.key,
+          view: s.id,
+          description: SECTION_CONFIG.find((c) => c.key === s.key)?.description || "",
+          required: s.required,
+        })),
+      )
+
+      setCompletedCount(progress.completedCount)
+      setTotalCount(progress.totalSections)
+      setProgressPercent(progress.percentage)
+      setCompletedRequired(progress.requiredCompleted)
+      setAllRequiredComplete(progress.allRequiredComplete)
     }
 
     loadSectionData()
@@ -224,14 +244,7 @@ export function AssessmentProgress({ onNavigate }: AssessmentProgressProps) {
     return () => clearInterval(interval)
   }, [])
 
-  const completedCount = Object.values(sectionData).filter((s) => s.hasData).length
-  const totalCount = SECTION_CONFIG.length
-  const progressPercent = Math.round((completedCount / totalCount) * 100)
-
   const requiredSections = SECTION_CONFIG.filter((s) => s.required)
-  const completedRequired = requiredSections.filter((s) => sectionData[s.key]?.hasData).length
-  const allRequiredComplete = completedRequired === requiredSections.length
-
   const missingSections = requiredSections.filter((s) => !sectionData[s.key]?.hasData)
 
   const handleNavigate = (view: string) => {

@@ -40,6 +40,7 @@ import { BarriersGeneralization } from "@/components/barriers-generalization"
 import { Card, CardContent } from "@/components/ui/card"
 import { SidebarHelpLinks } from "@/components/sidebar-help-links"
 import { saveAssessmentToSupabase, loadAssessmentFromSupabase, getOrCreateAssessmentId } from "@/lib/assessment-storage"
+import { calculateAssessmentProgress, getAssessmentDataFromStorage } from "@/lib/calculate-progress"
 
 type ActiveView =
   | "client"
@@ -331,44 +332,40 @@ export function InitialAssessmentDashboard() {
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
   const [assessmentId, setAssessmentId] = useState<string>("")
   const [isLoadingData, setIsLoadingData] = useState(true)
+  const [progressData, setProgressData] = useState({ percentage: 0, completedCount: 0, totalSections: 0 })
   const { toast } = useToast()
 
   const allSteps: ActiveView[] = phases.flatMap((p) => p.items.map((i) => i.id))
 
   useEffect(() => {
-    const initializeAssessment = async () => {
-      if (typeof window === "undefined") return
-
-      try {
-        const id = getOrCreateAssessmentId("initial")
-        setAssessmentId(id)
-
-        const { success, data, error } = await loadAssessmentFromSupabase(id)
-
-        if (success && data) {
-          console.log("[v0] Loaded assessment data from Supabase")
-          toast({
-            title: "Assessment Loaded",
-            description: "Your previous progress has been restored.",
-          })
-
-          window.dispatchEvent(new CustomEvent("aria-data-loaded"))
-        } else if (error && !error.includes("not found")) {
-          console.error("[v0] Error loading assessment:", error)
-        }
-
-        const savedSteps = localStorage.getItem("aria-initial-completed-steps")
-        if (savedSteps) {
-          setCompletedSteps(new Set(JSON.parse(savedSteps)))
-        }
-      } catch (e) {
-        console.error("[v0] Error initializing assessment:", e)
-      } finally {
-        setIsLoadingData(false)
-      }
+    const recalculateProgress = () => {
+      const assessmentData = getAssessmentDataFromStorage()
+      const progress = calculateAssessmentProgress(assessmentData)
+      setProgressData({
+        percentage: progress.percentage,
+        completedCount: progress.completedCount,
+        totalSections: progress.totalSections,
+      })
     }
 
-    initializeAssessment()
+    recalculateProgress()
+
+    // Recalculate when data is saved
+    const handleDataSaved = () => {
+      setTimeout(recalculateProgress, 100)
+    }
+
+    window.addEventListener("aria-save-all", handleDataSaved)
+    window.addEventListener("aria-data-loaded", handleDataSaved)
+
+    // Recalculate every 3 seconds for real-time updates
+    const interval = setInterval(recalculateProgress, 3000)
+
+    return () => {
+      window.removeEventListener("aria-save-all", handleDataSaved)
+      window.removeEventListener("aria-data-loaded", handleDataSaved)
+      clearInterval(interval)
+    }
   }, [])
 
   const markStepComplete = useCallback((step: ActiveView) => {
@@ -501,6 +498,42 @@ export function InitialAssessmentDashboard() {
     }
   }
 
+  useEffect(() => {
+    const initializeAssessment = async () => {
+      if (typeof window === "undefined") return
+
+      try {
+        const id = getOrCreateAssessmentId("initial")
+        setAssessmentId(id)
+
+        const { success, data, error } = await loadAssessmentFromSupabase(id)
+
+        if (success && data) {
+          console.log("[v0] Loaded assessment data from Supabase")
+          toast({
+            title: "Assessment Loaded",
+            description: "Your previous progress has been restored.",
+          })
+
+          window.dispatchEvent(new CustomEvent("aria-data-loaded"))
+        } else if (error && !error.includes("not found")) {
+          console.error("[v0] Error loading assessment:", error)
+        }
+
+        const savedSteps = localStorage.getItem("aria-initial-completed-steps")
+        if (savedSteps) {
+          setCompletedSteps(new Set(JSON.parse(savedSteps)))
+        }
+      } catch (e) {
+        console.error("[v0] Error initializing assessment:", e)
+      } finally {
+        setIsLoadingData(false)
+      }
+    }
+
+    initializeAssessment()
+  }, [])
+
   if (isLoadingData) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -574,13 +607,11 @@ export function InitialAssessmentDashboard() {
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Progress</span>
-                <span className="text-sm font-bold text-teal-600">
-                  {Math.round((completedSteps.size * 100) / allSteps.length)}%
-                </span>
+                <span className="text-sm font-bold text-teal-600">{progressData.percentage}%</span>
               </div>
-              <Progress value={Math.round((completedSteps.size * 100) / allSteps.length)} className="h-2 bg-teal-100" />
+              <Progress value={progressData.percentage} className="h-2 bg-teal-100" />
               <p className="text-xs text-gray-500 mt-1">
-                {completedSteps.size} of {allSteps.length} sections complete
+                {progressData.completedCount} of {progressData.totalSections} sections complete
               </p>
             </div>
 
@@ -684,13 +715,11 @@ export function InitialAssessmentDashboard() {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Progress</span>
-            <span className="text-sm font-bold text-teal-600">
-              {Math.round((completedSteps.size * 100) / allSteps.length)}%
-            </span>
+            <span className="text-sm font-bold text-teal-600">{progressData.percentage}%</span>
           </div>
-          <Progress value={Math.round((completedSteps.size * 100) / allSteps.length)} className="h-2 bg-teal-100" />
+          <Progress value={progressData.percentage} className="h-2 bg-teal-100" />
           <p className="text-xs text-gray-500 mt-1">
-            {completedSteps.size} of {allSteps.length} sections complete
+            {progressData.completedCount} of {progressData.totalSections} sections complete
           </p>
         </div>
 

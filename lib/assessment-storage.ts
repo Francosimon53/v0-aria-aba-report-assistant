@@ -291,37 +291,6 @@ export function getOrCreateAssessmentId(type: "initial" | "reassessment"): strin
 }
 
 /**
- * Calculate progress based on completed sections
- */
-export function calculateAssessmentProgress(): number {
-  const sections = [
-    { key: STORAGE_KEYS.CLIENT_INFO, weight: 10 },
-    { key: STORAGE_KEYS.BACKGROUND_HISTORY, weight: 10 },
-    { key: "aria-reason-for-referral" as StorageKey, weight: 10 },
-    { key: "aria-standardized-assessments" as StorageKey, weight: 10 },
-    { key: STORAGE_KEYS.ABC_OBSERVATIONS, weight: 10 },
-    { key: STORAGE_KEYS.RISK_ASSESSMENT, weight: 10 },
-    { key: STORAGE_KEYS.GOALS, weight: 10 },
-    { key: STORAGE_KEYS.INTERVENTIONS, weight: 10 },
-    { key: "aria-cpt-authorization" as StorageKey, weight: 10 },
-    { key: "aria-barriers-generalization" as StorageKey, weight: 10 },
-  ]
-
-  let totalWeight = 0
-  let completedWeight = 0
-
-  for (const section of sections) {
-    totalWeight += section.weight
-    const data = loadSection(section.key)
-    if (data && Object.keys(data).length > 0) {
-      completedWeight += section.weight
-    }
-  }
-
-  return Math.round((completedWeight / totalWeight) * 100)
-}
-
-/**
  * Update function to extract client name from assessment data
  */
 export function getClientNameFromData(data: any): string | null {
@@ -346,9 +315,11 @@ export function getClientNameFromData(data: any): string | null {
  */
 export async function saveAssessmentToSupabase(
   assessmentId: string,
-  type: "initial" | "reassessment",
+  assessmentType: "initial" | "reassessment" = "initial",
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    console.log("[v0] Starting saveAssessmentToSupabase for ID:", assessmentId)
+
     const supabase = createBrowserClient()
 
     const {
@@ -356,83 +327,83 @@ export async function saveAssessmentToSupabase(
     } = await supabase.auth.getUser()
 
     if (!user) {
-      console.error("[v0] No authenticated user for Supabase save")
-      return { success: false, error: "Not authenticated" }
+      return { success: false, error: "User not authenticated" }
     }
 
-    const assessmentData = {
-      client_info: loadSection(STORAGE_KEYS.CLIENT_INFO),
-      background_history: loadSection(STORAGE_KEYS.BACKGROUND_HISTORY),
-      reason_for_referral: loadSection("aria-reason-for-referral" as StorageKey),
-      standardized_assessments: loadSection("aria-standardized-assessments" as StorageKey),
-      abc_observations: loadSection(STORAGE_KEYS.ABC_OBSERVATIONS),
-      risk_assessment: loadSection(STORAGE_KEYS.RISK_ASSESSMENT),
-      goals: loadSection(STORAGE_KEYS.GOALS),
-      goals_tracker: loadSection(STORAGE_KEYS.GOALS_TRACKER),
-      interventions: loadSection(STORAGE_KEYS.INTERVENTIONS),
-      selected_interventions: loadSection(STORAGE_KEYS.SELECTED_INTERVENTIONS),
-      teaching_protocols: loadSection(STORAGE_KEYS.TEACHING_PROTOCOLS),
-      parent_training: loadSection(STORAGE_KEYS.PARENT_TRAINING),
-      service_schedule: loadSection(STORAGE_KEYS.SERVICE_SCHEDULE),
-      medical_necessity: loadSection(STORAGE_KEYS.MEDICAL_NECESSITY),
-      consent_form: loadSection(STORAGE_KEYS.CONSENT_FORM),
-      cpt_authorization: loadSection("aria-cpt-authorization" as StorageKey),
-      fade_plan: loadSection("aria-fade-plan" as StorageKey),
-      barriers_generalization: loadSection("aria-barriers-generalization" as StorageKey),
+    // Collect all data from localStorage
+    const allData: Record<string, any> = {}
+
+    Object.entries(STORAGE_KEYS).forEach(([key, storageKey]) => {
+      try {
+        const value = localStorage.getItem(storageKey)
+        if (value && value !== "null" && value !== "{}") {
+          allData[key.toLowerCase()] = JSON.parse(value)
+        }
+      } catch (error) {
+        console.error(`[v0] Error loading ${storageKey}:`, error)
+      }
+    })
+
+    const progressResult = {
+      percentage: 0,
     }
 
-    const progress = calculateAssessmentProgress()
+    console.log("[v0] Calculated progress:", progressResult)
 
-    const clientName = getClientNameFromData(assessmentData)
+    // Extract client name for better display
+    let clientName = "Unnamed Client"
+    if (allData.client_info?.firstName && allData.client_info?.lastName) {
+      clientName = `${allData.client_info.firstName} ${allData.client_info.lastName}`
+    } else if (allData.client_info?.client_first_name && allData.client_info?.client_last_name) {
+      clientName = `${allData.client_info.client_first_name} ${allData.client_info.client_last_name}`
+    }
 
-    const status = progress === 100 ? "complete" : progress > 0 ? "in_progress" : "draft"
+    let status = "draft"
+    if (progressResult.percentage === 100) {
+      status = "complete"
+    } else if (progressResult.percentage > 0) {
+      status = "in_progress"
+    }
 
-    const { data: existing } = await supabase.from("assessments").select("id").eq("id", assessmentId).single()
+    const { data: existingAssessment } = await supabase.from("assessments").select("id").eq("id", assessmentId).single()
 
-    if (existing) {
-      const { error } = await supabase
-        .from("assessments")
-        .update({
-          data: assessmentData,
-          evaluation_type: type,
-          status: status, // Update status based on progress
-          progress: progress, // Save calculated progress
-          updated_at: new Date().toISOString(),
-          ...(clientName && { title: `${type === "initial" ? "Initial Assessment" : "Reassessment"} - ${clientName}` }), // Better title
-        })
-        .eq("id", assessmentId)
+    const assessmentPayload = {
+      user_id: user.id,
+      type: assessmentType,
+      data: allData,
+      title: `${clientName} - ${assessmentType === "initial" ? "Initial Assessment" : "Reassessment"}`,
+      progress: progressResult.percentage,
+      status,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (existingAssessment) {
+      console.log("[v0] Updating existing assessment")
+      const { error } = await supabase.from("assessments").update(assessmentPayload).eq("id", assessmentId)
 
       if (error) {
-        console.error("[v0] Supabase update error:", error)
+        console.error("[v0] Error updating assessment:", error)
         return { success: false, error: error.message }
       }
-
-      console.log("[v0] Assessment UPDATED in Supabase:", assessmentId, `(${progress}% complete)`)
     } else {
+      console.log("[v0] Creating new assessment")
       const { error } = await supabase.from("assessments").insert({
         id: assessmentId,
-        user_id: user.id,
-        data: assessmentData,
-        evaluation_type: type,
-        status: status, // Set status based on progress
-        progress: progress, // Save calculated progress
-        title: clientName
-          ? `${type === "initial" ? "Initial Assessment" : "Reassessment"} - ${clientName}`
-          : `${type === "initial" ? "Initial Assessment" : "Reassessment"} - ${new Date().toLocaleDateString()}`,
+        ...assessmentPayload,
+        created_at: new Date().toISOString(),
       })
 
       if (error) {
-        console.error("[v0] Supabase insert error:", error)
+        console.error("[v0] Error creating assessment:", error)
         return { success: false, error: error.message }
       }
-
-      console.log("[v0] Assessment CREATED in Supabase:", assessmentId, `(${progress}% complete)`)
     }
 
+    console.log("[v0] Assessment saved successfully with progress:", progressResult.percentage)
     return { success: true }
-  } catch (error) {
-    console.error("[v0] Error saving to Supabase:", error)
-    return { success: false, error: String(error) }
+  } catch (error: any) {
+    console.error("[v0] Error in saveAssessmentToSupabase:", error)
+    return { success: false, error: error.message }
   }
 }
 
