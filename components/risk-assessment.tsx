@@ -94,6 +94,53 @@ function RiskAssessment({ clientData, onSave }: RiskAssessmentProps) {
   }
 
   useEffect(() => {
+    console.log("[ARIA] Loading Risk Assessment data from localStorage")
+    try {
+      const stored = localStorage.getItem("aria-risk-assessment")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        console.log("[ARIA] Loaded Risk Assessment data:", parsed)
+        if (parsed.riskFactors) setRiskFactors(parsed.riskFactors)
+        if (parsed.otherRisk) setOtherRisk(parsed.otherRisk)
+        if (parsed.emergencyProcedures) setEmergencyProcedures(parsed.emergencyProcedures)
+        if (parsed.lastAssessmentDate) setLastAssessmentDate(parsed.lastAssessmentDate)
+        if (parsed.nextReviewDate) setNextReviewDate(parsed.nextReviewDate)
+        if (parsed.crisisContacts) setCrisisContacts(parsed.crisisContacts)
+        if (parsed.crisisPlan) setCrisisPlan(parsed.crisisPlan)
+      }
+    } catch (e) {
+      console.error("[ARIA] Error loading risk assessment data:", e)
+    }
+  }, [])
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      console.log("[ARIA] Auto-saving Risk Assessment data")
+      const dataToSave = {
+        riskFactors,
+        otherRisk,
+        emergencyProcedures,
+        lastAssessmentDate,
+        nextReviewDate,
+        crisisContacts,
+        riskLevel,
+        crisisPlan,
+      }
+      localStorage.setItem("aria-risk-assessment", JSON.stringify(dataToSave))
+    }, 500)
+    return () => clearTimeout(timeoutId)
+  }, [
+    riskFactors,
+    otherRisk,
+    emergencyProcedures,
+    lastAssessmentDate,
+    nextReviewDate,
+    crisisContacts,
+    riskLevel,
+    crisisPlan,
+  ])
+
+  useEffect(() => {
     const checkedFactors = riskFactors.filter((f) => f.checked)
     const highRiskCount = checkedFactors.filter((f) => f.severity === "high").length
 

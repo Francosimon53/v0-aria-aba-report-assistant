@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AITextarea } from "@/components/ui/ai-textarea"
@@ -104,6 +104,30 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
   })
 
   const [completedSections, setCompletedSections] = useState<string[]>([])
+
+  // Load data from localStorage on mount
+  useEffect(() => {
+    console.log("[ARIA] Loading Background & History data from localStorage")
+    try {
+      const stored = localStorage.getItem("aria_background_history")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        console.log("[ARIA] Loaded Background & History data:", parsed)
+        setData(parsed)
+      }
+    } catch (e) {
+      console.error("[ARIA] Error loading background history data:", e)
+    }
+  }, [])
+
+  // Auto-save data whenever it changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      console.log("[ARIA] Auto-saving Background & History data")
+      localStorage.setItem("aria_background_history", JSON.stringify(data))
+    }, 500)
+    return () => clearTimeout(timeoutId)
+  }, [data])
 
   const updateField = (section: keyof BackgroundHistoryData, field: string, value: any) => {
     setData((prev) => ({
