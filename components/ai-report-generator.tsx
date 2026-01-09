@@ -41,7 +41,7 @@ import remarkGfm from "remark-gfm"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 
-import { sampleAssessmentData } from "@/lib/sample-data/sample-data"
+// import { sampleAssessmentData } from "@/lib/sample-data/sample-data"
 import { safeGetItem } from "@/lib/safe-storage"
 import { saveContentForLearning } from "@/lib/learning-system"
 
@@ -486,20 +486,171 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
     // This preserves the sample data for reference without overwriting user data
 
     const formattedData: AssessmentData = {
-      clientInfo: sampleAssessmentData.clientInfo,
-      providerInfo: sampleAssessmentData.providerInfo,
-      insurance: sampleAssessmentData.insurance,
-      background: sampleAssessmentData.background,
-      assessmentTools: sampleAssessmentData.assessmentTools,
-      assessmentDates: sampleAssessmentData.assessmentDates,
-      observationSettings: sampleAssessmentData.observationSettings,
-      domains: sampleAssessmentData.domains,
-      abcObservations: sampleAssessmentData.abcObservations,
-      behaviors: sampleAssessmentData.behaviors,
-      goals: sampleAssessmentData.goals,
-      servicePlan: sampleAssessmentData.servicePlan,
-      medicalNecessity: sampleAssessmentData.medicalNecessity,
-      riskAssessment: sampleAssessmentData.riskAssessment,
+      clientInfo: {
+        firstName: "Marcus",
+        lastName: "Johnson",
+        dob: "2018-05-15",
+        age: 6,
+        gender: "Male",
+        diagnosis: "Autism Spectrum Disorder Level 2",
+        icd10Code: "F84.0",
+        clientId: "MJ-001",
+        address: "123 Main St, Anytown, USA",
+        caregiver: "Sarah Johnson",
+        phone: "555-123-4567",
+        assessmentType: "initial",
+      },
+      providerInfo: {
+        name: "ABC Behavioral Services",
+        bcbaName: "Dr. Emily Carter",
+        bcbaLicense: "12345",
+        bcbaPhone: "555-987-6543",
+        bcbaEmail: "emily.carter@abcbehavioral.com",
+        npi: "1234567890",
+        agencyLogo: "/images/abc-logo.png", // Placeholder logo
+      },
+      insurance: {
+        provider: "BlueCross BlueShield",
+        policyNumber: "XYZ789012",
+        authNumber: "AUTH123456",
+      },
+      background: {
+        developmental:
+          "Pregnancy and birth were uncomplicated. Milestones were generally delayed. First words at 24 months, phrases at 36 months. Difficulty with peer interaction noted early on.",
+        medical: "No significant medical history. Currently taking no medications.",
+        educational:
+          "Enrolled in a special education preschool program. Receives 10 hours/week of ABA services. IEP is in place.",
+        family: "Mother, father, and older sister. Family history of ADHD, but no diagnosed ASD.",
+        previousTreatments:
+          "Speech therapy (1 year), Occupational therapy (6 months). Previously received 15 hours/week of ABA services.",
+        strengths:
+          "Enjoys trains and puzzles. Can follow simple 2-step directions. Is affectionate with family. Responds well to visual schedules. Has a good sense of humor.",
+        weaknesses:
+          "Limited spontaneous communication. Difficulty initiating social interactions. Exhibits repetitive behaviors. Tantrums when demands are placed. Difficulty generalizing learned skills.",
+        dailySchedule:
+          "Wakes at 7 AM, breakfast, preschool 8:30 AM - 12 PM, lunch, ABA therapy 1 PM - 4 PM, dinner, quiet play, bedtime at 8 PM.",
+      },
+      assessmentTools: [
+        "VB-MAPP",
+        "ABLLS-R",
+        "Vineland-3",
+        "Functional Behavior Assessment (FBA)",
+        "Motivation Assessment Scale (MAS)",
+      ],
+      assessmentDates: "October 10-25, 2023",
+      observationSettings: "Home, Preschool classroom, Community park",
+      domains: {
+        communication: {
+          level: "Severe deficit",
+          findings:
+            "Limited functional communication. Relies heavily on gestures or problem behavior to request. Mands are infrequent and often non-specific. Limited tacts and intraverbals.",
+        },
+        social: {
+          level: "Severe deficit",
+          findings:
+            "Does not initiate social interactions. Limited response to peers. Difficulty with joint attention and turn-taking. Prefers solitary play.",
+        },
+        adaptive: {
+          level: "Moderate deficit",
+          findings:
+            "Requires prompting for self-care skills like dressing and hygiene. Independent in feeding with some supervision. Difficulty with daily living skills like chores.",
+        },
+        behavior: {
+          level: "Moderate deficit",
+          findings:
+            "Exhibits tantrums, self-injurious behavior (pinching self), and property destruction when demands are placed or access is denied.",
+        },
+        play: {
+          level: "Moderate deficit",
+          findings:
+            "Enjoys solitary play with trains. Limited imaginative play. Difficulty engaging in interactive play with peers or adults.",
+        },
+        motor: {
+          level: "Mild deficit",
+          findings: "Gross and fine motor skills are generally age-appropriate, with occasional clumsiness.",
+        },
+      },
+      abcObservations: [
+        {
+          antecedent: "Asked to clean up toys",
+          behavior: "Throws toys",
+          consequence: "Toys picked up by adult, demand removed",
+          function: "Escape",
+        },
+        {
+          antecedent: "Another child takes his train",
+          behavior: "Pushes child",
+          consequence: "Child cries, adult intervenes",
+          function: "Tangible/Attention",
+        },
+        {
+          antecedent: "Sitting quietly during story time",
+          behavior: "Pats own arm repeatedly",
+          consequence: "Sensory stimulation",
+          function: "Automatic",
+        },
+      ],
+      behaviors: [
+        {
+          name: "Tantrums",
+          definition: "Screaming, crying, or flailing limbs for more than 10 seconds when demands are presented.",
+          baseline: "5-7 times per day",
+          frequency: "Moderate",
+          intensity: "Moderate to Severe",
+          function: "Escape",
+        },
+        {
+          name: "Self-Injurious Behavior (SIB)",
+          definition: "Pinching own arm causing redness or bruising.",
+          baseline: "2-3 times per day",
+          frequency: "Low",
+          intensity: "Moderate",
+          function: "Escape/Attention",
+        },
+      ],
+      goals: [
+        {
+          domain: "Communication",
+          shortTerm: "Request desired items with a single word",
+          longTerm: "Form 3-word sentences to request items and activities",
+          baseline: "Limited single words",
+          target: "80% accuracy",
+        },
+      ],
+      servicePlan: {
+        cptCodes: [
+          {
+            code: "97153",
+            description: "Adaptive Behavior Treatment by Technician",
+            units: 120,
+            hoursPerWeek: 30,
+            location: "Home/Community",
+          },
+          {
+            code: "97155",
+            description: "Adaptive Behavior Treatment Protocol Modification",
+            units: 16,
+            hoursPerWeek: 4,
+            location: "Home/Community",
+          },
+          {
+            code: "97156",
+            description: "Family Adaptive Behavior Treatment Guidance",
+            units: 8,
+            hoursPerWeek: 2,
+            location: "Home",
+          },
+        ],
+      },
+      medicalNecessity:
+        "Autism Spectrum Disorder significantly impacts daily functioning, requiring intensive ABA services to address deficits in communication, social interaction, and behavior.",
+      riskAssessment: {
+        extinctionBurst:
+          "Potential for temporary increase in tantrums/SIB during extinction procedures. Close monitoring and safety protocols will be in place.",
+        safetyProtocols:
+          "Behavior technicians trained in crisis prevention and intervention. Emergency contacts readily available. Prompt response to any safety concerns.",
+        emergencyContacts: "Parent, BCBA Supervisor, 911",
+      },
     }
 
     setAssessmentData(formattedData)
@@ -655,7 +806,7 @@ Assessment Tools Used:
 ${
   data.assessmentTools?.map((tool) => `- ${tool}`).join("\n") ||
   `- Functional Behavior Assessment (FBA)
-- Motivation Assessment Scale (MAS)
+- Motivation Assessment Scale (FAST)
 - Functional Analysis Screening Tool (FAST)
 - Vineland Adaptive Behavior Scales-3 (Vineland-3)
 - VB-MAPP (Verbal Behavior Milestones Assessment and Placement Program)

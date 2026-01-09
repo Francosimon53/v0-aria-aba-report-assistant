@@ -5,54 +5,42 @@ import { generateText } from "ai"
 
 export const maxDuration = 60
 
-const REPORT_SECTION_PROMPT = `You are ARIA, an expert ABA (Applied Behavior Analysis) clinical writer specializing in comprehensive assessment reports for insurance submissions.
+const REPORT_SECTION_PROMPT = `You are ARIA, an ABA (Applied Behavior Analysis) clinical report FORMATTER.
 
-CRITICAL FORMATTING RULES:
-- Write in plain text paragraphs only - NO markdown formatting
-- NO headers with ##, no bold with **, no bullet points with -, no italics
-- NO placeholders like [Date], [Name], [Level] - write complete, realistic clinical text
-- Use professional clinical language appropriate for insurance and medical review
-- Be specific and detailed with clinical observations
-- Write 3-6 complete sentences per section
-- Include quantifiable measures when appropriate (percentages, frequencies, durations)
-- Use proper ABA terminology (contingency, reinforcement, prompting, fading, shaping, etc.)
-- Reference DSM-5 criteria and evidence-based practices when relevant
+=== CRITICAL: DATA-ONLY MODE ===
 
-ASSESSMENT INSTRUMENTS KNOWLEDGE:
-You have access to detailed information about major ABA assessment tools:
-- VB-MAPP: 170 milestones across 16 domains, levels 1-3 (0-48 months)
-- ABLLS-R: 544 skills across 15 domains, scored 0-4
-- AFLS: 6 protocols for functional living skills
-- Vineland-3: Norm-referenced adaptive behavior (Communication, Daily Living, Socialization, Motor)
-- PEAK: 184 programs across 4 modules (Direct Training, Generalization, Equivalence, Transformation)
-- ADOS-2: Gold standard diagnostic tool with 5 modules
-- Essentials for Living: 2700 skills for moderate-to-severe disabilities
+You are a FORMATTER, not a CREATOR. You ONLY organize and format data that is explicitly provided to you.
 
-When writing "Assessment Instruments" or "Assessment Results" sections, include:
-- Full instrument names and authors
-- Domains assessed and scoring methodology
-- Clinical interpretation of scores
-- Insurance-relevant reporting guidelines
+ABSOLUTE RULES YOU MUST FOLLOW:
 
-SECTION-SPECIFIC GUIDELINES:
-- For "Reason for Referral": Include referral source, presenting concerns, and family priorities
-- For "Client Information": Include demographics and relevant identifying information
-- For "Diagnosis": Reference DSM-5 criteria, onset, and severity specifiers
-- For "Medical History": Include relevant medical conditions, medications, and developmental history
-- For "Assessment Instruments": List tools used with validity, standardization notes, and proper citations
-- For "Assessment Results": Include scores, percentiles, clinical interpretations, and functional implications
-- For "Behavioral Observations": Describe observed behaviors during assessment sessions
-- For "Skill Assessments": Detail current skill levels across domains (communication, social, adaptive, etc.)
-- For "Barriers to Treatment": Identify factors that may impact treatment progress
-- For "Recommendations": Provide evidence-based treatment recommendations with hours justification
-- For "Goals": Write SMART goals with baseline, target, and measurement criteria
-- For "Treatment Plan": Detail intervention strategies and service delivery model
-- For "Caregiver Training": Describe parent/caregiver involvement and training components
-- For "Crisis Plan": Include safety protocols and emergency procedures if applicable
-- For "Transition Plan": Address discharge criteria and transition planning
-- For "Medical Necessity": Justify medical necessity using insurance criteria language
+1. **NEVER INVENT INFORMATION**
+   - NEVER create fictional names, dates, medical history, birth details, APGAR scores, or developmental milestones
+   - NEVER assume or infer information that wasn't explicitly provided
+   - NEVER fill in blanks with "plausible" content - this is DANGEROUS in medical contexts
 
-Remember: Write as if this is a final report ready for insurance submission. Use complete, professional clinical language.`
+2. **HANDLE MISSING DATA CORRECTLY**
+   - If data is missing, empty, says "[Field]", "N/A", or "Not provided", write: "Information not provided" or "Data pending collection"
+   - It is ACCEPTABLE to have sparse sections when limited data exists
+   - A short accurate report is better than a long fictional one
+
+3. **YOUR ONLY JOB**
+   - Transform raw provided data into professional clinical language
+   - Organize existing information into proper report structure
+   - Use appropriate ABA terminology
+   - Maintain HIPAA-compliant, insurance-ready formatting
+
+4. **VERIFICATION**
+   - Every fact in your output MUST come from the input data
+   - If you cannot find information in the provided data, do not include it
+   - When in doubt, write "Information not provided"
+
+FORMATTING GUIDELINES:
+- Write in professional clinical paragraphs (no markdown ##, **, - formatting)
+- Use proper ABA terminology (contingency, reinforcement, prompting, etc.)
+- Be specific with data that IS provided (percentages, frequencies, durations)
+- Reference evidence-based practices when appropriate
+
+REMEMBER: This is a MEDICAL/CLINICAL application. Fictional content could harm real patients and cause insurance fraud. Your job is to FORMAT data, not CREATE content.`
 
 async function getRAGContext(query: string): Promise<string> {
   try {
@@ -62,14 +50,8 @@ async function getRAGContext(query: string): Promise<string> {
       return ""
     }
 
-    // Use AI SDK for embeddings via the gateway
-    const { generateText: generateEmbedding } = await import("ai")
-
-    // For now, skip RAG if we can't create embeddings easily
-    // The main generation will still work
     const supabase = await createClient()
 
-    // Try a simple text search instead of embeddings
     const { data: matches, error } = await supabase
       .from("rag_embeddings")
       .select("content")
@@ -106,7 +88,6 @@ export async function POST(req: NextRequest) {
       clientData?: any
     } = body
 
-    // Build the user message from messages array or direct content
     let userMessage = ""
     if (messages && Array.isArray(messages) && messages.length > 0) {
       userMessage = messages[messages.length - 1]?.content || ""
@@ -126,8 +107,16 @@ export async function POST(req: NextRequest) {
       ragContext = await getRAGContext(`${sectionType} ABA assessment report insurance documentation`)
     }
 
-    // Build context for the AI
     let contextInfo = ""
+
+    if (isReportSection) {
+      contextInfo += `=== DATA-ONLY FORMATTING MODE ===
+IMPORTANT: Format ONLY the data in this prompt. Do NOT add any information not explicitly provided.
+For missing fields, write "Information not provided" - do NOT invent content.
+
+`
+    }
+
     if (clientDiagnosis) {
       contextInfo += `Client Diagnosis: ${clientDiagnosis}\n`
     }
@@ -153,12 +142,18 @@ export async function POST(req: NextRequest) {
       contextInfo += "\n"
     }
 
-    // Determine max tokens based on section type
     const maxTokens = isReportSection ? 1500 : 500
 
     const systemPromptWithRAG = ragContext
       ? `${REPORT_SECTION_PROMPT}\n\n--- KNOWLEDGE BASE CONTEXT ---\n${ragContext}\n--- END CONTEXT ---`
       : REPORT_SECTION_PROMPT
+
+    console.log(`[v0] Generating ${sectionType || "content"} with data:`, {
+      hasClientDiagnosis: !!clientDiagnosis,
+      hasClientData: !!clientData,
+      clientName: clientData?.firstName ? `${clientData.firstName} ${clientData.lastName}` : "Not provided",
+      isReportSection,
+    })
 
     const { text: responseText } = await generateText({
       model: "anthropic/claude-sonnet-4-20250514",
@@ -171,7 +166,6 @@ export async function POST(req: NextRequest) {
       throw new Error("No content received from AI")
     }
 
-    // Clean up any markdown formatting that might have slipped through
     const cleanedText = responseText
       .replace(/#{1,6}\s/g, "")
       .replace(/\*\*(.+?)\*\*/g, "$1")
