@@ -236,11 +236,14 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
     setIsGeneratingJustification(true)
 
     try {
-      // Load all client data from localStorage
-      const clientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
-      const backgroundHistory = JSON.parse(localStorage.getItem("aria-background-history") || "{}")
-      const assessmentData = JSON.parse(localStorage.getItem("aria-assessment-data") || "{}")
-      const abcObservations = JSON.parse(localStorage.getItem("aria-abc-observations") || "{}")
+      const rawClientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
+      const clientInfo = rawClientInfo.data || rawClientInfo
+      const rawBackgroundHistory = JSON.parse(localStorage.getItem("aria-background-history") || "{}")
+      const backgroundHistory = rawBackgroundHistory.data || rawBackgroundHistory
+      const rawAssessmentData = JSON.parse(localStorage.getItem("aria-assessment-data") || "{}")
+      const assessmentData = rawAssessmentData.data || rawAssessmentData
+      const rawAbcObservations = JSON.parse(localStorage.getItem("aria-abc-observations") || "{}")
+      const abcObservations = rawAbcObservations.data || rawAbcObservations
       const goalsData = JSON.parse(localStorage.getItem("aria-goals") || "[]")
 
       // Build impairment scores from assessment data

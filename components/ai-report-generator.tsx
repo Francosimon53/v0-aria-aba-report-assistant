@@ -453,12 +453,23 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
     return safeGetItem(key)
   }
 
-  const extractNestedData = (obj: any): any => {
+  const extractNestedData = (obj: any, key: string): any => {
+    console.log(`[v0] extractNestedData for ${key}:`, obj)
+
+    if (!obj || typeof obj !== "object") {
+      console.log(`[v0] ${key}: Input is null/undefined or not an object`)
+      return {}
+    }
+
     // If the object has a 'data' property and it's an object, return that
-    // This handles the localStorage structure: { data: { firstName: "liam", ... } }
-    if (obj && typeof obj === "object" && obj.data && typeof obj.data === "object") {
+    // This handles the localStorage structure: { data: { firstName: "liam", ... }, savedAt: "..." }
+    if (obj.data && typeof obj.data === "object") {
+      console.log(`[v0] ${key}: Found nested data property:`, obj.data)
       return obj.data
     }
+
+    // If no nested data, return the object itself
+    console.log(`[v0] ${key}: No nested data, returning object as-is`)
     return obj
   }
 
@@ -472,42 +483,46 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
       const rawRiskAssessment = safeParseJSON("aria-risk-assessment") || {}
       const rawReasonForReferral = safeParseJSON("aria-reason-for-referral") || {}
 
-      // Extract the nested data property if it exists
-      const clientInfo = extractNestedData(rawClientInfo)
-      const background = extractNestedData(rawBackground)
-      const riskAssessment = extractNestedData(rawRiskAssessment)
-      const reasonForReferral = extractNestedData(rawReasonForReferral)
+      const clientInfo = extractNestedData(rawClientInfo, "client-info")
+      const background = extractNestedData(rawBackground, "background")
+      const riskAssessment = extractNestedData(rawRiskAssessment, "risk-assessment")
+      const reasonForReferral = extractNestedData(rawReasonForReferral, "reason-for-referral")
 
-      console.log("[v0] Raw client info from localStorage:", rawClientInfo)
-      console.log("[v0] Extracted client info:", clientInfo)
+      console.log("[v0] Extracted clientInfo fields:", {
+        firstName: clientInfo.firstName,
+        lastName: clientInfo.lastName,
+        age: clientInfo.age,
+        gender: clientInfo.gender,
+        dateOfBirth: clientInfo.dateOfBirth,
+        diagnosis: clientInfo.diagnosis,
+      })
 
       const userData: AssessmentData = {
         clientInfo: {
-          // Map from localStorage field names to expected field names
-          firstName: clientInfo.firstName || clientInfo.first_name || "",
-          lastName: clientInfo.lastName || clientInfo.last_name || "",
-          dob: clientInfo.dateOfBirth || clientInfo.dob || clientInfo.date_of_birth || "",
-          age: clientInfo.age || "",
+          firstName: clientInfo.firstName || "",
+          lastName: clientInfo.lastName || "",
+          dob: clientInfo.dateOfBirth || clientInfo.dob || "",
+          age: String(clientInfo.age || ""),
           gender: clientInfo.gender || "",
           diagnosis: clientInfo.diagnosis || clientInfo.primaryDiagnosis || "",
-          icd10Code: clientInfo.icd10Code || clientInfo.icd10 || "",
-          clientId: clientInfo.clientId || clientInfo.client_id || "",
+          icd10Code: clientInfo.icd10Code || "",
+          clientId: clientInfo.clientId || "",
           address: clientInfo.address || clientInfo.providerAddress || "",
           caregiver: clientInfo.caregiver || clientInfo.caregiverName || "",
           phone: clientInfo.phone || clientInfo.providerPhone || "",
           assessmentType: clientInfo.assessmentType || "initial",
         },
         providerInfo: {
-          name: clientInfo.providerName || clientInfo.provider_name || "",
+          name: clientInfo.providerName || "",
           bcbaName: clientInfo.bcbaName || "",
           bcbaLicense: clientInfo.bcbaLicense || "",
           bcbaPhone: clientInfo.bcbaPhone || clientInfo.providerPhone || "",
           bcbaEmail: clientInfo.bcbaEmail || "",
-          npi: clientInfo.npiNumber || clientInfo.npi || "",
+          npi: clientInfo.npiNumber || "",
           agencyLogo: clientInfo.agencyLogo || "",
         },
         insurance: {
-          provider: clientInfo.insuranceProvider || clientInfo.insurance_provider || "",
+          provider: clientInfo.insuranceProvider || "",
           policyNumber: clientInfo.insuranceId || clientInfo.insurancePolicyNumber || "",
           authNumber: clientInfo.authNumber || clientInfo.authorizationNumber || "",
         },

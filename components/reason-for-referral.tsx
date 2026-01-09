@@ -84,7 +84,10 @@ export function ReasonForReferral({ onSave }: ReasonForReferralProps) {
     try {
       const clientData = localStorage.getItem("aria-client-info")
       const backgroundData = localStorage.getItem("aria-background-history")
-      const parsedClientInfo = clientData ? JSON.parse(clientData) : {}
+      const rawClientInfo = clientData ? JSON.parse(clientData) : {}
+      const parsedClientInfo = rawClientInfo.data || rawClientInfo
+      const rawBackground = backgroundData ? JSON.parse(backgroundData) : {}
+      const parsedBackground = rawBackground.data || rawBackground
 
       const basePromptContext = `
 Client Information:
@@ -112,7 +115,7 @@ Generate a professional "Reason for Referral" narrative for an ABA assessment.
         type: "reasonForReferral",
         data: {
           clientInfo: parsedClientInfo,
-          background: backgroundData ? JSON.parse(backgroundData) : {},
+          background: parsedBackground,
           areasOfConcern: formData.areasOfConcern.map((id) => AREAS_OF_CONCERN.find((a) => a.id === id)?.label || id),
           dsm5Level: formData.dsm5Level,
           enhancedContext: exampleCount > 0 ? enhancedPrompt : undefined,
@@ -154,7 +157,8 @@ Generate a professional "Reason for Referral" narrative for an ABA assessment.
 
     try {
       const clientData = localStorage.getItem("aria-client-info")
-      const parsedClientInfo = clientData ? JSON.parse(clientData) : {}
+      const rawClientInfo = clientData ? JSON.parse(clientData) : {}
+      const parsedClientInfo = rawClientInfo.data || rawClientInfo
 
       const requestBody = {
         type: "familyGoals",

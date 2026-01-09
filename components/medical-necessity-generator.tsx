@@ -259,12 +259,13 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
     setIsAutoFilling(true)
 
     try {
-      // Load data from localStorage
-      const clientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
+      const rawClientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
+      const clientInfo = rawClientInfo.data || rawClientInfo
       const abcObservations = JSON.parse(localStorage.getItem("aria-abc-observations") || "[]")
       const goals = JSON.parse(localStorage.getItem("aria-goals") || "[]")
       const interventions = JSON.parse(localStorage.getItem("aria-interventions") || "[]")
-      const riskAssessment = JSON.parse(localStorage.getItem("aria-risk-assessment") || "{}")
+      const rawRiskAssessment = JSON.parse(localStorage.getItem("aria-risk-assessment") || "{}")
+      const riskAssessment = rawRiskAssessment.data || rawRiskAssessment
 
       // Auto-fill diagnosis
       if (clientInfo.diagnosis) {
@@ -317,8 +318,8 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
     setIsSmartFilling(true)
 
     try {
-      // Gather all assessment data
-      const clientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
+      const rawClientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
+      const clientInfo = rawClientInfo.data || rawClientInfo
       const abcObservations = JSON.parse(localStorage.getItem("aria-abc-observations") || "[]")
       const goals = JSON.parse(localStorage.getItem("aria-goals") || "[]")
       const interventions = JSON.parse(localStorage.getItem("aria-interventions") || "[]")
