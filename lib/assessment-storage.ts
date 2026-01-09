@@ -438,10 +438,12 @@ export async function saveAssessmentToSupabase(
 
     const assessmentPayload = {
       user_id: user.id,
-      type: assessmentType,
-      data: allData,
+      evaluation_type: assessmentType,
+      data: {
+        ...allData,
+        progress: progressResult.percentage, // Store progress INSIDE the data jsonb
+      },
       title: `${clientName} - ${assessmentType === "initial" ? "Initial Assessment" : "Reassessment"}`,
-      progress: progressResult.percentage,
       status,
       updated_at: new Date().toISOString(),
     }

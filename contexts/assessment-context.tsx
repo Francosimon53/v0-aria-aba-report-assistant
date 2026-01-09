@@ -223,7 +223,8 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
         .insert({
           user_id: user.id,
           status: "draft",
-          progress: 0,
+          evaluation_type: "initial",
+          data: { progress: 0 }, // Store progress inside data jsonb
         })
         .select()
         .single()
@@ -274,7 +275,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
         .from("assessments")
         .update({
           ...assessment,
-          progress,
+          data: { ...assessment.data, progress },
           status: progress === 100 ? "complete" : progress > 0 ? "in_progress" : "draft",
           updated_at: new Date().toISOString(),
         })
