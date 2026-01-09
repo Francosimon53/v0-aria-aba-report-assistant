@@ -264,15 +264,81 @@ export function getOrCreateAssessmentId(type: "initial" | "reassessment"): strin
     return ""
   }
 
+  const urlParams = new URLSearchParams(window.location.search)
+  const urlId = urlParams.get("id")
+
+  if (urlId) {
+    // Store the URL ID in localStorage for future use
+    localStorage.setItem(storageKey, urlId)
+    console.log(`[v0] Using assessment ID from URL:`, urlId)
+    return urlId
+  }
+
+  // Check localStorage
   let assessmentId = localStorage.getItem(storageKey)
 
   if (!assessmentId) {
     assessmentId = crypto.randomUUID()
     localStorage.setItem(storageKey, assessmentId)
     console.log(`[v0] Created new ${type} assessment ID:`, assessmentId)
+
+    const newUrl = new URL(window.location.href)
+    newUrl.searchParams.set("id", assessmentId)
+    window.history.replaceState({}, "", newUrl.toString())
   }
 
   return assessmentId
+}
+
+/**
+ * Calculate progress based on completed sections
+ */
+export function calculateAssessmentProgress(): number {
+  const sections = [
+    { key: STORAGE_KEYS.CLIENT_INFO, weight: 10 },
+    { key: STORAGE_KEYS.BACKGROUND_HISTORY, weight: 10 },
+    { key: "aria-reason-for-referral" as StorageKey, weight: 10 },
+    { key: "aria-standardized-assessments" as StorageKey, weight: 10 },
+    { key: STORAGE_KEYS.ABC_OBSERVATIONS, weight: 10 },
+    { key: STORAGE_KEYS.RISK_ASSESSMENT, weight: 10 },
+    { key: STORAGE_KEYS.GOALS, weight: 10 },
+    { key: STORAGE_KEYS.INTERVENTIONS, weight: 10 },
+    { key: "aria-cpt-authorization" as StorageKey, weight: 10 },
+    { key: "aria-barriers-generalization" as StorageKey, weight: 10 },
+  ]
+
+  let totalWeight = 0
+  let completedWeight = 0
+
+  for (const section of sections) {
+    totalWeight += section.weight
+    const data = loadSection(section.key)
+    if (data && Object.keys(data).length > 0) {
+      completedWeight += section.weight
+    }
+  }
+
+  return Math.round((completedWeight / totalWeight) * 100)
+}
+
+/**
+ * Update function to extract client name from assessment data
+ */
+export function getClientNameFromData(data: any): string | null {
+  // Try multiple paths where client name might be stored
+  if (data?.client_info?.firstName && data?.client_info?.lastName) {
+    return `${data.client_info.firstName} ${data.client_info.lastName}`
+  }
+  if (data?.client_info?.firstName) {
+    return data.client_info.firstName
+  }
+  if (data?.clientInformation?.firstName && data?.clientInformation?.lastName) {
+    return `${data.clientInformation.firstName} ${data.clientInformation.lastName}`
+  }
+  if (data?.clientInformation?.firstName) {
+    return data.clientInformation.firstName
+  }
+  return null
 }
 
 /**
@@ -315,6 +381,12 @@ export async function saveAssessmentToSupabase(
       barriers_generalization: loadSection("aria-barriers-generalization" as StorageKey),
     }
 
+    const progress = calculateAssessmentProgress()
+
+    const clientName = getClientNameFromData(assessmentData)
+
+    const status = progress === 100 ? "complete" : progress > 0 ? "in_progress" : "draft"
+
     const { data: existing } = await supabase.from("assessments").select("id").eq("id", assessmentId).single()
 
     if (existing) {
@@ -323,8 +395,10 @@ export async function saveAssessmentToSupabase(
         .update({
           data: assessmentData,
           evaluation_type: type,
-          status: "in_progress",
+          status: status, // Update status based on progress
+          progress: progress, // Save calculated progress
           updated_at: new Date().toISOString(),
+          ...(clientName && { title: `${type === "initial" ? "Initial Assessment" : "Reassessment"} - ${clientName}` }), // Better title
         })
         .eq("id", assessmentId)
 
@@ -333,15 +407,18 @@ export async function saveAssessmentToSupabase(
         return { success: false, error: error.message }
       }
 
-      console.log("[v0] Assessment updated in Supabase:", assessmentId)
+      console.log("[v0] Assessment UPDATED in Supabase:", assessmentId, `(${progress}% complete)`)
     } else {
       const { error } = await supabase.from("assessments").insert({
         id: assessmentId,
         user_id: user.id,
         data: assessmentData,
         evaluation_type: type,
-        status: "in_progress",
-        title: `${type === "initial" ? "Initial Assessment" : "Reassessment"} - ${new Date().toLocaleDateString()}`,
+        status: status, // Set status based on progress
+        progress: progress, // Save calculated progress
+        title: clientName
+          ? `${type === "initial" ? "Initial Assessment" : "Reassessment"} - ${clientName}`
+          : `${type === "initial" ? "Initial Assessment" : "Reassessment"} - ${new Date().toLocaleDateString()}`,
       })
 
       if (error) {
@@ -349,7 +426,7 @@ export async function saveAssessmentToSupabase(
         return { success: false, error: error.message }
       }
 
-      console.log("[v0] Assessment saved to Supabase:", assessmentId)
+      console.log("[v0] Assessment CREATED in Supabase:", assessmentId, `(${progress}% complete)`)
     }
 
     return { success: true }

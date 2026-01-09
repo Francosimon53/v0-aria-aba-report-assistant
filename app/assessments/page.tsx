@@ -72,18 +72,21 @@ export default function AssessmentsPage() {
       }
 
       // Transform Supabase data to match Assessment interface
-      const assessmentList: Assessment[] = (data || []).map((item) => ({
-        id: item.id,
-        clientName:
-          item.data?.clientInformation?.firstName && item.data?.clientInformation?.lastName
-            ? `${item.data.clientInformation.firstName} ${item.data.clientInformation.lastName}`
-            : item.client_name || "Unnamed Client",
-        status: item.status || "draft",
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        progress: item.progress || 0,
-        data: item.data,
-      }))
+      const assessmentList: Assessment[] = (data || []).map((item) => {
+        const clientInfo = item.data?.client_info || item.data?.clientInformation
+        const firstName = clientInfo?.firstName || clientInfo?.first_name
+        const lastName = clientInfo?.lastName || clientInfo?.last_name
+
+        return {
+          id: item.id,
+          clientName: firstName && lastName ? `${firstName} ${lastName}` : firstName || item.title || "Unnamed Client",
+          status: item.status || "draft",
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          progress: item.progress || 0, // Use stored progress
+          data: item.data,
+        }
+      })
 
       setAssessments(assessmentList)
       console.log("[v0] Loaded", assessmentList.length, "assessments from Supabase")
