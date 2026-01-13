@@ -489,3 +489,21 @@
     border-radius: 2px;
   }
 }
+
+/* Agregar estilos para tablas pegadas de Excel */
+.prose table {
+  @apply w-full border-collapse my-4;
+}
+
+.prose th,
+.prose td {
+  @apply border border-gray-300 px-3 py-2 text-left;
+}
+
+.prose th {
+  @apply bg-gray-100 font-semibold;
+}
+
+.prose tr:nth-child(even) {
+  @apply bg-gray-50;
+}
