@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -66,7 +68,7 @@ interface BackgroundHistoryProps {
   onSave?: () => void
 }
 
-export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps) {
+export default function BackgroundHistoryForm({ clientData, onSave }: BackgroundHistoryProps) {
   const { toast } = useToast()
   const [data, setData] = useState<BackgroundHistoryData>({
     reasonForReferral: "",
@@ -110,6 +112,12 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
   })
 
   const [completedSections, setCompletedSections] = useState<string[]>([])
+
+  // AI generation states for RichTextEditor fields
+  const [isGeneratingReason, setIsGeneratingReason] = useState(false)
+  const [isGeneratingMotorSkills, setIsGeneratingMotorSkills] = useState(false)
+  const [isGeneratingCommunication, setIsGeneratingCommunication] = useState(false)
+  const [isGeneratingSocial, setIsGeneratingSocial] = useState(false)
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -193,6 +201,54 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
   const totalSections = 9
   const completedCount = completedSections?.length ?? 0
 
+  // AI generation handler for RichTextEditor fields
+  const generateAIContent = async (fieldName: string) => {
+    const stateMap: Record<string, [boolean, React.Dispatch<React.SetStateAction<boolean>>, string]> = {
+      reasonForReferral: [isGeneratingReason, setIsGeneratingReason, "reasonForReferral"],
+      motorSkills: [isGeneratingMotorSkills, setIsGeneratingMotorSkills, "developmentalMilestones.motorSkills"],
+      communication: [isGeneratingCommunication, setIsGeneratingCommunication, "developmentalMilestones.communication"],
+      social: [isGeneratingSocial, setIsGeneratingSocial, "developmentalMilestones.social"],
+    }
+
+    const [, setIsGenerating, dataPath] = stateMap[fieldName] || []
+    if (!setIsGenerating) return
+
+    setIsGenerating(true)
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: `Generate professional ABA assessment content for the field: ${fieldName}. Context: Client background and history assessment.`,
+          context: { fieldName, currentData: data },
+        }),
+      })
+
+      if (!response.ok) throw new Error("Failed to generate content")
+
+      const result = await response.json()
+
+      // Update the appropriate field
+      if (fieldName === "reasonForReferral") {
+        setData({ ...data, reasonForReferral: result.content })
+      } else if (dataPath.includes("developmentalMilestones")) {
+        const field = dataPath.split(".")[1]
+        setData({
+          ...data,
+          developmentalMilestones: {
+            ...data.developmentalMilestones,
+            [field]: result.content,
+          },
+        })
+      }
+    } catch (error) {
+      console.error("[v0] AI generation error:", error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       {/* Header */}
@@ -255,7 +311,8 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
                   if (html.length > 50) markSectionComplete("referral")
                 }}
                 placeholder="Include presenting concerns, who referred the client, chief complaints, and goals for treatment..."
-                fieldName="Reason for Referral"
+                onAIGenerate={() => generateAIContent("reasonForReferral")}
+                isGenerating={isGeneratingReason}
               />
             </CardContent>
           </Card>
@@ -290,7 +347,8 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
                           if (html.length > 20) markSectionComplete("milestones")
                         }}
                         placeholder="Describe motor skill development..."
-                        fieldName="Developmental Milestones - Motor Skills"
+                        onAIGenerate={() => generateAIContent("motorSkills")}
+                        isGenerating={isGeneratingMotorSkills}
                       />
                     </div>
                     <div>
@@ -299,7 +357,8 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
                         value={data.developmentalMilestones.communication}
                         onChange={(html) => updateField("developmentalMilestones", "communication", html)}
                         placeholder="Describe communication milestones..."
-                        fieldName="Developmental Milestones - Communication"
+                        onAIGenerate={() => generateAIContent("communication")}
+                        isGenerating={isGeneratingCommunication}
                       />
                     </div>
                     <div>
@@ -308,7 +367,8 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
                         value={data.developmentalMilestones.social}
                         onChange={(html) => updateField("developmentalMilestones", "social", html)}
                         placeholder="Describe social development..."
-                        fieldName="Developmental Milestones - Social"
+                        onAIGenerate={() => generateAIContent("social")}
+                        isGenerating={isGeneratingSocial}
                       />
                     </div>
                     <div className="flex items-center space-x-2">
@@ -650,7 +710,7 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
                     <div className="flex items-center gap-2">
                       <span className="font-medium">Strengths</span>
                       {completedSections.includes("strengths") && (
-                        <CheckCircle2Icon className="h-4 w-4 text-green-500" />
+                        <CheckCircle2Icon className="h-5 w-5 text-green-500" />
                       )}
                     </div>
                   </AccordionTrigger>
@@ -678,7 +738,7 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
                     <div className="flex items-center gap-2">
                       <span className="font-medium">Weaknesses & Skill Deficits</span>
                       {completedSections.includes("weaknesses") && (
-                        <CheckCircle2Icon className="h-4 w-4 text-green-500" />
+                        <CheckCircle2Icon className="h-5 w-5 text-green-500" />
                       )}
                     </div>
                   </AccordionTrigger>
@@ -752,3 +812,5 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
     </div>
   )
 }
+
+export { BackgroundHistoryForm as BackgroundHistory }

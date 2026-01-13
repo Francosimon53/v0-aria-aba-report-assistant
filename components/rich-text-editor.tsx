@@ -3,7 +3,7 @@
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { TableKit } from "@tiptap/extension-table"
-import { Bold, Italic, List, ListOrdered, TableIcon, Sparkles } from "lucide-react"
+import { Bold, Italic, List, ListOrdered, TableIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 import DOMPurify from "dompurify"
@@ -173,17 +173,25 @@ export default function RichTextEditor({
         {onAIGenerate && (
           <>
             <div className="flex-1" />
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={onAIGenerate}
               disabled={isGenerating}
-              className="ml-auto bg-transparent"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-md hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
-              {isGenerating ? "Generating..." : "Generate with AI"}
-            </Button>
+              {isGenerating ? (
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
+                  <path d="M19 15l.9 2.7 2.7.9-2.7.9-.9 2.7-.9-2.7-2.7-.9 2.7-.9.9-2.7z" />
+                </svg>
+              )}
+              {isGenerating ? "Generating..." : "AI Generate"}
+            </button>
           </>
         )}
       </div>
