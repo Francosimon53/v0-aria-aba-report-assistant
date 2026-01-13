@@ -39,10 +39,10 @@ function cleanWordPaste(html: string): string {
   return cleaned
 }
 
-export function RichTextEditor({
+export default function RichTextEditor({
   value = "",
   onChange,
-  placeholder = "Type here or paste from Word/Excel...",
+  placeholder = "Start typing or paste content from Word/Excel...",
   onAIGenerate,
   isGenerating = false,
 }: RichTextEditorProps) {
