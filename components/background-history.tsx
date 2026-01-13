@@ -227,8 +227,15 @@ export default function BackgroundHistoryForm({ clientData, onSave }: Background
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: `Generate professional ABA assessment content for the field: ${fieldName}. Context: Client background and history assessment.`,
-          context: { fieldName, currentData: data },
+          messages: [
+            {
+              role: "user",
+              content: `Generate professional ABA assessment content for the field: ${fieldName}. Context: Client background and history assessment.`,
+            },
+          ],
+          isTextGeneration: true, // Get long-form responses
+          clientData: data,
+          currentStep: fieldName,
         }),
       })
 
@@ -238,23 +245,28 @@ export default function BackgroundHistoryForm({ clientData, onSave }: Background
       }
 
       const result = await response.json()
-      console.log("[v0] AI generation successful, content length:", result.content?.length)
+      console.log("[v0] AI generation successful, content length:", result.message?.length)
 
       // Update the appropriate field
       if (fieldName === "reasonForReferral") {
-        setData({ ...data, reasonForReferral: result.content })
+        setData({ ...data, reasonForReferral: result.message })
       } else if (dataPath.includes("developmentalMilestones")) {
         const field = dataPath.split(".")[1]
         setData({
           ...data,
           developmentalMilestones: {
             ...data.developmentalMilestones,
-            [field]: result.content,
+            [field]: result.message,
           },
         })
       }
     } catch (error) {
       console.error("[v0] AI generation error:", error)
+      toast({
+        title: "AI Generation Failed",
+        description: "Please try again or fill in the field manually.",
+        variant: "destructive",
+      })
     } finally {
       setIsGenerating(false)
     }
