@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AITextarea } from "@/components/ui/ai-textarea"
@@ -13,6 +14,11 @@ import { CheckCircle2Icon, DownloadIcon, FileTextIcon, SaveIcon, ArrowRightIcon 
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { AssessmentTypeBadge } from "./assessment-type-badge"
+
+const RichTextEditor = dynamic(() => import("@/components/rich-text-editor"), {
+  ssr: false,
+  loading: () => <div className="h-[150px] border rounded-lg bg-gray-50 animate-pulse" />,
+})
 
 interface BackgroundHistoryData {
   reasonForReferral: string
@@ -242,19 +248,14 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
               </div>
             </CardHeader>
             <CardContent>
-              <AITextarea
-                fieldName="Reason for Referral"
+              <RichTextEditor
                 value={data.reasonForReferral}
-                onChange={(e) => {
-                  setData({ ...data, reasonForReferral: e.target.value })
-                  if (e.target.value.length > 50) markSectionComplete("referral")
-                }}
-                onValueChange={(value) => {
-                  setData({ ...data, reasonForReferral: value })
-                  if (value.length > 50) markSectionComplete("referral")
+                onChange={(html) => {
+                  setData({ ...data, reasonForReferral: html })
+                  if (html.length > 50) markSectionComplete("referral")
                 }}
                 placeholder="Include presenting concerns, who referred the client, chief complaints, and goals for treatment..."
-                className="min-h-[120px] focus:ring-2 focus:ring-[#0D9488]"
+                fieldName="Reason for Referral"
               />
             </CardContent>
           </Card>
@@ -282,41 +283,32 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
                   <AccordionContent className="space-y-4 pt-4">
                     <div>
                       <Label>Motor Skills (walking, fine motor development)</Label>
-                      <AITextarea
-                        fieldName="Developmental Milestones - Motor Skills"
+                      <RichTextEditor
                         value={data.developmentalMilestones.motorSkills}
-                        onChange={(e) => {
-                          updateField("developmentalMilestones", "motorSkills", e.target.value)
-                          if (e.target.value.length > 20) markSectionComplete("milestones")
-                        }}
-                        onValueChange={(value) => {
-                          updateField("developmentalMilestones", "motorSkills", value)
-                          if (value.length > 20) markSectionComplete("milestones")
+                        onChange={(html) => {
+                          updateField("developmentalMilestones", "motorSkills", html)
+                          if (html.length > 20) markSectionComplete("milestones")
                         }}
                         placeholder="Describe motor skill development..."
-                        className="mt-1.5"
+                        fieldName="Developmental Milestones - Motor Skills"
                       />
                     </div>
                     <div>
                       <Label>Communication (first words, current language level)</Label>
-                      <AITextarea
-                        fieldName="Developmental Milestones - Communication"
+                      <RichTextEditor
                         value={data.developmentalMilestones.communication}
-                        onChange={(e) => updateField("developmentalMilestones", "communication", e.target.value)}
-                        onValueChange={(value) => updateField("developmentalMilestones", "communication", value)}
+                        onChange={(html) => updateField("developmentalMilestones", "communication", html)}
                         placeholder="Describe communication milestones..."
-                        className="mt-1.5"
+                        fieldName="Developmental Milestones - Communication"
                       />
                     </div>
                     <div>
                       <Label>Social (eye contact, joint attention, peer interaction)</Label>
-                      <AITextarea
-                        fieldName="Developmental Milestones - Social"
+                      <RichTextEditor
                         value={data.developmentalMilestones.social}
-                        onChange={(e) => updateField("developmentalMilestones", "social", e.target.value)}
-                        onValueChange={(value) => updateField("developmentalMilestones", "social", value)}
+                        onChange={(html) => updateField("developmentalMilestones", "social", html)}
                         placeholder="Describe social development..."
-                        className="mt-1.5"
+                        fieldName="Developmental Milestones - Social"
                       />
                     </div>
                     <div className="flex items-center space-x-2">
@@ -475,46 +467,38 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
                     </div>
                     <div>
                       <Label>Allergies</Label>
-                      <AITextarea
-                        fieldName="Medical History - Allergies"
+                      <RichTextEditor
                         value={data.medicalHistory.allergies}
-                        onChange={(e) => updateField("medicalHistory", "allergies", e.target.value)}
-                        onValueChange={(value) => updateField("medicalHistory", "allergies", value)}
+                        onChange={(html) => updateField("medicalHistory", "allergies", html)}
                         placeholder="Food, medication, environmental allergies..."
-                        className="mt-1.5"
+                        fieldName="Medical History - Allergies"
                       />
                     </div>
                     <div>
                       <Label>Medical Conditions</Label>
-                      <AITextarea
-                        fieldName="Medical History - Conditions"
+                      <RichTextEditor
                         value={data.medicalHistory.conditions}
-                        onChange={(e) => updateField("medicalHistory", "conditions", e.target.value)}
-                        onValueChange={(value) => updateField("medicalHistory", "conditions", value)}
+                        onChange={(html) => updateField("medicalHistory", "conditions", html)}
                         placeholder="Chronic conditions, diagnoses, etc."
-                        className="mt-1.5"
+                        fieldName="Medical History - Conditions"
                       />
                     </div>
                     <div>
                       <Label>Hospitalizations</Label>
-                      <AITextarea
-                        fieldName="Medical History - Hospitalizations"
+                      <RichTextEditor
                         value={data.medicalHistory.hospitalizations}
-                        onChange={(e) => updateField("medicalHistory", "hospitalizations", e.target.value)}
-                        onValueChange={(value) => updateField("medicalHistory", "hospitalizations", value)}
+                        onChange={(html) => updateField("medicalHistory", "hospitalizations", html)}
                         placeholder="Past hospitalizations, surgeries, or emergency visits..."
-                        className="mt-1.5"
+                        fieldName="Medical History - Hospitalizations"
                       />
                     </div>
                     <div>
                       <Label>Specialists Currently Seeing</Label>
-                      <AITextarea
-                        fieldName="Medical History - Specialists"
+                      <RichTextEditor
                         value={data.medicalHistory.specialists}
-                        onChange={(e) => updateField("medicalHistory", "specialists", e.target.value)}
-                        onValueChange={(value) => updateField("medicalHistory", "specialists", value)}
+                        onChange={(html) => updateField("medicalHistory", "specialists", html)}
                         placeholder="Neurologist, psychiatrist, developmental pediatrician, etc."
-                        className="mt-1.5"
+                        fieldName="Medical History - Specialists"
                       />
                     </div>
                   </AccordionContent>
@@ -531,41 +515,32 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
                   <AccordionContent className="space-y-4 pt-4">
                     <div>
                       <Label>Family Structure</Label>
-                      <AITextarea
-                        fieldName="Family History - Family Structure"
+                      <RichTextEditor
                         value={data.familyHistory.familyStructure}
-                        onChange={(e) => {
-                          updateField("familyHistory", "familyStructure", e.target.value)
-                          if (e.target.value.length > 20) markSectionComplete("family")
-                        }}
-                        onValueChange={(value) => {
-                          updateField("familyHistory", "familyStructure", value)
-                          if (value.length > 20) markSectionComplete("family")
+                        onChange={(html) => {
+                          updateField("familyHistory", "familyStructure", html)
+                          if (html.length > 20) markSectionComplete("family")
                         }}
                         placeholder="Parents, siblings, living situation, custody arrangements..."
-                        className="mt-1.5"
+                        fieldName="Family History - Family Structure"
                       />
                     </div>
                     <div>
                       <Label>Relevant Psychiatric/Developmental History</Label>
-                      <AITextarea
-                        fieldName="Family History - Relevant History"
+                      <RichTextEditor
                         value={data.familyHistory.relevantHistory}
-                        onChange={(e) => updateField("familyHistory", "relevantHistory", e.target.value)}
-                        onValueChange={(value) => updateField("familyHistory", "relevantHistory", value)}
+                        onChange={(html) => updateField("familyHistory", "relevantHistory", html)}
                         placeholder="Family history of ASD, ADHD, learning disabilities, mental health conditions..."
-                        className="mt-1.5"
+                        fieldName="Family History - Relevant History"
                       />
                     </div>
                     <div>
                       <Label>Languages Spoken at Home</Label>
-                      <AITextarea
-                        fieldName="Family History - Languages Spoken"
+                      <RichTextEditor
                         value={data.familyHistory.languagesSpoken}
-                        onChange={(e) => updateField("familyHistory", "languagesSpoken", e.target.value)}
-                        onValueChange={(value) => updateField("familyHistory", "languagesSpoken", value)}
+                        onChange={(html) => updateField("familyHistory", "languagesSpoken", html)}
                         placeholder="English, Spanish, bilingual household, etc."
-                        className="mt-1.5"
+                        fieldName="Family History - Languages Spoken"
                       />
                     </div>
                   </AccordionContent>
@@ -582,19 +557,14 @@ export function BackgroundHistory({ clientData, onSave }: BackgroundHistoryProps
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-4">
-                    <AITextarea
-                      fieldName="Major Concerns"
+                    <RichTextEditor
                       value={data.majorConcerns}
-                      onChange={(e) => {
-                        setData({ ...data, majorConcerns: e.target.value })
-                        if (e.target.value.length > 50) markSectionComplete("concerns")
-                      }}
-                      onValueChange={(value) => {
-                        setData({ ...data, majorConcerns: value })
-                        if (value.length > 50) markSectionComplete("concerns")
+                      onChange={(html) => {
+                        setData({ ...data, majorConcerns: html })
+                        if (html.length > 50) markSectionComplete("concerns")
                       }}
                       placeholder="List current problem behaviors, impact on daily life, safety concerns, previous incidents..."
-                      className="min-h-[100px]"
+                      fieldName="Major Concerns"
                     />
                   </AccordionContent>
                 </AccordionItem>
