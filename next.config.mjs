@@ -8,6 +8,11 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
 }
 
 export default withSentryConfig(nextConfig, {
@@ -16,5 +21,4 @@ export default withSentryConfig(nextConfig, {
   project: process.env.SENTRY_PROJECT || "aria-app",
   widenClientFileUpload: true,
   hideSourceMaps: true,
-  disableLogger: true,
 })
