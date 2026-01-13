@@ -9,6 +9,7 @@ import TableHeader from "@tiptap/extension-table-header"
 import DOMPurify from "dompurify"
 import { Bold, Italic, List, ListOrdered, TableIcon, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 
 interface RichTextEditorProps {
   value?: string
@@ -56,6 +57,12 @@ export default function RichTextEditor({
   onAIGenerate,
   isGenerating = false,
 }: RichTextEditorProps) {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const editor = useEditor({
     extensions: [StarterKit, Table.configure({ resizable: true }), TableRow, TableHeader, TableCell],
     content: value,
@@ -80,25 +87,27 @@ export default function RichTextEditor({
               "p",
               "br",
               "strong",
-              "b",
               "em",
-              "i",
               "u",
-              "ul",
-              "ol",
-              "li",
               "h1",
               "h2",
               "h3",
               "h4",
+              "h5",
+              "h6",
+              "ul",
+              "ol",
+              "li",
               "table",
-              "tr",
-              "td",
-              "th",
               "thead",
               "tbody",
+              "tr",
+              "th",
+              "td",
+              "blockquote",
+              "a",
             ],
-            ALLOWED_ATTR: ["colspan", "rowspan"],
+            ALLOWED_ATTR: ["href", "colspan", "rowspan"],
           })
 
           editor?.commands.insertContent(cleanedHTML)
@@ -113,13 +122,21 @@ export default function RichTextEditor({
     },
   })
 
+  if (!isMounted) {
+    return (
+      <div className="border rounded-lg bg-gray-50 animate-pulse h-[200px] flex items-center justify-center">
+        <span className="text-gray-400 text-sm">Cargando editor...</span>
+      </div>
+    )
+  }
+
   if (!editor) {
-    return <div className="h-[200px] border rounded-lg bg-gray-50 animate-pulse" />
+    return null
   }
 
   return (
-    <div className="border rounded-lg bg-white overflow-hidden">
-      <div className="flex items-center gap-1 p-2 border-b bg-gray-50 flex-wrap">
+    <div className="border rounded-lg overflow-hidden">
+      <div className="flex items-center gap-1 p-2 border-b bg-gray-50">
         <Button
           type="button"
           variant="ghost"
@@ -138,7 +155,6 @@ export default function RichTextEditor({
         >
           <Italic className="h-4 w-4" />
         </Button>
-        <div className="w-px h-6 bg-gray-300 mx-1" />
         <Button
           type="button"
           variant="ghost"
@@ -157,12 +173,11 @@ export default function RichTextEditor({
         >
           <ListOrdered className="h-4 w-4" />
         </Button>
-        <div className="w-px h-6 bg-gray-300 mx-1" />
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run()}
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
         >
           <TableIcon className="h-4 w-4" />
         </Button>
@@ -172,28 +187,19 @@ export default function RichTextEditor({
         {onAIGenerate && (
           <Button
             type="button"
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={onAIGenerate}
             disabled={isGenerating}
-            className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 hover:from-purple-600 hover:to-pink-600"
+            className="gap-2"
           >
-            <Sparkles className="h-4 w-4 mr-1" />
-            {isGenerating ? "Generating..." : "AI Generate"}
+            <Sparkles className="h-4 w-4" />
+            {isGenerating ? "Generando..." : "Generar con IA"}
           </Button>
         )}
       </div>
 
-      <div className="relative">
-        <EditorContent editor={editor} />
-        {!editor.getText() && (
-          <div className="absolute top-4 left-4 text-gray-400 pointer-events-none">{placeholder}</div>
-        )}
-      </div>
-
-      <div className="px-3 py-2 border-t bg-gray-50 text-xs text-gray-500">
-        💡 Tip: Puedes pegar directamente desde Word o Excel - el formato se preservará
-      </div>
+      <EditorContent editor={editor} className="bg-white" />
     </div>
   )
 }
