@@ -203,6 +203,8 @@ export default function BackgroundHistoryForm({ clientData, onSave }: Background
 
   // AI generation handler for RichTextEditor fields
   const generateAIContent = async (fieldName: string) => {
+    console.log("[v0] AI generation started for field:", fieldName)
+
     const stateMap: Record<string, [boolean, React.Dispatch<React.SetStateAction<boolean>>, string]> = {
       reasonForReferral: [isGeneratingReason, setIsGeneratingReason, "reasonForReferral"],
       motorSkills: [isGeneratingMotorSkills, setIsGeneratingMotorSkills, "developmentalMilestones.motorSkills"],
@@ -211,11 +213,16 @@ export default function BackgroundHistoryForm({ clientData, onSave }: Background
     }
 
     const [, setIsGenerating, dataPath] = stateMap[fieldName] || []
-    if (!setIsGenerating) return
+    if (!setIsGenerating) {
+      console.error("[v0] No state setter found for field:", fieldName)
+      return
+    }
 
     setIsGenerating(true)
 
     try {
+      console.log("[v0] Calling AI API with context:", { fieldName, currentData: data })
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -225,9 +232,13 @@ export default function BackgroundHistoryForm({ clientData, onSave }: Background
         }),
       })
 
-      if (!response.ok) throw new Error("Failed to generate content")
+      if (!response.ok) {
+        console.error("[v0] AI API response not OK:", response.status, response.statusText)
+        throw new Error("Failed to generate content")
+      }
 
       const result = await response.json()
+      console.log("[v0] AI generation successful, content length:", result.content?.length)
 
       // Update the appropriate field
       if (fieldName === "reasonForReferral") {

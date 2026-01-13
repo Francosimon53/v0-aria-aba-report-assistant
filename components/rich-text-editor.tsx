@@ -3,7 +3,7 @@
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { TableKit } from "@tiptap/extension-table"
-import { Bold, Italic, List, ListOrdered, TableIcon } from "lucide-react"
+import { Bold, Italic, List, ListOrdered, TableIcon, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 import DOMPurify from "dompurify"
@@ -106,6 +106,12 @@ export default function RichTextEditor({
     },
   })
 
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value)
+    }
+  }, [editor, value])
+
   if (!isMounted) {
     return (
       <div className="border rounded-md">
@@ -166,16 +172,33 @@ export default function RichTextEditor({
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          title="Insert table"
         >
           <TableIcon className="h-4 w-4" />
         </Button>
+
+        {editor.isActive("table") && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().deleteTable().run()}
+            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+            title="Delete table"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
 
         {onAIGenerate && (
           <>
             <div className="flex-1" />
             <button
               type="button"
-              onClick={onAIGenerate}
+              onClick={() => {
+                console.log("[v0] AI Generate button clicked")
+                onAIGenerate()
+              }}
               disabled={isGenerating}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-md hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
