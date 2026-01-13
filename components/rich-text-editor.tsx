@@ -6,6 +6,7 @@ import { TableKit } from "@tiptap/extension-table"
 import { Bold, Italic, List, ListOrdered, TableIcon, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
+import DOMPurify from "dompurify"
 
 interface RichTextEditorProps {
   value?: string
@@ -47,13 +48,9 @@ export default function RichTextEditor({
   isGenerating = false,
 }: RichTextEditorProps) {
   const [isMounted, setIsMounted] = useState(false)
-  const [DOMPurify, setDOMPurify] = useState<any>(null)
 
   useEffect(() => {
     setIsMounted(true)
-    import("dompurify").then((mod) => {
-      setDOMPurify(mod.default)
-    })
   }, [])
 
   const editor = useEditor({
@@ -70,8 +67,6 @@ export default function RichTextEditor({
         class: "text-base leading-relaxed focus:outline-none min-h-[200px] p-4",
       },
       handlePaste: (view, event) => {
-        if (!DOMPurify) return false
-
         const html = event.clipboardData?.getData("text/html")
         if (!html) return false
 
