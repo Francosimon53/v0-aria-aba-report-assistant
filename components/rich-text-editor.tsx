@@ -62,7 +62,7 @@ export default function RichTextEditor({
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: "prose prose-sm max-w-none focus:outline-none min-h-[150px] p-4",
+        class: "focus:outline-none min-h-[150px] p-4 text-base leading-relaxed",
       },
       handlePaste: (view, event, slice) => {
         const clipboardData = event.clipboardData
