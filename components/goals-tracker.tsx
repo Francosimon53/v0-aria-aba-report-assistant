@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "./ui/card"
 import { Button } from "./ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
@@ -9,8 +9,7 @@ import { Progress } from "./ui/progress"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
 import { Label } from "./ui/label"
-import { useRAGSuggestions } from "@/hooks/useRAGSuggestions"
-import { Sparkles, Loader2 } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
 import {
   TargetIcon,
   PlusIcon,
@@ -21,8 +20,11 @@ import {
   EditIcon,
   ArchiveIcon,
   XIcon,
+  Sparkles,
+  Loader2,
 } from "./icons"
 import { cn } from "@/lib/utils"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 
 type GoalStatus = "not-started" | "in-progress" | "mastery" | "discontinued"
 type GoalType = "behavior-reduction" | "skill-acquisition" | "parent-training"
@@ -57,68 +59,7 @@ const statusConfig = {
 }
 
 export function GoalsTracker() {
-  const [ltos, setLtos] = useState<LongTermObjective[]>([
-    {
-      id: "lto-1",
-      type: "behavior-reduction",
-      description: "Reduce physical aggression towards peers from 5x/day to 1x/week",
-      startDate: "2024-01-15",
-      targetDate: "2024-07-15",
-      status: "in-progress",
-      progress: 65,
-      expanded: true,
-      stos: [
-        {
-          id: "sto-1-1",
-          description: "Use functional communication when frustrated instead of hitting",
-          baseline: "0% of opportunities",
-          current: "45% of opportunities",
-          masteryCriteria: "80% over 3 consecutive sessions",
-          status: "in-progress",
-          progress: 45,
-        },
-        {
-          id: "sto-1-2",
-          description: "Request break using break card when overwhelmed",
-          baseline: "0% of opportunities",
-          current: "70% of opportunities",
-          masteryCriteria: "90% over 5 consecutive sessions",
-          status: "in-progress",
-          progress: 70,
-        },
-      ],
-    },
-    {
-      id: "lto-2",
-      type: "skill-acquisition",
-      description: "Independently complete 10-step tooth brushing routine",
-      startDate: "2024-01-20",
-      targetDate: "2024-06-20",
-      status: "in-progress",
-      progress: 40,
-      expanded: false,
-      stos: [
-        {
-          id: "sto-2-1",
-          description: "Complete steps 1-3 (wet brush, apply toothpaste, start brushing)",
-          baseline: "0/3 steps",
-          current: "3/3 steps",
-          masteryCriteria: "3/3 steps for 5 consecutive days",
-          status: "mastery",
-          progress: 100,
-        },
-        {
-          id: "sto-2-2",
-          description: "Complete steps 4-7 (brush all quadrants systematically)",
-          baseline: "0/4 steps",
-          current: "2/4 steps",
-          masteryCriteria: "4/4 steps for 5 consecutive days",
-          status: "in-progress",
-          progress: 50,
-        },
-      ],
-    },
-  ])
+  const [ltos, setLtos] = useState<LongTermObjective[]>([])
 
   const [filterType, setFilterType] = useState<GoalType | "all">("all")
   const [filterStatus, setFilterStatus] = useState<GoalStatus | "all">("all")
@@ -129,11 +70,100 @@ export function GoalsTracker() {
     targetDate: "",
   })
 
-  // RAG Suggestions Hook
-  const { suggestions, isLoading: ragLoading, getSuggestions } = useRAGSuggestions()
+  const [isGeneratingSTOs, setIsGeneratingSTOs] = useState(false)
+  const [generatingForLTO, setGeneratingForLTO] = useState<string | null>(null)
 
-  const handleGetGoalSuggestions = async () => {
-    await getSuggestions("ABA therapy goals behavior reduction skill acquisition insurance requirements")
+  useEffect(() => {
+    const savedGoals = localStorage.getItem("aria-goals")
+    if (savedGoals) {
+      try {
+        const parsed = JSON.parse(savedGoals)
+        if (parsed && parsed.length > 0) {
+          setLtos(parsed)
+          console.log("[v0] Goals loaded from localStorage:", parsed.length, "goals")
+        } else {
+          loadDemoData()
+        }
+      } catch (e) {
+        console.error("[v0] Error loading goals from localStorage:", e)
+        loadDemoData()
+      }
+    } else {
+      loadDemoData()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (ltos && ltos.length > 0) {
+      localStorage.setItem("aria-goals", JSON.stringify(ltos))
+      console.log("[v0] Goals saved to localStorage:", ltos.length, "goals")
+    }
+  }, [ltos])
+
+  const loadDemoData = () => {
+    const demoData: LongTermObjective[] = [
+      {
+        id: "lto-1",
+        type: "behavior-reduction",
+        description: "Reduce physical aggression towards peers from 5x/day to 1x/week",
+        startDate: "2024-01-15",
+        targetDate: "2024-07-15",
+        status: "in-progress",
+        progress: 65,
+        expanded: true,
+        stos: [
+          {
+            id: "sto-1-1",
+            description: "Use functional communication when frustrated instead of hitting",
+            baseline: "0% of opportunities",
+            current: "45% of opportunities",
+            masteryCriteria: "80% over 3 consecutive sessions",
+            status: "in-progress",
+            progress: 45,
+          },
+          {
+            id: "sto-1-2",
+            description: "Request break using break card when overwhelmed",
+            baseline: "0% of opportunities",
+            current: "70% of opportunities",
+            masteryCriteria: "90% over 5 consecutive sessions",
+            status: "in-progress",
+            progress: 70,
+          },
+        ],
+      },
+      {
+        id: "lto-2",
+        type: "skill-acquisition",
+        description: "Independently complete 10-step tooth brushing routine",
+        startDate: "2024-01-20",
+        targetDate: "2024-06-20",
+        status: "in-progress",
+        progress: 40,
+        expanded: false,
+        stos: [
+          {
+            id: "sto-2-1",
+            description: "Complete steps 1-3 (wet brush, apply toothpaste, start brushing)",
+            baseline: "0/3 steps",
+            current: "3/3 steps",
+            masteryCriteria: "3/3 steps for 5 consecutive days",
+            status: "mastery",
+            progress: 100,
+          },
+          {
+            id: "sto-2-2",
+            description: "Complete steps 4-7 (brush all quadrants systematically)",
+            baseline: "0/4 steps",
+            current: "2/4 steps",
+            masteryCriteria: "4/4 steps for 5 consecutive days",
+            status: "in-progress",
+            progress: 50,
+          },
+        ],
+      },
+    ]
+    setLtos(demoData)
   }
 
   const toggleLTOExpanded = (ltoId: string) => {
@@ -155,6 +185,56 @@ export function GoalsTracker() {
           : lto,
       ),
     )
+  }
+
+  const handleAutoGenerateSTOs = async (lto: LongTermObjective) => {
+    setIsGeneratingSTOs(true)
+    setGeneratingForLTO(lto.id)
+
+    try {
+      const response = await fetch("/api/generate-stos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          goalTitle: lto.description,
+          goalDescription: lto.description,
+          domain: lto.type,
+          currentBaseline: lto.stos[0]?.baseline || "Unknown",
+          targetCriteria: lto.stos[0]?.masteryCriteria || "80% over 3 sessions",
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.stos && data.stos.length > 0) {
+        setLtos(
+          ltos.map((l) =>
+            l.id === lto.id
+              ? {
+                  ...l,
+                  stos: [...l.stos, ...data.stos],
+                  expanded: true,
+                }
+              : l,
+          ),
+        )
+
+        toast({
+          title: "STOs Generated",
+          description: `AI generated ${data.stos.length} short-term objectives.`,
+        })
+      }
+    } catch (error) {
+      console.error("Error generating STOs:", error)
+      toast({
+        title: "Generation failed",
+        description: "Could not generate STOs. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGeneratingSTOs(false)
+      setGeneratingForLTO(null)
+    }
   }
 
   const filteredLtos = ltos.filter((lto) => {
@@ -236,9 +316,12 @@ export function GoalsTracker() {
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Goals & Objectives Tracker</h1>
-          <p className="text-muted-foreground mt-2">Monitor progress across all treatment goals and objectives</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Goals & Objectives Tracker</h1>
+            <p className="text-muted-foreground mt-2">Monitor progress across all treatment goals and objectives</p>
+          </div>
+          <AssessmentTypeBadge />
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="gap-2 bg-transparent" onClick={handleExport}>
@@ -358,33 +441,6 @@ export function GoalsTracker() {
                 placeholder="e.g., Client will independently request items using verbal language"
                 rows={3}
               />
-              {/* RAG Suggestions Button */}
-              <button
-                type="button"
-                onClick={handleGetGoalSuggestions}
-                disabled={ragLoading}
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-medium rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all shadow-md"
-              >
-                {ragLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4" />
-                )}
-                Get AI Goal Suggestions
-              </button>
-              {suggestions.length > 0 && (
-                <div className="mt-2 space-y-2">
-                  {suggestions.slice(0, 3).map((s, i) => (
-                    <div
-                      key={i}
-                      onClick={() => setNewLTO({ ...newLTO, description: s.text })}
-                      className="p-2 text-sm bg-purple-50 border border-purple-200 rounded cursor-pointer hover:bg-purple-100"
-                    >
-                      {s.text.substring(0, 150)}...
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
             <div>
               <Label htmlFor="target-date">Target Date</Label>
@@ -476,17 +532,34 @@ export function GoalsTracker() {
 
             {/* STOs Section */}
             <div className="border-t">
-              <button
-                onClick={() => toggleLTOExpanded(lto.id)}
-                className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-sm font-medium text-gray-700">Short-Term Objectives ({lto.stos.length})</span>
-                {lto.expanded ? (
-                  <ChevronUpIcon className="h-4 w-4 text-gray-500" />
-                ) : (
-                  <ChevronDownIcon className="h-4 w-4 text-gray-500" />
-                )}
-              </button>
+              <div className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <button onClick={() => toggleLTOExpanded(lto.id)} className="flex items-center gap-2 flex-1">
+                  <span className="text-sm font-medium text-gray-700">Short-Term Objectives ({lto.stos.length})</span>
+                  {lto.expanded ? (
+                    <ChevronUpIcon className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+                  )}
+                </button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAutoGenerateSTOs(lto)}
+                  disabled={isGeneratingSTOs}
+                >
+                  {isGeneratingSTOs && generatingForLTO === lto.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Auto-generate STOs
+                    </>
+                  )}
+                </Button>
+              </div>
 
               {lto.expanded && (
                 <div className="p-6 pt-0 space-y-3">

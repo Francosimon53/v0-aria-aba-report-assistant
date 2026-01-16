@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
 import {
   UserIcon,
   ClipboardListIcon,
@@ -12,10 +11,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CheckCircle2Icon,
-  RepeatIcon,
   DatabaseIcon,
   HelpCircleIcon,
-  HomeIcon,
   ClockIcon,
   AlertTriangleIcon,
   TrendingUpIcon,
@@ -23,20 +20,14 @@ import {
   CalendarIcon,
   EditIcon,
   FileIcon,
-  BarChart3Icon, // Added BarChart3Icon for Progress Dashboard
-} from "@/components/icons"
+  ArrowLeft,
+} from "lucide-react"
 import type { ClientData, AssessmentData } from "@/lib/types"
 
 type ActiveView =
   | "chat"
   | "client"
   | "assessment"
-  | "reassessment"
-  | "goals"
-  | "report"
-  | "integration"
-  | "support"
-  | "timesaved"
   | "abc" // Added ABC observation view type
   | "interventions" // Added interventions view type
   | "protocols" // Added protocols view type
@@ -47,8 +38,13 @@ type ActiveView =
   | "consent" // Added consent view type
   | "background" // Added background view type
   | "medicalnecessity" // Added medical necessity view type
-  | "progressdashboard" // Added progress dashboard view type
   | "cptauth" // Added cptauth view type
+  | "dashboard" // Added dashboard view type
+  | "integration"
+  | "goals"
+  | "timesaved"
+  | "support"
+  | "report"
 
 interface SidebarProps {
   activeView: ActiveView
@@ -78,7 +74,7 @@ export function Sidebar({
       completed: !!clientData,
     },
     {
-      id: "background" as const, // Added Background & History nav item
+      id: "background" as const,
       label: "Background & History",
       icon: FileIcon,
       description: "Developmental & clinical history",
@@ -89,19 +85,6 @@ export function Sidebar({
       icon: ClipboardListIcon,
       description: "Enter assessment data",
       completed: !!assessmentData,
-    },
-    {
-      id: "reassessment" as const,
-      label: "Reassessment",
-      icon: RepeatIcon,
-      description: "Track progress & update",
-      completed: false,
-    },
-    {
-      id: "progressdashboard" as const, // Added Progress Dashboard nav item
-      label: "Progress Dashboard",
-      icon: BarChart3Icon,
-      description: "Visual outcomes & comparison",
     },
     {
       id: "abc" as const,
@@ -159,22 +142,16 @@ export function Sidebar({
       description: "Weekly CPT code planning",
     },
     {
-      id: "cptauth" as const, // Added CPT Authorization Request nav item
+      id: "cptauth" as const,
       label: "CPT Auth Request",
       icon: FileTextIcon,
       description: "Service request & justification",
     },
     {
-      id: "consent" as const, // Added consent form navigation item
+      id: "consent" as const,
       label: "Consent Forms",
       icon: EditIcon,
       description: "Digital signatures & legal docs",
-    },
-    {
-      id: "report" as const,
-      label: "Report",
-      icon: FileTextIcon,
-      description: "Generate & export",
     },
     {
       id: "timesaved" as const,
@@ -189,10 +166,16 @@ export function Sidebar({
       description: "HIPAA, regulations & FAQs",
     },
     {
-      id: "medicalnecessity" as const, // Added medical necessity nav item
+      id: "medicalnecessity" as const,
       label: "Medical Necessity",
       icon: FileTextIcon,
       description: "AI-powered justification writer",
+    },
+    {
+      id: "report" as const,
+      label: "Generate Report",
+      icon: FileTextIcon,
+      description: "Generate & export",
     },
   ]
 
@@ -205,7 +188,7 @@ export function Sidebar({
     >
       <div className="flex items-center justify-between p-4 border-b border-border">
         {!collapsed && (
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <div className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
               A
             </div>
@@ -213,30 +196,29 @@ export function Sidebar({
               <h1 className="font-semibold text-foreground">ARIA</h1>
               <p className="text-xs text-muted-foreground">ABA Assistant</p>
             </div>
-          </Link>
+          </div>
         )}
         <Button variant="ghost" size="icon" onClick={onToggleCollapse} className="h-8 w-8">
           {collapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
         </Button>
       </div>
 
+      <div className="p-2 border-b border-border">
+        <Button
+          variant="outline"
+          className={cn(
+            "w-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-700 font-medium",
+            collapsed ? "justify-center px-2" : "justify-start gap-3",
+          )}
+          onClick={() => (window.location.href = "/dashboard")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {!collapsed && <span>Back to Dashboard</span>}
+        </Button>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-2">
         <nav className="space-y-1">
-          <Link href="/">
-            <Button
-              variant="ghost"
-              className={cn("w-full justify-start gap-3 h-auto py-3 mb-2 border-b", collapsed && "justify-center px-2")}
-            >
-              <HomeIcon className="h-5 w-5 text-muted-foreground" />
-              {!collapsed && (
-                <div className="flex-1 text-left">
-                  <span className="text-sm font-medium text-muted-foreground">Back to Home</span>
-                  <span className="text-xs text-muted-foreground block">Return to landing page</span>
-                </div>
-              )}
-            </Button>
-          </Link>
-
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = activeView === item.id

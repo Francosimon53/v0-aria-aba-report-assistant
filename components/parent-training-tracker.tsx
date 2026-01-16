@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,17 +8,23 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Progress } from "@/components/ui/progress"
+import { useToast } from "@/hooks/use-toast"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 import {
   CheckIcon,
   CheckCircle2Icon,
-  PlayIcon,
   DownloadIcon,
   UsersIcon,
   BookOpenIcon,
-  VideoIcon,
+  SparklesIcon,
+  Loader2Icon,
+  TargetIcon,
+  ListOrderedIcon,
+  HomeIcon,
+  ClipboardCheckIcon,
+  SaveIcon,
 } from "@/components/icons"
-import { useRAGSuggestions } from "@/hooks/useRAGSuggestions"
-import { Sparkles, Loader2 } from "lucide-react"
+import { saveParentTrainingProgress, getCurrentUser } from "@/app/actions/assessment-actions"
 
 interface TrainingModule {
   id: string
@@ -155,8 +161,191 @@ export function ParentTrainingTracker() {
   const [selectedModule, setSelectedModule] = useState<string | null>(null)
   const [newFidelityScores, setNewFidelityScores] = useState<Record<string, string>>({})
 
-  // RAG Integration
-  const { suggestions, isLoading, error, fetchSuggestions } = useRAGSuggestions()
+  const [moduleContent, setModuleContent] = useState<Record<string, any>>({})
+  const [generatingModule, setGeneratingModule] = useState<string | null>(null)
+  const [savedInterventions, setSavedInterventions] = useState<any[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem("aria-parent-training-data")
+      if (savedData) {
+        const parsed = JSON.parse(savedData)
+        if (parsed.modules) setModules(parsed.modules)
+        if (parsed.moduleContent) setModuleContent(parsed.moduleContent)
+        if (parsed.newFidelityScores) setNewFidelityScores(parsed.newFidelityScores)
+        if (parsed.selectedModule) setSelectedModule(parsed.selectedModule)
+        console.log("[v0] Loaded parent training data from localStorage")
+      }
+    } catch (e) {
+      console.error("[v0] Error loading parent training data:", e)
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("aria-assessment-selected-interventions")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        console.log("[v0] Loaded interventions from localStorage:", parsed)
+        setSavedInterventions(parsed.data || parsed || [])
+      }
+    } catch (e) {
+      console.error("[v0] Error loading interventions:", e)
+    }
+  }, [])
+
+  const handleSaveAll = useCallback(
+    async (silent = false) => {
+      console.log("[v0] Save All clicked", { silent, isSaving })
+
+      if (isSaving) {
+        console.log("[v0] Already saving, skipping...")
+        return
+      }
+
+      setIsSaving(true)
+
+      try {
+        const dataToSave = {
+          modules,
+          moduleContent,
+          newFidelityScores,
+          selectedModule,
+          lastSaved: new Date().toISOString(),
+        }
+
+        console.log("[v0] Data to save:", {
+          modulesCount: modules.length,
+          contentKeys: Object.keys(moduleContent),
+          fidelityScores: newFidelityScores,
+        })
+
+        // Save to localStorage as backup/cache
+        localStorage.setItem("aria-parent-training-data", JSON.stringify(dataToSave))
+        console.log("[v0] Saved to localStorage")
+
+        // Save to Supabase cloud
+        let cloudSaveSuccess = false
+        try {
+          const user = await getCurrentUser()
+          console.log("[v0] Current user:", user ? "Found" : "Not found")
+
+          if (user) {
+            // Get or create assessment ID from URL or localStorage
+            const urlParams = new URLSearchParams(window.location.search)
+            const assessmentId = urlParams.get("assessmentId") || localStorage.getItem("aria-current-assessment-id")
+            console.log("[v0] Assessment ID:", assessmentId)
+
+            if (assessmentId) {
+              // Save each module's progress to Supabase
+              for (const module of modules) {
+                await saveParentTrainingProgress(assessmentId, {
+                  moduleName: module.name,
+                  status: module.status,
+                  fidelityScore: module.fidelityScore,
+                  sessionNotes: module.notes || "",
+                  aiContent: moduleContent[module.name] || null,
+                })
+              }
+
+              cloudSaveSuccess = true
+              console.log("[v0] Parent training data saved to Supabase successfully")
+            } else {
+              console.log("[v0] No assessment ID found")
+            }
+          }
+        } catch (dbError) {
+          console.error("[v0] Supabase save failed, data saved to localStorage only:", dbError)
+          // Continue - we still have localStorage backup
+        }
+
+        if (!silent) {
+          setSaveSuccess(true)
+          toast({
+            title: "Saved Successfully",
+            description: cloudSaveSuccess
+              ? "All parent training data has been saved to cloud ☁️"
+              : "Data saved locally (cloud sync unavailable)",
+          })
+
+          setTimeout(() => {
+            setSaveSuccess(false)
+          }, 2000)
+        }
+
+        console.log("[v0] Parent training data saved successfully")
+      } catch (e) {
+        console.error("[v0] Error saving parent training data:", e)
+        if (!silent) {
+          toast({
+            title: "Save Failed",
+            description: e instanceof Error ? e.message : "There was an error saving your data.",
+            variant: "destructive",
+          })
+        }
+      } finally {
+        setIsSaving(false)
+      }
+    },
+    [modules, moduleContent, newFidelityScores, selectedModule, isSaving, toast],
+  )
+
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      handleSaveAll(true) // true = silent save (no toast)
+    }, 30000)
+
+    return () => clearInterval(autoSaveInterval)
+  }, [handleSaveAll])
+
+  const handleGenerateModuleContent = async (moduleName: string) => {
+    console.log("[v0] Starting generation for:", moduleName)
+    console.log("[v0] Saved interventions:", savedInterventions)
+    console.log("[v0] Number of interventions:", savedInterventions.length)
+
+    setGeneratingModule(moduleName)
+
+    try {
+      const response = await fetch("/api/generate-parent-training", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          moduleName,
+          interventions: savedInterventions,
+        }),
+      })
+
+      const data = await response.json()
+      console.log("[v0] API Response:", data)
+      console.log("[v0] Response status:", response.status)
+
+      if (!response.ok) {
+        throw new Error(data.error || "Generation failed")
+      }
+
+      setModuleContent((prev) => ({
+        ...prev,
+        [moduleName]: data,
+      }))
+
+      toast({
+        title: "Content Generated",
+        description: `Training content for "${moduleName}" created successfully.`,
+      })
+    } catch (error) {
+      console.error("[v0] Error:", error)
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Could not generate content",
+        variant: "destructive",
+      })
+    } finally {
+      setGeneratingModule(null)
+    }
+  }
 
   const updateModule = (id: string, updates: Partial<TrainingModule>) => {
     setModules(modules.map((m) => (m.id === id ? { ...m, ...updates } : m)))
@@ -240,32 +429,66 @@ export function ParentTrainingTracker() {
   const overallProgress = (completedCount / modules.length) * 100
 
   return (
-    <div className="h-full overflow-auto bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-cyan-50/30 to-blue-50/30 p-6 space-y-6">
+      <Card className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#0D9488] to-[#0F766E] flex items-center justify-center">
-                <UsersIcon className="h-6 w-6 text-white" />
-              </div>
-              Parent Training Curriculum
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Track parent competency and fidelity of implementation
-            </p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#0D9488] to-[#0F766E] flex items-center justify-center">
+                  <UsersIcon className="h-6 w-6 text-white" />
+                </div>
+                Parent Training Curriculum
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
+                Track parent competency and fidelity of implementation
+              </p>
+            </div>
+            <AssessmentTypeBadge />
           </div>
-          <Button
-            className="bg-[#0D9488] hover:bg-[#0F766E] transition-colors duration-300"
-            onClick={handleExportReport}
-          >
-            <DownloadIcon className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
-            <Button variant="outline" size="sm" className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-medium rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all shadow-md" onClick={() => fetchSuggestions("parent training ABA curriculum caregiver")} disabled={isLoading} className="ml-2">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              {isLoading ? "Loading..." : "AI Ideas"}
+          {/* Save All button with visual feedback */}
+          <div className="flex gap-3">
+            <Button
+              className={`transition-all duration-300 cursor-pointer hover:shadow-lg active:scale-95 ${
+                saveSuccess
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : isSaving
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#0D9488] hover:bg-[#0F766E] text-white"
+              }`}
+              onClick={() => {
+                console.log("Save All clicked")
+                handleSaveAll()
+              }}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <CheckCircle2Icon className="h-4 w-4 mr-2" />
+                  Saved ☁️
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Save All
+                </>
+              )}
             </Button>
+            <Button
+              variant="outline"
+              className="border-[#0D9488]/30 hover:bg-[#0D9488]/5 bg-transparent"
+              onClick={handleExportReport}
+            >
+              <DownloadIcon className="h-4 w-4 mr-2" />
+              Export Report
+            </Button>
+          </div>
         </div>
 
         {/* Overall Progress Card */}
@@ -392,6 +615,32 @@ export function ParentTrainingTracker() {
                           <div className="text-sm text-gray-600">Duration: {module.duration}</div>
                         </div>
 
+                        {/* AI Generate Content button */}
+                        <div className="flex items-center gap-2 mr-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleGenerateModuleContent(module.name)
+                            }}
+                            disabled={generatingModule === module.name}
+                            className="gap-1.5 border-[#0D9488]/30 hover:bg-[#0D9488]/5"
+                          >
+                            {generatingModule === module.name ? (
+                              <>
+                                <Loader2Icon className="h-3.5 w-3.5 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <SparklesIcon className="h-3.5 w-3.5 text-[#0D9488]" />
+                                AI Generate Content
+                              </>
+                            )}
+                          </Button>
+                        </div>
+
                         {/* Completion Check */}
                         {module.status === "completed" && (
                           <CheckCircle2Icon className="h-6 w-6 text-green-500 flex-shrink-0" />
@@ -401,6 +650,200 @@ export function ParentTrainingTracker() {
 
                     <AccordionContent>
                       <div className="px-6 pb-6 space-y-4">
+                        {moduleContent[module.name] && (
+                          <div className="mb-6 space-y-6 border-t pt-6">
+                            {/* Learning Objectives */}
+                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                              <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                                <TargetIcon className="h-4 w-4" />
+                                Learning Objectives
+                              </h4>
+                              <ul className="space-y-2">
+                                {moduleContent[module.name].learningObjectives?.map((obj: string, i: number) => (
+                                  <li key={i} className="text-sm text-blue-800 flex items-start gap-2">
+                                    <CheckCircle2Icon className="h-4 w-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                                    {obj}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            {/* Key Concepts */}
+                            <div>
+                              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                <BookOpenIcon className="h-4 w-4 text-[#0D9488]" />
+                                Key Concepts
+                              </h4>
+                              <div className="grid gap-3">
+                                {moduleContent[module.name].keyConceptsSection?.concepts?.map(
+                                  (concept: any, i: number) => (
+                                    <div key={i} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                      <p className="font-medium text-gray-900 mb-1">{concept.term}</p>
+                                      <p className="text-sm text-gray-600 mb-2">{concept.definition}</p>
+                                      <p className="text-sm text-[#0D9488] italic">💡 Example: {concept.example}</p>
+                                    </div>
+                                  ),
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Procedure Steps */}
+                            <div>
+                              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                <ListOrderedIcon className="h-4 w-4 text-[#0D9488]" />
+                                Procedure Steps
+                              </h4>
+                              <div className="space-y-3">
+                                {moduleContent[module.name].procedureSteps?.map((step: any, i: number) => (
+                                  <div key={i} className="border border-gray-200 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="bg-[#0D9488] text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-medium flex-shrink-0">
+                                        {step.step}
+                                      </span>
+                                      <span className="font-medium text-gray-900">{step.title}</span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-2 ml-9">{step.description}</p>
+                                    {step.tips?.length > 0 && (
+                                      <div className="bg-green-50 rounded p-3 mt-2 ml-9 border border-green-200">
+                                        <p className="text-xs font-medium text-green-800 mb-1">💡 Tips:</p>
+                                        <ul className="text-xs text-green-700 space-y-1">
+                                          {step.tips.map((tip: string, j: number) => (
+                                            <li key={j}>• {tip}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {step.commonMistakes?.length > 0 && (
+                                      <div className="bg-red-50 rounded p-3 mt-2 ml-9 border border-red-200">
+                                        <p className="text-xs font-medium text-red-800 mb-1">⚠️ Avoid:</p>
+                                        <ul className="text-xs text-red-700 space-y-1">
+                                          {step.commonMistakes.map((mistake: string, j: number) => (
+                                            <li key={j}>• {mistake}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Practice Scenarios */}
+                            <div>
+                              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                <UsersIcon className="h-4 w-4 text-[#0D9488]" />
+                                Practice Scenarios
+                              </h4>
+                              <div className="space-y-3">
+                                {moduleContent[module.name].practiceScenarios?.map((scenario: any, i: number) => (
+                                  <div key={i} className="border border-gray-200 rounded-lg p-4">
+                                    <p className="text-sm font-medium text-gray-900 mb-3">📋 {scenario.scenario}</p>
+                                    <div className="grid md:grid-cols-2 gap-3">
+                                      <div className="bg-green-50 rounded p-3 border border-green-200">
+                                        <p className="text-xs font-medium text-green-800 mb-1">✅ Correct Response:</p>
+                                        <p className="text-xs text-green-700">{scenario.correctResponse}</p>
+                                      </div>
+                                      <div className="bg-red-50 rounded p-3 border border-red-200">
+                                        <p className="text-xs font-medium text-red-800 mb-1">❌ Avoid:</p>
+                                        <p className="text-xs text-red-700">{scenario.incorrectResponse}</p>
+                                      </div>
+                                    </div>
+                                    <p className="text-xs text-gray-600 mt-2 italic">{scenario.rationale}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Home Activities */}
+                            <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                              <h4 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                                <HomeIcon className="h-4 w-4" />
+                                Home Practice Activities
+                              </h4>
+                              <div className="space-y-3">
+                                {moduleContent[module.name].homeActivities?.map((activity: any, i: number) => (
+                                  <div key={i} className="bg-white rounded p-3 border border-amber-200">
+                                    <p className="font-medium text-sm text-gray-900">{activity.activity}</p>
+                                    <p className="text-xs text-gray-600 mt-1">{activity.description}</p>
+                                    <div className="flex items-center gap-4 mt-2">
+                                      <p className="text-xs text-amber-700 font-medium">📅 {activity.frequency}</p>
+                                      {activity.materials?.length > 0 && (
+                                        <p className="text-xs text-gray-500">
+                                          Materials: {activity.materials.join(", ")}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Fidelity Checklist */}
+                            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                              <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                                <ClipboardCheckIcon className="h-4 w-4" />
+                                Fidelity Checklist
+                              </h4>
+                              <div className="space-y-2">
+                                {moduleContent[module.name].fidelityChecklist?.map((item: string, i: number) => (
+                                  <label
+                                    key={i}
+                                    className="flex items-center gap-2 text-sm text-purple-800 cursor-pointer"
+                                  >
+                                    <input type="checkbox" className="rounded border-purple-300 text-purple-600" />
+                                    {item}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Quiz Questions */}
+                            {moduleContent[module.name].quizQuestions?.length > 0 && (
+                              <div>
+                                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                  <CheckCircle2Icon className="h-4 w-4 text-[#0D9488]" />
+                                  Knowledge Check
+                                </h4>
+                                <div className="space-y-4">
+                                  {moduleContent[module.name].quizQuestions?.map((q: any, i: number) => (
+                                    <div key={i} className="border border-gray-200 rounded-lg p-4 bg-white">
+                                      <p className="font-medium text-sm text-gray-900 mb-3">
+                                        {i + 1}. {q.question}
+                                      </p>
+                                      <div className="space-y-2 mb-3">
+                                        {q.options?.map((option: string, j: number) => (
+                                          <label
+                                            key={j}
+                                            className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+                                          >
+                                            <input
+                                              type="radio"
+                                              name={`quiz-${module.id}-${i}`}
+                                              className="text-[#0D9488]"
+                                            />
+                                            {option}
+                                          </label>
+                                        ))}
+                                      </div>
+                                      <details className="text-xs text-gray-600">
+                                        <summary className="cursor-pointer font-medium text-[#0D9488]">
+                                          Show answer
+                                        </summary>
+                                        <p className="mt-2 bg-green-50 p-2 rounded border border-green-200">
+                                          <span className="font-medium">Correct: {q.correctAnswer}</span>
+                                          <br />
+                                          {q.explanation}
+                                        </p>
+                                      </details>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Original module content */}
                         {/* Learning Objectives */}
                         <div>
                           <h5 className="font-medium text-sm text-gray-700 mb-2">Learning Objectives</h5>
@@ -488,18 +931,6 @@ export function ParentTrainingTracker() {
                           />
                         </div>
 
-                        {/* Video Resources */}
-                        <div>
-                          <h5 className="font-medium text-sm text-gray-700 mb-2 flex items-center gap-2">
-                            <VideoIcon className="h-4 w-4 text-[#0D9488]" />
-                            Video Resources
-                          </h5>
-                          <Button variant="outline" size="sm">
-                            <PlayIcon className="h-4 w-4 mr-2" />
-                            Watch Training Video
-                          </Button>
-                        </div>
-
                         {/* Competency Check & Signature */}
                         {module.status === "in-progress" && (
                           <div className="border-t pt-4 space-y-3">
@@ -556,7 +987,7 @@ export function ParentTrainingTracker() {
             })}
           </Accordion>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

@@ -219,6 +219,38 @@ interface FBAData {
   hypothesizedFunction: string
 }
 
+interface StandardizedAssessmentData {
+  domains: Record<string, { score: string; notes: string }>
+}
+
+interface VinelandData {
+  domains: Record<string, { standardScore: string; percentile: string }>
+  maladaptive?: { internalizing: string; externalizing: string }
+  formType: "parent" | "teacher"
+}
+
+interface FadePlanData {
+  currentPhase: string
+  phaseCriteria: Record<string, { hoursPerWeek: string; criteriaToAdvance: string }>
+  dischargeCriteria: Array<{ tool: string; domain: string; targetScore: string; currentScore: string }>
+}
+
+interface BarriersData {
+  barriers: string[]
+  otherBarrier?: string
+}
+
+interface GeneralizationPlanData {
+  strategies: string[]
+  otherStrategy?: string
+}
+
+interface FamilyGoalsData {
+  clientInfo: any
+  areasOfConcern: string[]
+  dsm5Level: string
+}
+
 export const PROMPT_TEMPLATES = {
   /**
    * Generates a medical necessity statement for insurance authorization
@@ -300,7 +332,7 @@ Generate ONE well-crafted SMART goal following this format.`
     ).length
     const hasBehaviors = data.behavioralConcerns.length > 0
 
-    return `Recommend appropriate ABA service hours and provide clinical justification.
+    return `Write a professional clinical justification for ABA service hours.
 
 ASSESSMENT DATA:
 ${data.impairmentScores.map((score) => `- ${score.domain}: ${score.score} (${score.severity})`).join("\n")}
@@ -315,19 +347,24 @@ ANALYSIS FACTORS:
 - Behavioral concerns present: ${hasBehaviors ? "Yes" : "No"}
 - Age considerations: ${data.clientAge < 5 ? "Early intervention critical period" : "School-age considerations"}
 
-PROVIDE:
-1. Recommended hours per week (comprehensive or focused)
-2. Clinical rationale based on severity and needs
-3. Breakdown by service type (1:1 direct, parent training, supervision)
-4. Expected frequency of sessions
-5. Duration of initial authorization period
-6. Justification for intensity level
+CRITICAL FORMATTING RULES:
+1. Write in PLAIN TEXT only - NO Markdown formatting
+2. DO NOT use asterisks (*), pound signs (#), or any special characters
+3. DO NOT use bullet points with dashes or asterisks
+4. Write in flowing paragraphs with professional clinical language
+5. Use natural sentence structure, not lists
+6. Keep between 150-300 words
+7. Write as if this is going directly on an insurance form
 
-Consider insurance typical maximums:
-- Comprehensive: 30-40 hours/week
-- Focused: 20-25 hours/week
+CONTENT TO INCLUDE:
+- Clinical severity statement based on assessment data
+- Impact on daily functioning in home, school, and community
+- Why intensive ABA services are medically necessary
+- Recommended hours per week with rationale
+- Why less intensive services would be insufficient
+- Brief mention of parent training component
 
-Be specific and data-driven in your recommendation.`
+Write a compelling, professional justification that reads like a formal clinical document. Use complete sentences and proper paragraph structure. Do not use any formatting characters.`
   },
 
   /**
@@ -421,6 +458,349 @@ CREATE A PROFESSIONAL FBA SUMMARY INCLUDING:
 
 Keep it evidence-based and aligned with BACB guidelines.`
   },
+
+  /**
+   * Generates ABLLS-R assessment narrative
+   */
+  abllsNarrative: (data: StandardizedAssessmentData): string => {
+    const domainScores = Object.entries(data.domains || {})
+      .filter(([_, v]) => v.score)
+      .map(([domain, values]) => `- ${domain}: ${values.score} points${values.notes ? ` (${values.notes})` : ""}`)
+      .join("\n")
+
+    return `Write a comprehensive clinical narrative summarizing ABLLS-R assessment results.
+
+ABLLS-R DOMAIN SCORES:
+${domainScores || "No scores provided"}
+
+INSTRUCTIONS:
+1. Summarize overall skill levels based on the scores provided
+2. Identify areas of relative strength (higher percentages of mastery)
+3. Identify areas of significant deficit requiring intervention
+4. Prioritize treatment targets based on developmental importance
+5. Connect findings to functional daily living skills
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks, pound signs, or bullet points
+- Write in flowing professional paragraphs
+- Keep between 200-350 words
+- Use clinical ABA terminology appropriately
+
+Generate a professional narrative suitable for an ABA assessment report.`
+  },
+
+  /**
+   * Generates Vineland-3 interpretation
+   */
+  vinelandInterpretation: (data: VinelandData): string => {
+    const domainScores = Object.entries(data.domains || {})
+      .filter(([_, v]) => v.standardScore)
+      .map(
+        ([domain, values]) => `- ${domain}: Standard Score ${values.standardScore}, ${values.percentile}th percentile`,
+      )
+      .join("\n")
+
+    return `Write a clinical interpretation of Vineland-3 ${data.formType === "teacher" ? "Teacher" : "Parent/Caregiver"} Form results.
+
+DOMAIN SCORES:
+${domainScores || "No scores provided"}
+
+${
+  data.maladaptive
+    ? `MALADAPTIVE BEHAVIOR:
+- Internalizing: ${data.maladaptive.internalizing || "Not reported"}
+- Externalizing: ${data.maladaptive.externalizing || "Not reported"}`
+    : ""
+}
+
+INSTRUCTIONS:
+1. Interpret each domain score in relation to same-age peers
+2. Use standard score ranges: <70 Low, 70-84 Below Average, 85-115 Average, 116-130 Above Average, >130 High
+3. Identify adaptive behavior strengths and weaknesses
+4. Discuss implications for treatment planning
+5. Compare scores across domains to identify patterns
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks, pound signs, or bullet points
+- Write in flowing professional paragraphs
+- Keep between 200-350 words
+
+Generate a professional clinical interpretation for an ABA assessment report.`
+  },
+
+  /**
+   * Generates SRS-2 clinical summary
+   */
+  srs2Summary: (data: { subscales: Record<string, string> }): string => {
+    const scores = Object.entries(data.subscales || {})
+      .filter(([_, v]) => v)
+      .map(([subscale, tScore]) => {
+        const score = Number(tScore)
+        let range = "Within Normal Limits"
+        if (score >= 76) range = "Severe Range"
+        else if (score >= 66) range = "Moderate Range"
+        else if (score >= 60) range = "Mild Range"
+        return `- ${subscale}: T-Score ${tScore} (${range})`
+      })
+      .join("\n")
+
+    return `Write a clinical summary of SRS-2 (Social Responsiveness Scale, Second Edition) results.
+
+SRS-2 T-SCORES:
+${scores || "No scores provided"}
+
+INTERPRETATION GUIDELINES:
+- T-Score ≤59: Within Normal Limits
+- T-Score 60-65: Mild Range (mild deficits in social responsiveness)
+- T-Score 66-75: Moderate Range (moderate deficits, clinically significant)
+- T-Score ≥76: Severe Range (severe deficits in social reciprocity)
+
+INSTRUCTIONS:
+1. Interpret the overall social responsiveness profile
+2. Identify specific areas of social difficulty
+3. Discuss implications for ABA treatment targets
+4. Connect findings to social communication goals
+5. Note any discrepancies between subscales
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks, pound signs, or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Keep between 150-250 words
+
+Generate a professional clinical summary suitable for an ABA assessment report.`
+  },
+
+  /**
+   * Generates Fade Plan narrative
+   */
+  fadePlanNarrative: (data: FadePlanData): string => {
+    const phases = Object.entries(data.phaseCriteria || {})
+      .map(
+        ([phase, criteria]) =>
+          `- ${phase}: ${criteria.hoursPerWeek || "N/A"} hours/week. Advance when: ${criteria.criteriaToAdvance || "Not specified"}`,
+      )
+      .join("\n")
+
+    const discharge = (data.dischargeCriteria || [])
+      .filter((c) => c.tool && c.domain)
+      .map((c) => `- ${c.tool} ${c.domain}: Target ${c.targetScore}, Current ${c.currentScore || "Not measured"}`)
+      .join("\n")
+
+    return `Write a comprehensive fade plan narrative for ABA services.
+
+CURRENT PHASE: ${data.currentPhase || "Not specified"}
+
+PHASE STRUCTURE:
+${phases || "No phases defined"}
+
+DISCHARGE CRITERIA:
+${discharge || "No criteria defined"}
+
+INSTRUCTIONS:
+1. Explain the rationale for the phased service reduction model
+2. Describe criteria for transitioning between phases
+3. Detail measurable discharge criteria
+4. Explain how generalization and maintenance will be ensured
+5. Discuss caregiver involvement in the fade process
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks (*), pound signs (#), or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Keep between 200-300 words
+
+Generate a professional fade plan narrative suitable for insurance authorization.`
+  },
+
+  /**
+   * Generates Barriers to Treatment section
+   */
+  barriersSection: (data: BarriersData): string => {
+    const allBarriers = [...(data.barriers || []), data.otherBarrier].filter(Boolean)
+
+    return `Write a professional Barriers to Treatment section for an ABA assessment.
+
+IDENTIFIED BARRIERS:
+${allBarriers.map((b) => `- ${b}`).join("\n") || "No barriers identified"}
+
+INSTRUCTIONS:
+1. Describe each identified barrier clearly
+2. Explain how each barrier may impact treatment delivery
+3. Propose specific mitigation strategies for each barrier
+4. Discuss how the treatment team will address these barriers
+5. Include contingency plans if barriers persist
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks (*), pound signs (#), or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Keep between 150-250 words
+
+Generate a professional section suitable for an ABA assessment report.`
+  },
+
+  /**
+   * Generates Generalization & Maintenance plan
+   */
+  generalizationPlan: (data: GeneralizationPlanData): string => {
+    const allStrategies = [...(data.strategies || []), data.otherStrategy].filter(Boolean)
+
+    return `Write a comprehensive Generalization and Maintenance plan for ABA treatment.
+
+SELECTED STRATEGIES:
+${allStrategies.map((s) => `- ${s}`).join("\n") || "No strategies selected"}
+
+INSTRUCTIONS:
+1. Explain how each strategy will be implemented
+2. Describe specific procedures for stimulus and response generalization
+3. Detail how skills will be maintained after mastery
+4. Discuss caregiver training for generalization support
+5. Include monitoring procedures to verify generalization
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks (*), pound signs (#), or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Keep between 200-300 words
+
+Generate a professional generalization plan suitable for an ABA assessment report.`
+  },
+
+  /**
+   * Generates Reason for Referral / Problem Areas content
+   */
+  reasonForReferral: (data: {
+    clientInfo: any
+    background: any
+    areasOfConcern: string[]
+    dsm5Level: string
+  }): string => {
+    const levelDescriptions: Record<string, string> = {
+      "level-1":
+        "Level 1 (Requiring Support) - Without supports, deficits in social communication cause noticeable impairments",
+      "level-2":
+        "Level 2 (Requiring Substantial Support) - Marked deficits in verbal and nonverbal social communication skills",
+      "level-3":
+        "Level 3 (Requiring Very Substantial Support) - Severe deficits in verbal and nonverbal social communication skills",
+    }
+
+    const clientName = data.clientInfo?.firstName
+      ? `${data.clientInfo.firstName} ${data.clientInfo.lastName || ""}`.trim()
+      : "The client"
+    const clientAge = data.clientInfo?.dateOfBirth
+      ? Math.floor((Date.now() - new Date(data.clientInfo.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+      : null
+    const diagnosis = data.clientInfo?.diagnosis || data.background?.diagnosis || "Autism Spectrum Disorder"
+
+    return `Write a comprehensive "Reason for Referral" / "Current Problem Areas" section for an ABA assessment report.
+
+CLIENT INFORMATION:
+- Name: ${clientName}
+- Age: ${clientAge ? `${clientAge} years old` : "Not specified"}
+- Diagnosis: ${diagnosis}
+- DSM-5 Severity: ${levelDescriptions[data.dsm5Level] || data.dsm5Level || "Not specified"}
+
+AREAS OF CONCERN IDENTIFIED:
+${data.areasOfConcern.length > 0 ? data.areasOfConcern.map((area) => `- ${area}`).join("\n") : "- No specific areas selected"}
+
+BACKGROUND CONTEXT:
+${data.background?.medicalHistory ? `Medical History: ${data.background.medicalHistory}` : ""}
+${data.background?.developmentalHistory ? `Developmental History: ${data.background.developmentalHistory}` : ""}
+${data.background?.previousServices ? `Previous Services: ${data.background.previousServices}` : ""}
+
+INSTRUCTIONS:
+1. Write a professional clinical narrative describing why the client was referred for ABA services
+2. For each area of concern selected, provide specific examples of how it manifests in daily life
+3. Describe the functional impact on the client and family
+4. Connect the DSM-5 severity level to the observed deficits
+5. Establish clear clinical need for intensive ABA intervention
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks (*), pound signs (#), or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Use clinical ABA terminology appropriately
+- Keep between 150-250 words
+- Use person-first language throughout
+
+Generate a professional, insurance-ready narrative that clearly establishes medical necessity for ABA services.`
+  },
+
+  /**
+   * Generates Family's Goals for Treatment section
+   */
+  familyGoals: (data: FamilyGoalsData): string => {
+    const clientName = data.clientInfo?.firstName
+      ? `${data.clientInfo.firstName} ${data.clientInfo.lastName || ""}`.trim()
+      : "The client"
+    const clientAge = data.clientInfo?.dateOfBirth
+      ? Math.floor((Date.now() - new Date(data.clientInfo.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+      : null
+    const diagnosis = data.clientInfo?.diagnosis || "Autism Spectrum Disorder"
+
+    return `Write a comprehensive "Family's Goals for Treatment" section for an ABA assessment report.
+
+CLIENT INFORMATION:
+- Name: ${clientName}
+- Age: ${clientAge ? `${clientAge} years old` : "Not specified"}
+- Diagnosis: ${diagnosis}
+- DSM-5 Severity: ${data.dsm5Level || "Not specified"}
+
+IDENTIFIED AREAS OF CONCERN:
+${data.areasOfConcern.length > 0 ? data.areasOfConcern.map((area) => `- ${area}`).join("\n") : "- Communication and social skills"}
+
+INSTRUCTIONS:
+Generate realistic and appropriate family goals for ABA treatment that address:
+
+1. COMMUNICATION IMPROVEMENTS:
+   - Expressive language development
+   - Receptive language skills
+   - Functional communication
+   - Requesting and commenting
+
+2. DAILY LIVING SKILLS:
+   - Self-care and hygiene
+   - Mealtime behaviors
+   - Toileting skills
+   - Independence in routines
+
+3. BEHAVIOR REDUCTION:
+   - Challenging behaviors that interfere with learning
+   - Self-injurious behaviors if applicable
+   - Aggression or property destruction if applicable
+   - Stereotypic behaviors
+
+4. SOCIAL SKILLS DEVELOPMENT:
+   - Peer interactions
+   - Turn-taking and sharing
+   - Joint attention
+   - Play skills
+
+5. INDEPENDENCE GOALS:
+   - Following instructions
+   - Transitioning between activities
+   - Attending to tasks
+   - Completing routines independently
+
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only - NO Markdown formatting
+- DO NOT use asterisks (*), pound signs (#), or any special characters
+- DO NOT use bullet points with dashes or asterisks
+- Write in flowing professional paragraphs
+- Keep between 100-200 words
+- Use person-first language throughout
+- Write from the family's perspective (what they want to see improved)
+
+Generate a professional narrative that describes what outcomes the family hopes to achieve through ABA treatment.`
+  },
 }
 
 // ============================================================================
@@ -434,10 +814,10 @@ Keep it evidence-based and aligned with BACB guidelines.`
  * @param data - The data needed for the specific prompt template
  * @returns Generated content as a string
  */
-export async function generateABAContent(promptType: keyof typeof PROMPT_TEMPLATES, data: any): Promise<string> {
+export async function generateABAContent(promptType: string, data: any): Promise<string> {
   try {
     // Get the appropriate prompt template
-    const promptTemplate = PROMPT_TEMPLATES[promptType]
+    const promptTemplate = PROMPT_TEMPLATES[promptType as keyof typeof PROMPT_TEMPLATES]
     if (!promptTemplate) {
       throw new Error(`Invalid prompt type: ${promptType}`)
     }

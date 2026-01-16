@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -10,6 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SparklesIcon, EyeIcon, ShieldIcon, ArrowRightIcon, CheckIcon } from "@/components/icons"
+import Link from "next/link"
+import { CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
+import { Suspense } from "react"
 
 function EyeOffIcon({ className }: { className?: string }) {
   return (
@@ -27,40 +31,6 @@ function EyeOffIcon({ className }: { className?: string }) {
       <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
       <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
       <line x1="2" x2="22" y1="2" y2="22" />
-    </svg>
-  )
-}
-
-function GoogleIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24">
-      <path
-        fill="#4285F4"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-      />
-    </svg>
-  )
-}
-
-function MicrosoftIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24">
-      <path fill="#F25022" d="M1 1h10v10H1z" />
-      <path fill="#00A4EF" d="M1 13h10v10H1z" />
-      <path fill="#7FBA00" d="M13 1h10v10H13z" />
-      <path fill="#FFB900" d="M13 13h10v10H13z" />
     </svg>
   )
 }
@@ -101,16 +71,48 @@ function LockIcon({ className }: { className?: string }) {
   )
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
-  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient()
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session?.user) {
+          router.replace("/dashboard")
+          return
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error)
+      }
+
+      setIsCheckingAuth(false)
+    }
+
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    if (searchParams.get("confirmed") === "true") {
+      toast.success("Email confirmed! You can now sign in.")
+    }
+
+    if (searchParams.get("error") === "confirmation_failed") {
+      toast.error("Email confirmation failed. Please try again.")
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -119,86 +121,38 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
-
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (authError) {
-        setError(authError.message)
+      if (signInError) {
+        if (
+          signInError.message?.includes("Email not confirmed") ||
+          signInError.message?.includes("email_not_confirmed")
+        ) {
+          toast.error("Please confirm your email first. Check your inbox.")
+          localStorage.setItem("pendingEmail", email)
+          router.push("/confirm-email")
+          return
+        }
+
+        if (signInError.message === "Invalid login credentials") {
+          setError("Incorrect email or password. Please try again.")
+        } else {
+          setError(signInError.message)
+        }
         setIsLoading(false)
         return
       }
 
-      if (data?.user) {
-        localStorage.setItem("aria_user", JSON.stringify({ email: data.user.email, id: data.user.id }))
-        router.push("/assessment/new")
-        router.refresh()
-      } else {
-        setError("Login failed. Please check your credentials.")
-        setIsLoading(false)
+      if (data.session) {
+        router.push("/dashboard")
       }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again.")
+    } catch (err: any) {
+      console.error("Login error:", err)
+      setError(err.message || "An unexpected error occurred. Please try again.")
       setIsLoading(false)
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    setIsGoogleLoading(true)
-    setError("")
-
-    try {
-      const supabase = createClient()
-
-      const redirectUrl = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`
-
-      const { data, error: authError } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
-        },
-      })
-
-      if (authError) {
-        setError(authError.message)
-        setIsGoogleLoading(false)
-      }
-    } catch (err) {
-      setError("Failed to sign in with Google. Please try again.")
-      setIsGoogleLoading(false)
-    }
-  }
-
-  const handleMicrosoftLogin = async () => {
-    setIsMicrosoftLoading(true)
-    setError("")
-
-    try {
-      const supabase = createClient()
-
-      const redirectUrl = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`
-
-      const { data, error: authError } = await supabase.auth.signInWithOAuth({
-        provider: "azure",
-        options: {
-          redirectTo: redirectUrl,
-          scopes: "email profile openid",
-        },
-      })
-
-      if (authError) {
-        setError(authError.message)
-        setIsMicrosoftLoading(false)
-      }
-    } catch (err) {
-      setError("Failed to sign in with Microsoft. Please try again.")
-      setIsMicrosoftLoading(false)
     }
   }
 
@@ -206,23 +160,22 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#FAFAFA] flex">
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0D9488] via-[#0891B2] to-[#06B6D4] relative overflow-hidden">
-        {/* Animated background elements */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse delay-1000" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/5 rounded-full blur-3xl" />
         </div>
 
-        {/* Grid pattern overlay */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23ffffff' fillOpacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
+        <div className="absolute top-6 right-6 flex gap-4">
+          <Link href="/help" className="text-white/80 hover:text-white text-sm transition-colors">
+            Help
+          </Link>
+          <Link href="/hipaa" className="text-white/80 hover:text-white text-sm transition-colors">
+            HIPAA
+          </Link>
+        </div>
 
         <div className="relative z-10 flex flex-col justify-center px-12 lg:px-16">
-          {/* Logo */}
           <div className="flex items-center gap-3 mb-12">
             <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
               <SparklesIcon className="h-8 w-8 text-white" />
@@ -230,7 +183,6 @@ export default function LoginPage() {
             <span className="text-3xl font-bold text-white">ARIA</span>
           </div>
 
-          {/* Main message */}
           <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-6">
             Welcome back to your
             <br />
@@ -241,7 +193,6 @@ export default function LoginPage() {
             Continue creating insurance-ready reports in minutes, not hours.
           </p>
 
-          {/* Benefits list */}
           <div className="space-y-4">
             {[
               "AI-powered report generation",
@@ -262,7 +213,6 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {/* Trust indicator */}
           <div className="mt-16 pt-8 border-t border-white/20">
             <div className="flex items-center gap-4">
               <div className="flex -space-x-3">
@@ -283,9 +233,8 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - Login form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
         <div className="w-full max-w-md">
-          {/* Mobile logo */}
           <div className="flex lg:hidden items-center justify-center gap-2 mb-8">
             <div className="w-12 h-12 bg-gradient-to-br from-[#0D9488] to-[#0891B2] rounded-xl flex items-center justify-center">
               <SparklesIcon className="h-6 w-6 text-white" />
@@ -304,75 +253,15 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Social login buttons */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleGoogleLogin}
-                disabled={isLoading || isGoogleLoading || isMicrosoftLoading}
-                className="h-12 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-300 bg-transparent"
-              >
-                {isGoogleLoading ? (
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                ) : (
-                  <>
-                    <GoogleIcon className="h-5 w-5 mr-2" />
-                    Google
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleMicrosoftLogin}
-                disabled={isLoading || isGoogleLoading || isMicrosoftLoading}
-                className="h-12 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-300 bg-transparent"
-              >
-                {isMicrosoftLoading ? (
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                ) : (
-                  <>
-                    <MicrosoftIcon className="h-5 w-5 mr-2" />
-                    Microsoft
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
+            {searchParams.get("confirmed") === "true" && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <p className="text-green-800 text-sm font-medium flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Email confirmed successfully! You can now sign in.
+                </p>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-400">or continue with email</span>
-              </div>
-            </div>
+            )}
 
-            {/* Login form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
                 <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm animate-in fade-in slide-in-from-top-2 duration-300">
@@ -479,7 +368,6 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Security badge */}
             <div className="mt-6 pt-6 border-t border-gray-100">
               <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
                 <ShieldIcon className="h-4 w-4" />
@@ -488,7 +376,6 @@ export default function LoginPage() {
             </div>
           </Card>
 
-          {/* Footer links */}
           <div className="mt-8 text-center">
             <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
               <a href="/privacy" className="hover:text-gray-600 transition-colors">
@@ -499,13 +386,26 @@ export default function LoginPage() {
                 Terms of Service
               </a>
               <span>•</span>
-              <a href="/support" className="hover:text-gray-600 transition-colors">
+              <a href="/help" className="hover:text-gray-600 transition-colors">
                 Support
               </a>
             </div>
+            <p className="text-sm text-gray-400 mt-4">
+              <a href="/?landing=true" className="text-teal-600 hover:text-teal-700 hover:underline transition-colors">
+                View product information
+              </a>
+            </p>
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

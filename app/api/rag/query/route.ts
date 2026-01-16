@@ -1,84 +1,48 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import { createClient } from "@/lib/supabase/server"
+import OpenAI from "openai"
+import type { NextRequest } from "next/server"
 
-export async function POST(request: NextRequest) {
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
+
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const { query, topK = 5, minSimilarity = 0.3 } = body;
+    const { query, category, matchCount = 5, threshold = 0.7 } = await req.json()
 
     if (!query) {
-      return NextResponse.json(
-        { error: 'Query is required' },
-        { status: 400 }
-      );
+      return Response.json({ error: "Query is required" }, { status: 400 })
     }
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+    // Create embedding for the query
     const embeddingResponse = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: query
-    });
-    const queryEmbedding = embeddingResponse.data[0].embedding;
+      model: "text-embedding-ada-002",
+      input: query,
+    })
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_ARIA_SUPABASE_URL!,
-      process.env.ARIA_SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const queryEmbedding = embeddingResponse.data[0].embedding
 
-    const { data, error } = await supabase
-      .from('rag_embeddings')
-      .select('id, document_id, chunk_index, chunk_text, embedding')
-      .limit(20);
+    const supabase = await createClient()
 
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
-    }
+    // Search for similar chunks
+    const { data: matches, error } = await supabase.rpc("match_rag_embeddings", {
+      query_embedding: queryEmbedding,
+      match_threshold: threshold,
+      match_count: matchCount,
+    })
 
-    console.log('First row embedding type:', typeof data[0]?.embedding);
-    console.log('Is array?', Array.isArray(data[0]?.embedding));
+    if (error) throw error
 
-    const results = data.map((row: any) => {
-      // Parsear el embedding si es string
-      let embedding = row.embedding;
-      if (typeof embedding === 'string') {
-        embedding = JSON.parse(embedding);
-      }
-      
-      const similarity = cosineSimilarity(queryEmbedding, embedding);
-      return {
-        id: row.id,
-        text: row.chunk_text,
-        similarity,
-        document: {
-          id: row.document_id
-        }
-      };
-    }).filter((r: any) => r.similarity >= minSimilarity)
-      .sort((a: any, b: any) => b.similarity - a.similarity)
-      .slice(0, topK);
+    // Filter by category if provided
+    const filteredMatches = category ? matches?.filter((m: any) => m.metadata?.category === category) : matches
 
-    return NextResponse.json({
+    return Response.json({
+      success: true,
+      results: filteredMatches || [],
       query,
-      chunks: results,
-      totalResults: results.length,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error: any) {
-    console.error('Full error:', error);
-    return NextResponse.json({ 
-      error: error.message 
-    }, { 
-      status: 500 
-    });
+    })
+  } catch (error) {
+    console.error("RAG query error:", error)
+    return Response.json({ error: "Failed to query documents" }, { status: 500 })
   }
-}
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
-  const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-  const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-  return dotProduct / (magnitudeA * magnitudeB);
 }

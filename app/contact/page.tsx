@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeftIcon, SparklesIcon, MailIcon, MapPinIcon, ClockIcon, CheckCircleIcon } from "@/components/icons"
+import { ArrowLeftIcon, SparklesIcon, MailIcon, ClockIcon, CheckCircleIcon } from "@/components/icons"
+import { Globe, Linkedin, Twitter } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ContactPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -21,10 +24,42 @@ export default function ContactPage() {
     message: "",
   })
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+
+      if (response.ok) {
+        setSubmitted(true)
+        toast({
+          title: "Message sent!",
+          description: "We'll get back to you within 1 business day.",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send message. Please try emailing us directly.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("[v0] Contact form submission error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try emailing us directly.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -77,19 +112,30 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Email</h3>
-                    <p className="text-gray-600">hello@aria-aba.com</p>
-                    <p className="text-gray-600">sales@aria-aba.com</p>
+                    <a
+                      href="mailto:francosimon@hotmail.com"
+                      className="block text-gray-600 hover:text-[#0D9488] transition-colors"
+                    >
+                      support@ariaba.app
+                    </a>
+                    <a
+                      href="mailto:francosimon@hotmail.com"
+                      className="block text-gray-600 hover:text-[#0D9488] transition-colors"
+                    >
+                      sales@ariaba.app
+                    </a>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-[#0D9488]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MapPinIcon className="h-5 w-5 text-[#0D9488]" />
+                    <Globe className="h-5 w-5 text-[#0D9488]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Office</h3>
-                    <p className="text-gray-600">123 Healthcare Way, Suite 400</p>
-                    <p className="text-gray-600">San Francisco, CA 94102</p>
+                    <h3 className="font-semibold text-gray-900">Location</h3>
+                    <p className="text-gray-600">Ave Maria, Florida</p>
+                    <p className="text-gray-600">United States</p>
+                    <p className="text-sm text-gray-500 mt-1">Serving BCBAs across the United States</p>
                   </div>
                 </div>
 
@@ -98,8 +144,8 @@ export default function ContactPage() {
                     <ClockIcon className="h-5 w-5 text-[#0D9488]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Business Hours</h3>
-                    <p className="text-gray-600">Monday - Friday: 9am - 6pm PST</p>
+                    <h3 className="font-semibold text-gray-900">Support Hours</h3>
+                    <p className="text-gray-600">Monday - Friday: 9am - 6pm EST</p>
                     <p className="text-gray-600">Weekend: Email support only</p>
                   </div>
                 </div>
@@ -108,12 +154,14 @@ export default function ContactPage() {
               <div className="pt-6 border-t">
                 <h3 className="font-semibold text-gray-900 mb-3">Follow Us</h3>
                 <div className="flex gap-4">
-                  <a href="#" className="text-gray-400 hover:text-[#0D9488] transition-colors">
-                    LinkedIn
-                  </a>
-                  <a href="#" className="text-gray-400 hover:text-[#0D9488] transition-colors">
-                    Twitter
-                  </a>
+                  <span className="text-gray-400 flex items-center gap-2 cursor-not-allowed">
+                    <Linkedin className="h-5 w-5" />
+                    LinkedIn (Coming soon)
+                  </span>
+                  <span className="text-gray-400 flex items-center gap-2 cursor-not-allowed">
+                    <Twitter className="h-5 w-5" />
+                    Twitter (Coming soon)
+                  </span>
                 </div>
               </div>
             </div>
@@ -204,8 +252,13 @@ export default function ContactPage() {
                           required
                         />
                       </div>
-                      <Button type="submit" size="lg" className="w-full bg-[#0D9488] hover:bg-[#0D9488]/90">
-                        Send Message
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full bg-[#0D9488] hover:bg-[#0D9488]/90"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Sending..." : "Send Message"}
                       </Button>
                       <p className="text-sm text-gray-500 text-center">
                         By submitting this form, you agree to our{" "}

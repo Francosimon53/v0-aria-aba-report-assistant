@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusIcon, TrashIcon, DownloadIcon, PrinterIcon } from "@/components/icons"
+import { PlusIcon, TrashIcon, DownloadIcon, PrinterIcon, SparklesIcon, Loader2Icon } from "@/components/icons"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/hooks/use-toast"
+import { AssessmentTypeBadge } from "./assessment-type-badge"
 
 type CPTCode = "97153" | "97155" | "97155HN" | "97156" | "97156HN"
 type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"
@@ -61,6 +63,8 @@ export function ServiceSchedule() {
     endTime: "",
     location: "Home",
   })
+  const [isSuggesting, setIsSuggesting] = useState(false)
+  const { toast } = useToast()
 
   const addTimeSlot = (day: DayOfWeek, code: CPTCode) => {
     if (!newSlot.startTime || !newSlot.endTime) return
@@ -116,15 +120,104 @@ export function ServiceSchedule() {
     window.print()
   }
 
+  const handleSuggestSchedule = async () => {
+    setIsSuggesting(true)
+
+    try {
+      // Get client info from localStorage if available
+      const clientData = localStorage.getItem("aria-client-form")
+      const clientInfo = clientData ? JSON.parse(clientData) : {}
+
+      const response = await fetch("/api/suggest-schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          authorizedHours: {
+            rbt: 20, // Default hours, can be customized
+            bcba: 4,
+            familyTraining: 2,
+          },
+          clientAge: clientInfo?.age || 5,
+          schoolSchedule: clientInfo?.schoolSchedule || "morning",
+          preferences: comments || "",
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      // Convert the suggested schedule to the proper format
+      const convertedSchedule: ServiceSchedule = {}
+
+      Object.entries(data.suggestedSchedule).forEach(([day, slots]: [string, any]) => {
+        convertedSchedule[day] = {}
+
+        Object.entries(slots).forEach(([code, timeRange]: [string, any]) => {
+          if (timeRange && typeof timeRange === "string" && timeRange.trim() !== "") {
+            const [startTime, endTime] = timeRange.split(" - ")
+            if (startTime && endTime) {
+              const slot: TimeSlot = {
+                id: `${day}-${code}-${Date.now()}`,
+                startTime: startTime.trim(),
+                endTime: endTime.trim(),
+                location: "Home",
+              }
+              convertedSchedule[day][code as CPTCode] = [slot]
+            }
+          }
+        })
+      })
+
+      setSchedule(convertedSchedule)
+
+      if (data.notes) {
+        setComments(data.notes)
+      }
+
+      toast({
+        title: "Schedule Generated",
+        description: "AI has suggested an optimal schedule based on authorized hours",
+      })
+    } catch (error) {
+      console.error("[v0] Error generating schedule:", error)
+      toast({
+        title: "Error",
+        description: "Failed to generate schedule. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSuggesting(false)
+    }
+  }
+
   return (
     <div className="container mx-auto p-6 max-w-7xl space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Weekly Service Schedule</h1>
-          <p className="text-muted-foreground">Plan and track therapy sessions with CPT code tracking</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Weekly Service Schedule</h1>
+            <p className="text-muted-foreground">Plan and track therapy sessions with CPT code tracking</p>
+          </div>
+          <AssessmentTypeBadge />
         </div>
         <div className="flex gap-2">
+          {/* AI Suggest Schedule button */}
+          <Button
+            onClick={handleSuggestSchedule}
+            disabled={isSuggesting}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            {isSuggesting ? (
+              <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <SparklesIcon className="h-4 w-4 mr-2" />
+            )}
+            AI Suggest Schedule
+          </Button>
           <Button variant="outline" onClick={exportToPDF}>
             <PrinterIcon className="h-4 w-4 mr-2" />
             Print

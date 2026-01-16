@@ -9,15 +9,16 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { DownloadIcon, PrinterIcon } from "@/components/icons"
-import { premiumToast } from "@/components/ui/premium-toast"
+import { useToast } from "@/hooks/use-toast"
 import type { ClientData } from "@/lib/types"
 
 interface ConsentFormProps {
   clientData: ClientData | null
   interventions?: string[]
+  onSave?: () => void
 }
 
-export function ConsentForm({ clientData, interventions = [] }: ConsentFormProps) {
+export function ConsentForm({ clientData, interventions = [], onSave }: ConsentFormProps) {
   const [understood, setUnderstood] = useState(false)
   const [caregiverName, setCaregiverName] = useState("")
   const [assistantName, setAssistantName] = useState("")
@@ -39,6 +40,8 @@ export function ConsentForm({ clientData, interventions = [] }: ConsentFormProps
   const [caregiverSigned, setCaregiverSigned] = useState(false)
   const [assistantSigned, setAssistantSigned] = useState(false)
   const [leadSigned, setLeadSigned] = useState(false)
+
+  const { toast } = useToast()
 
   // Initialize canvas
   useEffect(() => {
@@ -101,22 +104,35 @@ export function ConsentForm({ clientData, interventions = [] }: ConsentFormProps
 
   const handleGeneratePDF = () => {
     if (!understood) {
-      premiumToast.error("Please confirm you have read and understand the consent form")
+      toast({
+        title: "Error",
+        description: "Please confirm you have read and understood the consent form",
+        variant: "destructive",
+      })
       return
     }
 
     if (!caregiverSigned || !caregiverDate) {
-      premiumToast.error("Caregiver signature and date are required")
+      toast({
+        title: "Error",
+        description: "Caregiver signature and date are required",
+        variant: "destructive",
+      })
       return
     }
 
-    premiumToast.promise(new Promise((resolve) => setTimeout(resolve, 2000)), {
-      loading: "Generating consent form PDF...",
-      success: "Consent form PDF generated successfully",
-      error: "Failed to generate PDF",
+    toast({
+      title: "Generating PDF",
+      description: "Creating consent form PDF...",
     })
 
-    // Save consent data to localStorage
+    setTimeout(() => {
+      toast({
+        title: "Success",
+        description: "Consent form PDF generated successfully",
+      })
+    }, 2000)
+
     const consentData = {
       version,
       clientData,
@@ -129,26 +145,43 @@ export function ConsentForm({ clientData, interventions = [] }: ConsentFormProps
       timestamp: new Date().toISOString(),
     }
     localStorage.setItem("aria_consent_form", JSON.stringify(consentData))
+
+    if (onSave) {
+      onSave()
+    }
   }
 
   const handlePrint = () => {
     window.print()
-    premiumToast.success("Opening print dialog...")
+    toast({
+      title: "Success",
+      description: "Opening print dialog...",
+    })
   }
 
   const handleEmailCopy = () => {
     if (!caregiverSigned) {
-      premiumToast.error("Please complete the consent form before sending")
+      toast({
+        title: "Error",
+        description: "Please complete the consent form before sending",
+        variant: "destructive",
+      })
       return
     }
 
-    premiumToast.success("Email sent to caregiver with consent form copy")
+    toast({
+      title: "Success",
+      description: "Email sent to caregiver with consent form copy",
+    })
   }
 
   const handleUpdateVersion = () => {
     setVersion((prev) => prev + 1)
     setLastUpdated(new Date())
-    premiumToast.info(`Consent form updated to version ${version + 1}`)
+    toast({
+      title: "Info",
+      description: `Consent form updated to version ${version + 1}`,
+    })
   }
 
   return (

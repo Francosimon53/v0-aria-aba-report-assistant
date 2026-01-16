@@ -13,10 +13,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CheckCircle2Icon,
-  RepeatIcon,
   DatabaseIcon,
   HelpCircleIcon,
-  HomeIcon,
   ClockIcon,
   AlertTriangleIcon,
   TrendingUpIcon,
@@ -24,7 +22,7 @@ import {
   CalendarIcon,
   EditIcon,
   FileIcon,
-  BarChart3Icon,
+  ArrowLeftIcon,
 } from "@/components/icons"
 import type { ClientData, AssessmentData } from "@/lib/types"
 
@@ -34,8 +32,6 @@ type ActiveView =
   | "assessment"
   | "abc"
   | "risk"
-  | "reassessment"
-  | "progressdashboard"
   | "integration"
   | "goals"
   | "goalstracker"
@@ -55,7 +51,7 @@ interface WizardStep {
   label: string
   icon: React.ComponentType<{ className?: string }>
   description: string
-  phase: number // 1-6 phases
+  phase: number
   phaseLabel: string
 }
 
@@ -104,31 +100,13 @@ const WIZARD_STEPS: WizardStep[] = [
     phaseLabel: "Assessment",
   },
 
-  // Phase 3: Reassessment (Optional)
-  {
-    id: "reassessment",
-    label: "Reassessment",
-    icon: RepeatIcon,
-    description: "Track progress & update",
-    phase: 3,
-    phaseLabel: "Reassessment",
-  },
-  {
-    id: "progressdashboard",
-    label: "Progress Dashboard",
-    icon: BarChart3Icon,
-    description: "Visual outcomes & comparison",
-    phase: 3,
-    phaseLabel: "Reassessment",
-  },
-
-  // Phase 4: Data & Goals
+  // Phase 3: Data & Goals (was phase 4, now phase 3 since we removed phase 3)
   {
     id: "integration",
-    label: "Data Integration",
+    label: "Data Integration (Optional)",
     icon: DatabaseIcon,
     description: "Import & visualize data",
-    phase: 4,
+    phase: 3,
     phaseLabel: "Data & Goals",
   },
   {
@@ -136,7 +114,7 @@ const WIZARD_STEPS: WizardStep[] = [
     label: "Goal Bank",
     icon: TargetIcon,
     description: "Select treatment goals",
-    phase: 4,
+    phase: 3,
     phaseLabel: "Data & Goals",
   },
   {
@@ -144,7 +122,7 @@ const WIZARD_STEPS: WizardStep[] = [
     label: "Goals Tracker",
     icon: TrendingUpIcon,
     description: "Monitor progress & outcomes",
-    phase: 4,
+    phase: 3,
     phaseLabel: "Data & Goals",
   },
   {
@@ -152,7 +130,7 @@ const WIZARD_STEPS: WizardStep[] = [
     label: "Interventions",
     icon: TargetIcon,
     description: "Evidence-based strategies",
-    phase: 4,
+    phase: 3,
     phaseLabel: "Data & Goals",
   },
   {
@@ -160,17 +138,17 @@ const WIZARD_STEPS: WizardStep[] = [
     label: "Teaching Protocols",
     icon: FileTextIcon,
     description: "Build step-by-step programs",
-    phase: 4,
+    phase: 3,
     phaseLabel: "Data & Goals",
   },
 
-  // Phase 5: Services & Training
+  // Phase 4: Services & Training (was phase 5)
   {
     id: "parenttraining",
     label: "Parent Training",
     icon: UsersIcon,
     description: "Track curriculum & fidelity",
-    phase: 5,
+    phase: 4,
     phaseLabel: "Services & Training",
   },
   {
@@ -178,7 +156,7 @@ const WIZARD_STEPS: WizardStep[] = [
     label: "Service Schedule",
     icon: CalendarIcon,
     description: "Weekly CPT code planning",
-    phase: 5,
+    phase: 4,
     phaseLabel: "Services & Training",
   },
   {
@@ -186,7 +164,7 @@ const WIZARD_STEPS: WizardStep[] = [
     label: "CPT Auth Request",
     icon: FileTextIcon,
     description: "Service request & justification",
-    phase: 5,
+    phase: 4,
     phaseLabel: "Services & Training",
   },
   {
@@ -194,17 +172,17 @@ const WIZARD_STEPS: WizardStep[] = [
     label: "Consent Forms",
     icon: EditIcon,
     description: "Digital signatures & legal docs",
-    phase: 5,
+    phase: 4,
     phaseLabel: "Services & Training",
   },
 
-  // Phase 6: Report & Finalize
+  // Phase 5: Report & Finalize (was phase 6)
   {
     id: "medicalnecessity",
     label: "Medical Necessity",
     icon: FileTextIcon,
     description: "AI-powered justification writer",
-    phase: 6,
+    phase: 5,
     phaseLabel: "Report & Finalize",
   },
   {
@@ -212,12 +190,12 @@ const WIZARD_STEPS: WizardStep[] = [
     label: "Generate Report",
     icon: FileTextIcon,
     description: "Generate & export",
-    phase: 6,
+    phase: 5,
     phaseLabel: "Report & Finalize",
   },
 ]
+// </CHANGE>
 
-// Utility pages (always accessible at bottom)
 const UTILITY_ITEMS = [
   { id: "timesaved" as ActiveView, label: "Time Saved", icon: ClockIcon, description: "Track your productivity" },
   {
@@ -227,6 +205,7 @@ const UTILITY_ITEMS = [
     description: "HIPAA, regulations & FAQs",
   },
 ]
+// </CHANGE>
 
 interface WizardSidebarProps {
   activeView: ActiveView
@@ -249,27 +228,23 @@ export function WizardSidebar({
   selectedGoalsCount,
   completedSteps,
 }: WizardSidebarProps) {
-  // Get current step index
   const currentStepIndex = WIZARD_STEPS.findIndex((s) => s.id === activeView)
   const currentPhase = currentStepIndex >= 0 ? WIZARD_STEPS[currentStepIndex].phase : 0
 
-  // Check if a step is accessible (current or previous phases completed)
   const isStepAccessible = (step: WizardStep) => {
-    // All steps are accessible if we want free navigation within completed phases
     const stepIndex = WIZARD_STEPS.findIndex((s) => s.id === step.id)
     return stepIndex <= currentStepIndex || completedSteps.includes(step.id) || step.phase <= currentPhase
   }
 
-  // Group steps by phase
-  const phases = [1, 2, 3, 4, 5, 6]
+  const phases = [1, 2, 3, 4, 5]
   const phaseLabels: Record<number, string> = {
     1: "Client Information",
     2: "Assessment",
-    3: "Reassessment",
-    4: "Data & Goals",
-    5: "Services & Training",
-    6: "Report & Finalize",
+    3: "Data & Goals",
+    4: "Services & Training",
+    5: "Report & Finalize",
   }
+  // </CHANGE>
 
   const isPhaseComplete = (phase: number) => {
     const phaseSteps = WIZARD_STEPS.filter((s) => s.phase === phase)
@@ -281,7 +256,6 @@ export function WizardSidebar({
   }
 
   const safeCompletedSteps = Array.isArray(completedSteps) ? completedSteps : []
-  // </CHANGE>
 
   return (
     <div
@@ -308,6 +282,20 @@ export function WizardSidebar({
         </Button>
       </div>
 
+      {!collapsed && (
+        <div className="px-4 py-3 border-b border-border">
+          <Button
+            onClick={() => (window.location.href = "/dashboard")}
+            variant="outline"
+            className="w-full border-teal-300 text-teal-700 hover:bg-teal-50 flex items-center justify-center gap-2"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </div>
+      )}
+      {/* </CHANGE> */}
+
       {/* Wizard Progress Bar */}
       {!collapsed && (
         <div className="px-4 py-3 border-b border-border bg-muted/30">
@@ -328,22 +316,6 @@ export function WizardSidebar({
 
       {/* Wizard Steps */}
       <div className="flex-1 overflow-y-auto py-2">
-        {/* Home button */}
-        <div className="px-2 mb-2">
-          <Link href="/">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start gap-3 h-auto py-2 text-muted-foreground hover:text-foreground",
-                collapsed && "justify-center px-2",
-              )}
-            >
-              <HomeIcon className="h-4 w-4" />
-              {!collapsed && <span className="text-sm">Back to Home</span>}
-            </Button>
-          </Link>
-        </div>
-
         {/* Phases */}
         {phases.map((phase) => {
           const phaseSteps = WIZARD_STEPS.filter((s) => s.phase === phase)
@@ -383,9 +355,8 @@ export function WizardSidebar({
                 {phaseSteps.map((step, stepIndex) => {
                   const Icon = step.icon
                   const isActive = activeView === step.id
-                  const isCompleted = safeCompletedSteps.includes(step.id) // Use safeCompletedSteps for checking if step is completed
+                  const isCompleted = safeCompletedSteps.includes(step.id)
                   const accessible = isStepAccessible(step)
-                  const globalIndex = WIZARD_STEPS.findIndex((s) => s.id === step.id)
 
                   return (
                     <div key={step.id} className="relative">
@@ -455,7 +426,7 @@ export function WizardSidebar({
           )
         })}
 
-        {/* Utility Items - Always accessible */}
+        {/* Utility Items */}
         <div className="mt-4 pt-4 border-t border-border px-2">
           {!collapsed && (
             <div className="px-2 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Utilities</div>

@@ -71,7 +71,7 @@ function CheckoutContent() {
                   <ShieldIcon className="h-5 w-5 text-[#0D9488]" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">14-day free trial included</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">7-day free trial included</h4>
                   <p className="text-sm text-gray-600">
                     You won't be charged until your trial ends. Cancel anytime during the trial period.
                   </p>

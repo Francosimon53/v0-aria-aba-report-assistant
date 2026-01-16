@@ -1,58 +1,122 @@
 "use client"
 
 import { useState } from "react"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusIcon, XIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, SaveIcon } from "@/components/icons"
-import { premiumToast } from "@/components/ui/premium-toast"
+import { useSectionData } from "@/hooks/use-section-data"
+import { useToast } from "@/hooks/use-toast"
+import {
+  PlusIcon,
+  XIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  Sparkles,
+  Loader2,
+  BarChart3Icon,
+  PieChartIcon,
+  FileTextIcon,
+  LightbulbIcon,
+  CheckCircle2Icon,
+  CopyIcon,
+  ArrowRightIcon,
+  ArrowLeftIcon,
+  AlertTriangleIcon,
+} from "@/components/icons"
 
 interface ABCObservation {
   id: string
-  timestamp: Date
+  dateTime: Date
   antecedent: string
   behavior: string
   consequence: string
   function: "attention" | "escape" | "tangible" | "automatic" | ""
-  collapsed: boolean
+  timestamp: Date
+  collapsed?: boolean
 }
 
-export function ABCObservation() {
-  const [observations, setObservations] = useState<ABCObservation[]>([
+interface PatternAnalysis {
+  functionBreakdown: {
+    [key: string]: { count: number; percentage: number }
+  }
+  primaryFunction: string
+  secondaryFunction: string | null
+  commonAntecedents: string[]
+  commonConsequences: string[]
+  summary: string
+  recommendations: string[]
+  confidence: "high" | "medium" | "low"
+  minimumObservationsMet: boolean
+}
+
+interface ABCObservationProps {
+  onSave: () => void
+}
+
+export function ABCObservation({ onSave }: ABCObservationProps) {
+  const { toast } = useToast()
+  const {
+    data: observations,
+    setData: setObservations,
+    isLoaded,
+  } = useSectionData<ABCObservation[]>("abc-observations", [
     {
       id: "1",
-      timestamp: new Date(),
+      dateTime: new Date(),
       antecedent: "",
       behavior: "",
       consequence: "",
       function: "",
-      collapsed: false,
+      timestamp: new Date(),
     },
   ])
+
+  const [isAnalyzingFunction, setIsAnalyzingFunction] = useState<string | null>(null)
+  const [generatingField, setGeneratingField] = useState<{ id: string; field: string } | null>(null)
+  const [isAnalyzingPattern, setIsAnalyzingPattern] = useState(false)
+  const [patternAnalysis, setPatternAnalysis] = useState<PatternAnalysis | null>(null)
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+      </div>
+    )
+  }
 
   const addObservation = () => {
     const newObservation: ABCObservation = {
       id: Date.now().toString(),
-      timestamp: new Date(),
+      dateTime: new Date(),
       antecedent: "",
       behavior: "",
       consequence: "",
       function: "",
-      collapsed: false,
+      timestamp: new Date(),
     }
     setObservations([...observations, newObservation])
-    premiumToast.success("New observation added")
+    toast({
+      title: "Success",
+      description: "New observation added",
+    })
   }
 
   const removeObservation = (id: string) => {
     if (observations.length === 1) {
-      premiumToast.error("Cannot remove the last observation")
+      toast({
+        title: "Error",
+        description: "Cannot remove the last observation",
+        variant: "destructive",
+      })
       return
     }
     setObservations(observations.filter((obs) => obs.id !== id))
-    premiumToast.success("Observation removed")
+    toast({
+      title: "Success",
+      description: "Observation removed",
+    })
   }
 
   const updateObservation = (id: string, field: keyof ABCObservation, value: string | boolean) => {
@@ -63,26 +127,166 @@ export function ABCObservation() {
     setObservations(observations.map((obs) => (obs.id === id ? { ...obs, collapsed: !obs.collapsed } : obs)))
   }
 
-  const handleSave = () => {
-    // Save to localStorage or backend
-    localStorage.setItem("aria_abc_observations", JSON.stringify(observations))
-    premiumToast.success("ABC observations saved successfully")
+  const handleAnalyzeFunction = async (observationId: string) => {
+    const observation = observations.find((obs) => obs.id === observationId)
+    if (!observation) return
+
+    if (!observation.antecedent?.trim() || !observation.behavior?.trim() || !observation.consequence?.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in Antecedent, Behavior, and Consequence first",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsAnalyzingFunction(observationId)
+
+    try {
+      const response = await fetch("/api/analyze-abc-function", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          antecedent: observation.antecedent,
+          behavior: observation.behavior,
+          consequence: observation.consequence,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze function")
+      }
+
+      const data = await response.json()
+
+      setObservations(
+        observations.map((obs) =>
+          obs.id === observationId
+            ? {
+                ...obs,
+                function: data.function,
+              }
+            : obs,
+        ),
+      )
+
+      toast({
+        title: "Success",
+        description: `AI suggests: ${data.function} function - ${data.reasoning}`,
+      })
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Could not analyze behavior function",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAnalyzingFunction(null)
+    }
   }
 
-  const formatTimestamp = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }).format(date)
+  const handleGenerateField = async (observationId: string, field: "antecedent" | "behavior" | "consequence") => {
+    setGeneratingField({ id: observationId, field })
+
+    try {
+      const observation = observations.find((obs) => obs.id === observationId)
+      if (!observation) return
+
+      const response = await fetch("/api/generate-abc-field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          field,
+          context: {
+            antecedent: observation.antecedent,
+            behavior: observation.behavior,
+            consequence: observation.consequence,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to generate content")
+      }
+
+      const data = await response.json()
+
+      setObservations(observations.map((obs) => (obs.id === observationId ? { ...obs, [field]: data.text } : obs)))
+
+      toast({
+        title: "Success",
+        description: `${field.charAt(0).toUpperCase() + field.slice(1)} has been filled with AI-generated content`,
+      })
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Could not generate content",
+        variant: "destructive",
+      })
+    } finally {
+      setGeneratingField(null)
+    }
+  }
+
+  const handleAnalyzePattern = async () => {
+    const validObservations = observations.filter(
+      (obs) => obs.antecedent?.trim() || obs.behavior?.trim() || obs.consequence?.trim(),
+    )
+
+    if (validObservations.length < 2) {
+      toast({
+        title: "Error",
+        description: "Please add at least 2 observations with data",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsAnalyzingPattern(true)
+
+    try {
+      const response = await fetch("/api/analyze-abc-pattern", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ observations: validObservations }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze patterns")
+      }
+
+      const data = await response.json()
+
+      setPatternAnalysis(data)
+
+      toast({
+        title: "Success",
+        description: `Pattern Analysis Complete - Primary function: ${data.primaryFunction}`,
+      })
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Could not analyze patterns",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAnalyzingPattern(false)
+    }
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    toast({
+      title: "Success",
+      description: "Summary copied to clipboard",
+    })
   }
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">ABC Observation Recording</h1>
@@ -95,24 +299,18 @@ export function ABCObservation() {
             <PlusIcon className="h-4 w-4" />
             Add Observation
           </Button>
-          <Button onClick={handleSave} variant="outline" className="gap-2 bg-transparent">
-            <SaveIcon className="h-4 w-4" />
-            Save All
-          </Button>
         </div>
       </div>
 
-      {/* Observations List */}
       <div className="space-y-4">
         {observations.map((observation, index) => (
-          <Card
+          <div
             key={observation.id}
             className="overflow-hidden border-2 hover:border-[#0D9488]/30 transition-all duration-300 ease-out"
             style={{
               animation: `slideIn 400ms ease-out ${index * 100}ms both`,
             }}
           >
-            {/* Observation Header */}
             <div className="bg-gradient-to-r from-[#0D9488]/10 to-cyan-50/50 p-4 border-b flex items-center justify-between">
               <button
                 onClick={() => toggleCollapse(observation.id)}
@@ -127,7 +325,7 @@ export function ABCObservation() {
                   <h3 className="text-lg font-semibold text-foreground">Observation {index + 1}</h3>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <ClockIcon className="h-4 w-4" />
-                    {formatTimestamp(observation.timestamp)}
+                    {formatTimestamp(observation.dateTime)}
                   </div>
                 </div>
               </button>
@@ -143,11 +341,9 @@ export function ABCObservation() {
               )}
             </div>
 
-            {/* Observation Content */}
             {!observation.collapsed && (
               <div className="p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Antecedent */}
                   <div className="space-y-2">
                     <Label
                       htmlFor={`antecedent-${observation.id}`}
@@ -159,16 +355,32 @@ export function ABCObservation() {
                       Antecedent
                     </Label>
                     <p className="text-xs text-muted-foreground mb-2">What happened before the behavior?</p>
-                    <Textarea
-                      id={`antecedent-${observation.id}`}
-                      value={observation.antecedent}
-                      onChange={(e) => updateObservation(observation.id, "antecedent", e.target.value)}
-                      placeholder="Describe the situation, context, or trigger that occurred immediately before the behavior..."
-                      className="min-h-[120px] resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
-                    />
+                    <div className="relative">
+                      <Textarea
+                        id={`antecedent-${observation.id}`}
+                        value={observation.antecedent}
+                        onChange={(e) => updateObservation(observation.id, "antecedent", e.target.value)}
+                        placeholder="Describe the situation, context, or trigger that occurred immediately before the behavior..."
+                        className="min-h-[120px] pr-10 resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleGenerateField(observation.id, "antecedent")}
+                        disabled={generatingField?.id === observation.id && generatingField?.field === "antecedent"}
+                        className="absolute bottom-2 right-2 h-7 w-7 text-gray-400 hover:text-teal-600 hover:bg-teal-50"
+                        title="AI Generate Example"
+                      >
+                        {generatingField?.id === observation.id && generatingField?.field === "antecedent" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
-                  {/* Behavior */}
                   <div className="space-y-2">
                     <Label
                       htmlFor={`behavior-${observation.id}`}
@@ -180,16 +392,32 @@ export function ABCObservation() {
                       Behavior
                     </Label>
                     <p className="text-xs text-muted-foreground mb-2">What did the person do?</p>
-                    <Textarea
-                      id={`behavior-${observation.id}`}
-                      value={observation.behavior}
-                      onChange={(e) => updateObservation(observation.id, "behavior", e.target.value)}
-                      placeholder="Describe the specific, observable behavior in objective terms..."
-                      className="min-h-[120px] resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
-                    />
+                    <div className="relative">
+                      <Textarea
+                        id={`behavior-${observation.id}`}
+                        value={observation.behavior}
+                        onChange={(e) => updateObservation(observation.id, "behavior", e.target.value)}
+                        placeholder="Describe the specific, observable behavior in objective terms..."
+                        className="min-h-[120px] pr-10 resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleGenerateField(observation.id, "behavior")}
+                        disabled={generatingField?.id === observation.id && generatingField?.field === "behavior"}
+                        className="absolute bottom-2 right-2 h-7 w-7 text-gray-400 hover:text-teal-600 hover:bg-teal-50"
+                        title="AI Generate Example"
+                      >
+                        {generatingField?.id === observation.id && generatingField?.field === "behavior" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
-                  {/* Consequence */}
                   <div className="space-y-2">
                     <Label
                       htmlFor={`consequence-${observation.id}`}
@@ -201,26 +429,64 @@ export function ABCObservation() {
                       Consequence
                     </Label>
                     <p className="text-xs text-muted-foreground mb-2">What happened after the behavior?</p>
-                    <Textarea
-                      id={`consequence-${observation.id}`}
-                      value={observation.consequence}
-                      onChange={(e) => updateObservation(observation.id, "consequence", e.target.value)}
-                      placeholder="Describe the response or outcome that followed the behavior..."
-                      className="min-h-[120px] resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
-                    />
+                    <div className="relative">
+                      <Textarea
+                        id={`consequence-${observation.id}`}
+                        value={observation.consequence}
+                        onChange={(e) => updateObservation(observation.id, "consequence", e.target.value)}
+                        placeholder="Describe the response or outcome that followed the behavior..."
+                        className="min-h-[120px] pr-10 resize-none focus:border-[#0D9488] focus:ring-[#0D9488] transition-colors duration-300 ease-out"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleGenerateField(observation.id, "consequence")}
+                        disabled={generatingField?.id === observation.id && generatingField?.field === "consequence"}
+                        className="absolute bottom-2 right-2 h-7 w-7 text-gray-400 hover:text-teal-600 hover:bg-teal-50"
+                        title="AI Generate Example"
+                      >
+                        {generatingField?.id === observation.id && generatingField?.field === "consequence" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
-                  {/* Function */}
                   <div className="space-y-2">
-                    <Label
-                      htmlFor={`function-${observation.id}`}
-                      className="text-base font-semibold flex items-center gap-2"
-                    >
-                      <span className="h-8 w-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-bold">
-                        F
-                      </span>
-                      Impression of Function
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor={`function-${observation.id}`}
+                        className="text-base font-semibold flex items-center gap-2"
+                      >
+                        <span className="h-8 w-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-bold">
+                          F
+                        </span>
+                        Impression of Function
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAnalyzeFunction(observation.id)}
+                        disabled={isAnalyzingFunction === observation.id}
+                        className="text-teal-600 hover:text-teal-700 h-7 px-2"
+                      >
+                        {isAnalyzingFunction === observation.id ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            <span className="text-xs">Analyzing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            <span className="text-xs">AI Analyze</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground mb-2">What was the likely purpose of this behavior?</p>
                     <Select
                       value={observation.function}
@@ -243,12 +509,176 @@ export function ABCObservation() {
                 </div>
               </div>
             )}
-          </Card>
+          </div>
         ))}
       </div>
 
-      {/* Helper Card */}
-      <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+      <div className="mt-8 border-t pt-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <BarChart3Icon className="h-5 w-5 text-purple-600" />
+              Pattern Analysis
+            </h3>
+            <p className="text-sm text-muted-foreground">Analyze all observations to identify behavioral patterns</p>
+          </div>
+
+          <Button
+            onClick={handleAnalyzePattern}
+            disabled={isAnalyzingPattern || observations.length < 2}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white gap-2"
+          >
+            {isAnalyzingPattern ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Analyzing {observations.length} observations...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                AI Pattern Summary
+              </>
+            )}
+          </Button>
+        </div>
+
+        {observations.length < 2 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800 text-sm">
+            <AlertTriangleIcon className="h-4 w-4 inline mr-2" />
+            Add at least 2 observations to enable pattern analysis.
+            <span className="font-medium"> 4+ observations recommended</span> for reliable results.
+          </div>
+        )}
+
+        {patternAnalysis && (
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-6 space-y-6">
+            <div>
+              <h4 className="font-medium text-purple-900 mb-3 flex items-center gap-2">
+                <PieChartIcon className="h-4 w-4" />
+                Function Breakdown
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Object.entries(patternAnalysis.functionBreakdown).map(([func, data]: [string, any]) => (
+                  <div
+                    key={func}
+                    className={`p-3 rounded-lg border-2 ${
+                      func === patternAnalysis.primaryFunction
+                        ? "border-purple-500 bg-purple-100"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="text-2xl font-bold text-purple-700">{data.percentage}%</div>
+                    <div className="text-sm font-medium">{func}</div>
+                    <div className="text-xs text-muted-foreground">{data.count} observations</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex-1 bg-white rounded-lg p-4 border border-purple-200">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Primary Function</div>
+                <div className="text-xl font-bold text-purple-700">{patternAnalysis.primaryFunction}</div>
+              </div>
+              {patternAnalysis.secondaryFunction && (
+                <div className="flex-1 bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Secondary Function</div>
+                  <div className="text-xl font-bold text-gray-700">{patternAnalysis.secondaryFunction}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg p-4 border border-purple-200">
+                <h5 className="font-medium text-sm mb-2 flex items-center gap-1">
+                  <ArrowRightIcon className="h-3 w-3 text-green-600" />
+                  Common Antecedents
+                </h5>
+                <ul className="text-sm space-y-1">
+                  {patternAnalysis.commonAntecedents.map((ant: string, i: number) => (
+                    <li key={i} className="text-gray-600">
+                      • {ant}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-purple-200">
+                <h5 className="font-medium text-sm mb-2 flex items-center gap-1">
+                  <ArrowLeftIcon className="h-3 w-3 text-blue-600" />
+                  Common Consequences
+                </h5>
+                <ul className="text-sm space-y-1">
+                  {patternAnalysis.commonConsequences.map((con: string, i: number) => (
+                    <li key={i} className="text-gray-600">
+                      • {con}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-4 border border-purple-200">
+              <h5 className="font-medium text-sm mb-2 flex items-center gap-1">
+                <FileTextIcon className="h-3 w-3 text-purple-600" />
+                Clinical Summary
+              </h5>
+              <p className="text-gray-700 leading-relaxed">{patternAnalysis.summary}</p>
+            </div>
+
+            <div className="bg-white rounded-lg p-4 border border-purple-200">
+              <h5 className="font-medium text-sm mb-2 flex items-center gap-1">
+                <LightbulbIcon className="h-3 w-3 text-amber-500" />
+                Recommended Interventions
+              </h5>
+              <ul className="text-sm space-y-2">
+                {patternAnalysis.recommendations.map((rec: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle2Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-600">{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    patternAnalysis.confidence === "high"
+                      ? "bg-green-100 text-green-700"
+                      : patternAnalysis.confidence === "medium"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {patternAnalysis.confidence} confidence
+                </span>
+                {!patternAnalysis.minimumObservationsMet && (
+                  <span className="text-amber-600 text-xs">⚠️ Add more observations for higher confidence</span>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(patternAnalysis.summary)}
+                className="gap-1"
+              >
+                <CopyIcon className="h-3 w-3" />
+                Copy Summary
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-end gap-3 pt-6 border-t">
+        <Button onClick={onSave} size="lg" className="gap-2 bg-[#0D9488] hover:bg-[#0F766E]">
+          Save & Continue
+          <ArrowRightIcon className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
         <div className="p-6">
           <h3 className="font-semibold text-foreground mb-3">ABC Analysis Guidelines</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
@@ -278,7 +708,7 @@ export function ABCObservation() {
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       <style jsx>{`
         @keyframes slideIn {
@@ -294,4 +724,35 @@ export function ABCObservation() {
       `}</style>
     </div>
   )
+}
+
+function formatTimestamp(date: Date | string) {
+  const parsedDate = safeParseDate(date)
+  if (!parsedDate) {
+    return "Invalid date"
+  }
+
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(parsedDate)
+  } catch {
+    return "Invalid date"
+  }
+}
+
+function safeParseDate(date: Date | string): Date | null {
+  if (date instanceof Date) {
+    return date
+  }
+  try {
+    return new Date(date)
+  } catch {
+    return null
+  }
 }

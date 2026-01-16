@@ -75,7 +75,7 @@ export default function TermsPage() {
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">5. Subscription and Payment</h2>
             <p className="text-gray-600 leading-relaxed">
               ARIA offers subscription-based pricing. By subscribing, you agree to pay the applicable fees.
-              Subscriptions automatically renew unless cancelled. Refunds are available within 14 days of initial
+              Subscriptions automatically renew unless cancelled. Refunds are available within 7 days of initial
               purchase if you are not satisfied with the service.
             </p>
           </section>

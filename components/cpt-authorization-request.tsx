@@ -5,12 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusIcon, DownloadIcon, PrinterIcon, AlertCircleIcon, CheckCircle2Icon, XIcon } from "@/components/icons"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { useRAGSuggestions } from "@/hooks/useRAGSuggestions"
-import { Sparkles, Loader2 } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, Clock, Trash2, Sparkles, Loader2 } from "lucide-react"
+import { toast } from "sonner"
+import ReactMarkdown from "react-markdown"
 
 type CPTCode = "97153" | "97155" | "97155HN" | "97156" | "97156HN"
 type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"
@@ -46,19 +47,23 @@ const CPT_CODES: { code: CPTCode; label: string; fullLabel: string; color: strin
   { code: "97156HN", label: "BCaBA - Family", fullLabel: "Family Training Assistant", color: "bg-cyan-500" },
 ]
 
-export function CPTAuthorizationRequest() {
+interface CPTAuthorizationRequestProps {
+  clientData?: any
+  onSave?: () => void
+}
+
+export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorizationRequestProps) {
   const [schedule, setSchedule] = useState<ServiceSchedule>({})
   const [justification, setJustification] = useState("")
   const [selectedCell, setSelectedCell] = useState<{ day: DayOfWeek; code: CPTCode } | null>(null)
-  const [showAddSlot, setShowAddSlot] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [newSlot, setNewSlot] = useState<{ startTime: string; endTime: string; location: Location }>({
     startTime: "",
     endTime: "",
     location: "Home",
   })
-
-  // RAG Integration for CPT suggestions
-  const { suggestions, isLoading, error, fetchSuggestions } = useRAGSuggestions()
+  const [isGeneratingJustification, setIsGeneratingJustification] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   const parseTime = (timeStr: string): Date => {
     const [hours, minutes] = timeStr.split(":").map(Number)
@@ -88,7 +93,19 @@ export function CPTAuthorizationRequest() {
   }
 
   const addTimeSlot = () => {
-    if (!selectedCell || !newSlot.startTime || !newSlot.endTime) return
+    console.log("[v0] addTimeSlot called, selectedCell:", selectedCell, "newSlot:", newSlot)
+
+    if (!selectedCell || !newSlot.startTime || !newSlot.endTime) {
+      console.log(
+        "[v0] Missing data - selectedCell:",
+        selectedCell,
+        "startTime:",
+        newSlot.startTime,
+        "endTime:",
+        newSlot.endTime,
+      )
+      return
+    }
 
     const { day, code } = selectedCell
 
@@ -118,8 +135,10 @@ export function CPTAuthorizationRequest() {
       },
     }))
 
+    console.log("[v0] Slot added successfully:", slot)
+
     setNewSlot({ startTime: "", endTime: "", location: "Home" })
-    setShowAddSlot(false)
+    setIsDialogOpen(false)
     setSelectedCell(null)
   }
 
@@ -162,14 +181,13 @@ export function CPTAuthorizationRequest() {
     }, 0)
   }
 
-  // Validation checks
+  const warnings = []
   const totalWeeklyHours = getTotalWeeklyHours()
   const rbtHours = getTotalHoursByCode("97153")
   const bcbaHours = getTotalHoursByCode("97155") + getTotalHoursByCode("97155HN")
   const familyTrainingHours = getTotalHoursByCode("97156") + getTotalHoursByCode("97156HN")
   const supervisionRatio = rbtHours > 0 ? (bcbaHours / rbtHours) * 100 : 0
 
-  const warnings = []
   if (totalWeeklyHours > 40) {
     warnings.push({ type: "error", message: "Total weekly hours exceed 40 (insurance red flag)" })
   }
@@ -207,6 +225,160 @@ export function CPTAuthorizationRequest() {
 
   const wordCount = justification.trim().split(/\s+/).filter(Boolean).length
 
+  const handleAddSlotClick = (day: DayOfWeek, code: CPTCode) => {
+    console.log("[v0] Add Slot clicked - day:", day, "code:", code)
+    setSelectedCell({ day, code })
+    setNewSlot({ startTime: "", endTime: "", location: "Home" })
+    setIsDialogOpen(true)
+  }
+
+  const handleAIGenerateJustification = async () => {
+    setIsGeneratingJustification(true)
+
+    try {
+      const rawClientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
+      const clientInfo = rawClientInfo.data || rawClientInfo
+      const rawBackgroundHistory = JSON.parse(localStorage.getItem("aria-background-history") || "{}")
+      const backgroundHistory = rawBackgroundHistory.data || rawBackgroundHistory
+      const rawAssessmentData = JSON.parse(localStorage.getItem("aria-assessment-data") || "{}")
+      const assessmentData = rawAssessmentData.data || rawAssessmentData
+      const rawAbcObservations = JSON.parse(localStorage.getItem("aria-abc-observations") || "{}")
+      const abcObservations = rawAbcObservations.data || rawAbcObservations
+      const goalsData = JSON.parse(localStorage.getItem("aria-goals") || "[]")
+
+      // Build impairment scores from assessment data
+      const impairmentScores = []
+
+      // Add communication score
+      if (assessmentData.communicationLevel) {
+        const commScore =
+          assessmentData.communicationLevel === "nonverbal"
+            ? 1
+            : assessmentData.communicationLevel === "limited"
+              ? 2
+              : assessmentData.communicationLevel === "functional"
+                ? 3
+                : 4
+        impairmentScores.push({
+          domain: "Communication",
+          score: commScore,
+          severity: commScore <= 2 ? "severe" : commScore <= 3 ? "moderate" : "mild",
+        })
+      }
+
+      // Add social skills score
+      if (assessmentData.socialSkillsLevel) {
+        const socialScore =
+          assessmentData.socialSkillsLevel === "minimal"
+            ? 1
+            : assessmentData.socialSkillsLevel === "emerging"
+              ? 2
+              : assessmentData.socialSkillsLevel === "developing"
+                ? 3
+                : 4
+        impairmentScores.push({
+          domain: "Social Skills",
+          score: socialScore,
+          severity: socialScore <= 2 ? "severe" : socialScore <= 3 ? "moderate" : "mild",
+        })
+      }
+
+      // Add adaptive behavior score
+      if (assessmentData.adaptiveBehaviorLevel) {
+        const adaptiveScore =
+          assessmentData.adaptiveBehaviorLevel === "severe"
+            ? 1
+            : assessmentData.adaptiveBehaviorLevel === "moderate"
+              ? 2
+              : assessmentData.adaptiveBehaviorLevel === "mild"
+                ? 3
+                : 4
+        impairmentScores.push({
+          domain: "Adaptive Behavior",
+          score: adaptiveScore,
+          severity: adaptiveScore <= 2 ? "severe" : adaptiveScore <= 3 ? "moderate" : "mild",
+        })
+      }
+
+      // Default scores if none found
+      if (impairmentScores.length === 0) {
+        impairmentScores.push(
+          { domain: "Communication", score: 2, severity: "moderate" },
+          { domain: "Social Skills", score: 2, severity: "moderate" },
+          { domain: "Adaptive Behavior", score: 2, severity: "moderate" },
+        )
+      }
+
+      // Build behavioral concerns from ABC observations and assessment
+      const behavioralConcerns: string[] = []
+      if (abcObservations.targetBehaviors) {
+        behavioralConcerns.push(...abcObservations.targetBehaviors)
+      }
+      if (assessmentData.behaviorConcerns) {
+        if (Array.isArray(assessmentData.behaviorConcerns)) {
+          behavioralConcerns.push(...assessmentData.behaviorConcerns)
+        } else if (typeof assessmentData.behaviorConcerns === "string") {
+          behavioralConcerns.push(assessmentData.behaviorConcerns)
+        }
+      }
+      if (backgroundHistory.behaviorHistory) {
+        behavioralConcerns.push(backgroundHistory.behaviorHistory)
+      }
+
+      // Calculate client age
+      let clientAge = 5 // default
+      if (clientInfo.dateOfBirth) {
+        const today = new Date()
+        const birthDate = new Date(clientInfo.dateOfBirth)
+        clientAge = today.getFullYear() - birthDate.getFullYear()
+        const monthDiff = today.getMonth() - birthDate.getMonth()
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          clientAge--
+        }
+      }
+
+      const response = await fetch("/api/generate-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "hoursJustification",
+          data: {
+            impairmentScores,
+            behavioralConcerns:
+              behavioralConcerns.length > 0 ? behavioralConcerns : ["Skill deficits requiring intervention"],
+            clientAge,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to generate justification")
+      }
+
+      const data = await response.json()
+      setJustification(data.content)
+      toast.success("Justification generated successfully")
+    } catch (error) {
+      console.error("Error generating justification:", error)
+      toast.error("Failed to generate justification. Please try again.")
+    } finally {
+      setIsGeneratingJustification(false)
+    }
+  }
+
+  // Helper function to calculate age
+  const calculateAge = (dateOfBirth: string): number => {
+    const today = new Date()
+    const birthDate = new Date(dateOfBirth)
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
+
   return (
     <div className="container mx-auto p-6 max-w-7xl space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
       {/* Header */}
@@ -217,11 +389,11 @@ export function CPTAuthorizationRequest() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={copyAsTable}>
-            <DownloadIcon className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" />
             Copy Table
           </Button>
           <Button variant="outline" onClick={exportToPDF}>
-            <PrinterIcon className="h-4 w-4 mr-2" />
+            <Clock className="h-4 w-4 mr-2" />
             Export PDF
           </Button>
         </div>
@@ -243,11 +415,11 @@ export function CPTAuthorizationRequest() {
               style={{ animationDelay: `${idx * 100}ms` }}
             >
               {warning.type === "error" ? (
-                <AlertCircleIcon className="h-5 w-5 flex-shrink-0" />
+                <Plus className="h-5 w-5 flex-shrink-0" />
               ) : warning.type === "warning" ? (
-                <AlertCircleIcon className="h-5 w-5 flex-shrink-0" />
+                <Plus className="h-5 w-5 flex-shrink-0" />
               ) : (
-                <CheckCircle2Icon className="h-5 w-5 flex-shrink-0" />
+                <Plus className="h-5 w-5 flex-shrink-0" />
               )}
               <span className="text-sm font-medium">{warning.message}</span>
             </div>
@@ -317,7 +489,7 @@ export function CPTAuthorizationRequest() {
                                     }}
                                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/50 rounded"
                                   >
-                                    <XIcon className="h-3 w-3 text-red-500" />
+                                    <Trash2 className="h-3 w-3 text-red-500" />
                                   </button>
                                 </div>
                                 <Badge variant="outline" className="mt-1 text-[9px] h-4 px-1">
@@ -329,13 +501,10 @@ export function CPTAuthorizationRequest() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setSelectedCell({ day, code })
-                                setShowAddSlot(true)
-                              }}
+                              onClick={() => handleAddSlotClick(day, code)}
                               className="w-full h-8 text-xs border-dashed hover:bg-[#0D9488]/10 hover:border-[#0D9488] transition-all duration-300"
                             >
-                              <PlusIcon className="h-3 w-3 mr-1" />
+                              <Plus className="h-3 w-3 mr-1" />
                               Add Slot
                             </Button>
                           </div>
@@ -353,31 +522,17 @@ export function CPTAuthorizationRequest() {
         </CardContent>
       </Card>
 
-      {/* Add Time Slot Modal */}
-      {showAddSlot && selectedCell && (
-        <Card className="border-[#0D9488] border-2 shadow-xl animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
-          <CardHeader className="bg-[#0D9488]/10">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">Add Session - {selectedCell.day}</CardTitle>
-                <CardDescription className="mt-1">
-                  {CPT_CODES.find((c) => c.code === selectedCell.code)?.code} -{" "}
-                  {CPT_CODES.find((c) => c.code === selectedCell.code)?.fullLabel}
-                </CardDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setShowAddSlot(false)
-                  setSelectedCell(null)
-                }}
-              >
-                <XIcon className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-6">
+      {/* Dialog for Adding Time Slot */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Session - {selectedCell?.day}</DialogTitle>
+            <DialogDescription>
+              {selectedCell && CPT_CODES.find((c) => c.code === selectedCell.code)?.code} -{" "}
+              {selectedCell && CPT_CODES.find((c) => c.code === selectedCell.code)?.fullLabel}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="startTime" className="text-sm font-semibold">
@@ -436,22 +591,22 @@ export function CPTAuthorizationRequest() {
                 className="flex-1 bg-[#0D9488] hover:bg-[#0F766E] transition-all duration-300"
                 disabled={!newSlot.startTime || !newSlot.endTime}
               >
-                <PlusIcon className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 mr-2" />
                 Add Session
               </Button>
               <Button
                 variant="outline"
                 onClick={() => {
-                  setShowAddSlot(false)
+                  setIsDialogOpen(false)
                   setSelectedCell(null)
                 }}
               >
                 Cancel
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Service Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -520,75 +675,81 @@ export function CPTAuthorizationRequest() {
       </div>
 
       {/* Justification for Hours */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Justification for Hours</CardTitle>
-          <CardDescription>
-            Provide detailed rationale for the requested service hours. Aim for 150-300 words.
-          </CardDescription>
-        </CardHeader>
-            <div className="px-6 pb-2">
+      <Card className="border-2 border-gray-100 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl font-bold tracking-tight text-gray-900">Justification for Hours</CardTitle>
+              <CardDescription className="text-gray-600">
+                Provide detailed rationale for the requested service hours. Aim for 150-300 words.
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-3">
+              {justification && (
+                <div className="flex items-center bg-gray-100 rounded-lg p-1 shadow-inner">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowPreview(false)}
+                    className={`rounded-md px-4 transition-all duration-200 ${
+                      !showPreview
+                        ? "bg-white text-teal-700 shadow-md font-semibold"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowPreview(true)}
+                    className={`rounded-md px-4 transition-all duration-200 ${
+                      showPreview
+                        ? "bg-white text-teal-700 shadow-md font-semibold"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Preview
+                  </Button>
+                </div>
+              )}
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchSuggestions("CPT codes medical necessity justification ABA therapy insurance authorization")}
-                disabled={isLoading}
-                className="w-full"
+                onClick={handleAIGenerateJustification}
+                disabled={isGeneratingJustification}
+                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isGeneratingJustification ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
                 ) : (
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    AI Generate
+                  </>
                 )}
-                {isLoading ? "Getting suggestions..." : "Get AI Justification Help"}
               </Button>
             </div>
-        <CardContent className="space-y-4">
-          <Textarea
-            value={justification}
-            onChange={(e) => setJustification(e.target.value)}
-            placeholder="Based on the severity of [specific behaviors], occurring at a frequency of [X times per day/week], the client requires intensive intervention across multiple settings. The proposed service hours are medically necessary to address [target behaviors/deficits] and achieve the following treatment goals: [list goals]. Research supports intensive intervention for [diagnosis/presentation] with outcomes showing [evidence]. The client's current level of functioning, including [specific deficits], necessitates this service intensity to prevent [risks] and promote [desired outcomes]..."
-            rows={10}
-            className="text-sm leading-relaxed"
-          />
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-4">
-              <span
-                className={
-                  wordCount < 150
-                    ? "text-yellow-600 font-medium"
-                    : wordCount > 300
-                      ? "text-red-600 font-medium"
-                      : "text-green-600 font-medium"
-                }
-              >
-                {wordCount} words
-              </span>
-              <span>{justification.length} characters</span>
-            </div>
-            <div>
-              {wordCount < 150 ? (
-                <span className="text-yellow-600">⚠ Add more detail</span>
-              ) : wordCount > 300 ? (
-                <span className="text-red-600">⚠ Too lengthy</span>
-              ) : (
-                <span className="text-green-600">✓ Good length</span>
-              )}
-            </div>
           </div>
+        </CardHeader>
+
+        <CardContent className="p-6 space-y-4">
+          {showPreview && justification ? (
+            <div className="min-h-[280px] p-8 border-2 border-gray-100 rounded-xl bg-gradient-to-br from-white via-slate-50/50 to-gray-50/30 shadow-inner">
+              <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-h1:text-2xl prose-h1:text-gray-900 prose-h1:mb-4 prose-h1:pb-2 prose-h1:border-b-2 prose-h1:border-gray-200 prose-h2:text-xl prose-h2:text-gray-800 prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-lg prose-h3:text-gray-700 prose-h3:mt-5 prose-h3:mb-2 prose-p:text-base prose-p:leading-relaxed prose-p:text-gray-600 prose-p:mb-4 prose-strong:font-semibold prose-strong:text-gray-900 prose-ul:my-3 prose-ul:pl-6 prose-ol:my-3 prose-ol:pl-6 prose-li:text-base prose-li:leading-relaxed prose-li:text-gray-600 prose-li:mb-2 prose-blockquote:border-l-4 prose-blockquote:border-teal-500 prose-blockquote:pl-4 prose-blockquote:my-4 prose-blockquote:italic prose-blockquote:text-gray-500">
+                <ReactMarkdown>{justification}</ReactMarkdown>
+              </article>
+            </div>
+          ) : (
+            <Textarea
+              value={justification}
+              onChange={(e) => setJustification(e.target.value)}
+              placeholder="Based on the severity of [specific behaviors], occurring at a specific location."
+            />
+          )}
         </CardContent>
       </Card>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-      `}</style>
     </div>
   )
 }

@@ -5,13 +5,14 @@ import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 import { ToastProvider } from "@/components/ui/premium-toast"
 import { ToastBridge } from "@/components/ui/toast-bridge"
+import { AriaHelpChat } from "@/components/aria-help-chat"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "ARIA - ABA Report Assistant",
   description: "AI-powered assistant for creating comprehensive ABA assessment reports for BCBAs and behavior analysts",
-    generator: 'v0.app'
+  generator: "v0.app",
 }
 
 export default function RootLayout({
@@ -26,6 +27,7 @@ export default function RootLayout({
           <ToastBridge />
           {children}
           <Toaster />
+          <AriaHelpChat />
         </ToastProvider>
       </body>
     </html>

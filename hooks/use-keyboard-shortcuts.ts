@@ -1,32 +1,78 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 
-interface ShortcutHandler {
+interface KeyboardShortcut {
   key: string
-  ctrl?: boolean
-  shift?: boolean
-  alt?: boolean
-  handler: () => void
+  ctrlKey?: boolean
+  altKey?: boolean
+  shiftKey?: boolean
+  metaKey?: boolean
+  action: () => void
 }
 
-export function useKeyboardShortcuts(shortcuts: ShortcutHandler[]) {
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      shortcuts.forEach((shortcut) => {
-        const keyMatches = event.key.toLowerCase() === shortcut.key.toLowerCase()
-        const ctrlMatches = shortcut.ctrl ? event.ctrlKey || event.metaKey : !event.ctrlKey && !event.metaKey
-        const shiftMatches = shortcut.shift ? event.shiftKey : !event.shiftKey
-        const altMatches = shortcut.alt ? event.altKey : !event.altKey
+interface ShortcutOptions {
+  shortcuts?: KeyboardShortcut[]
+  onSave?: () => void
+  onNext?: () => void
+  onPrevious?: () => void
+  onShowShortcuts?: () => void
+}
 
-        if (keyMatches && ctrlMatches && shiftMatches && altMatches) {
+export function useKeyboardShortcuts(input?: KeyboardShortcut[] | ShortcutOptions | null) {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (!input) return
+
+      let shortcuts: KeyboardShortcut[] = []
+
+      if (Array.isArray(input)) {
+        shortcuts = input
+      } else if (typeof input === "object") {
+        const options = input as ShortcutOptions
+
+        if (Array.isArray(options.shortcuts)) {
+          shortcuts = [...options.shortcuts]
+        }
+
+        if (typeof options.onSave === "function") {
+          shortcuts.push({ key: "s", ctrlKey: true, action: options.onSave })
+        }
+        if (typeof options.onNext === "function") {
+          shortcuts.push({ key: "ArrowRight", altKey: true, action: options.onNext })
+        }
+        if (typeof options.onPrevious === "function") {
+          shortcuts.push({ key: "ArrowLeft", altKey: true, action: options.onPrevious })
+        }
+        if (typeof options.onShowShortcuts === "function") {
+          shortcuts.push({ key: "?", shiftKey: true, action: options.onShowShortcuts })
+        }
+      }
+
+      if (shortcuts.length === 0) return
+
+      shortcuts.forEach(({ key, ctrlKey, altKey, shiftKey, metaKey, action }) => {
+        const keyMatch = event.key.toLowerCase() === key.toLowerCase()
+        const ctrlMatch = !!event.ctrlKey === !!ctrlKey
+        const altMatch = !!event.altKey === !!altKey
+        const shiftMatch = !!event.shiftKey === !!shiftKey
+        const metaMatch = !!event.metaKey === !!metaKey
+
+        if (keyMatch && ctrlMatch && altMatch && shiftMatch && metaMatch) {
           event.preventDefault()
-          shortcut.handler()
+          if (typeof action === "function") {
+            action()
+          }
         }
       })
-    }
+    },
+    [input],
+  )
 
+  useEffect(() => {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [shortcuts])
+  }, [handleKeyDown])
 }
+
+export default useKeyboardShortcuts
