@@ -22,6 +22,8 @@ import { insuranceTemplates } from "@/lib/data/insurance-templates"
 import { useToast } from "@/hooks/use-toast"
 import { SkeletonReportList } from "@/components/skeleton-report-card"
 import { ReportReadyEmptyState } from "@/components/empty-states"
+import { sampleReport, sampleClientData, sampleAssessmentData, sampleSelectedGoals, sampleNarrativeSections } from "@/lib/data/sample-report-data"
+import { Eye } from "lucide-react"
 
 interface ReportGeneratorProps {
   clientData: ClientData | null
@@ -35,6 +37,7 @@ export function ReportGenerator({ clientData, assessmentData, selectedGoals, onB
 
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedReport, setGeneratedReport] = useState<string | null>(null)
+  const [showSampleReport, setShowSampleReport] = useState(false)
 
   const selectedAssessment = assessmentTypes.find((a) => a.id === assessmentData?.assessmentType)
   const insuranceTemplate = insuranceTemplates.find((t) => t.code === clientData?.insuranceProvider)
@@ -57,6 +60,14 @@ export function ReportGenerator({ clientData, assessmentData, selectedGoals, onB
     }
     return age
   }
+  const showSampleReportPreview = () => {
+    const sampleReportText = sampleNarrativeSections.map(s => `${s.title}\n${"=".repeat(s.title.length)}\n\n${s.content}`).join("\n\n---\n\n")
+    setGeneratedReport(sampleReportText)
+    setShowSampleReport(true)
+    toast({ title: "Sample Report Loaded", description: "Viewing Marcus Johnson sample assessment report" })
+  }
+
+
 
   const generateReport = async () => {
     if (!allComplete) {
@@ -281,6 +292,10 @@ Report Generated: ${new Date().toLocaleDateString()}
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Back
           </Button>
+        <Button variant="outline" onClick={showSampleReportPreview} className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 hover:from-emerald-600 hover:to-teal-600">
+          <Eye className="h-4 w-4 mr-2" />
+          Ver Reporte Modelo
+        </Button>
           {generatedReport && (
             <>
               <Button variant="outline" onClick={handleCopy}>

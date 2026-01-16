@@ -12,6 +12,7 @@ import type { ClientData, AssessmentData, SelectedGoal, ReassessmentData, Agency
 import { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useAutoSave } from "@/hooks/use-auto-save"
+import { saveAssessment } from "@/lib/supabase/assessments"
 import { premiumToast } from "@/components/ui/premium-toast"
 import { TimeSavedTracker } from "./time-saved-tracker"
 import { ABCObservation } from "./abc-observation"
@@ -62,6 +63,7 @@ export function Dashboard() {
   const [agencyData, setAgencyData] = useState<AgencyData[]>([])
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [assessmentId, setAssessmentId] = useState<string | null>(null)
   const [completedSteps, setCompletedSteps] = useState<ActiveView[]>([])
 
   useEffect(() => {
@@ -121,7 +123,18 @@ export function Dashboard() {
 
   useAutoSave({
     data: { clientData, assessmentData, selectedGoals },
-    onSave: () => setLastSaved(new Date()),
+    onSave: async (data) => {
+      try {
+        const result = await saveAssessment(data, assessmentId || undefined)
+        if (result.id && !assessmentId) {
+          setAssessmentId(result.id)
+        }
+        setLastSaved(new Date())
+        console.log("Auto-saved to Supabase:", result.id)
+      } catch (error) {
+        console.error("Error saving to Supabase:", error)
+      }
+    },
   })
 
   const renderActiveView = () => {
