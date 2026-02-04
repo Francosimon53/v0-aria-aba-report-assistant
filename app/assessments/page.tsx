@@ -81,13 +81,50 @@ export default function AssessmentsPage() {
           status: item.status || "draft",
           createdAt: item.created_at,
           updatedAt: item.updated_at,
-          progress: item.progress || 0,
+          progress: (() => {
+            // Calculate progress dynamically based on actual data
+            const data = item.data || {}
+            const clientInfo = data.client_info || data.clientInformation || {}
+
+            // Define what sections count as complete
+            const sections = [
+              !!(clientInfo.firstName || clientInfo.first_name || clientInfo.client_first_name),
+              !!(clientInfo.lastName || clientInfo.last_name || clientInfo.client_last_name),
+              !!(clientInfo.dateOfBirth || clientInfo.date_of_birth || clientInfo.dob),
+              !!(clientInfo.diagnosis || clientInfo.primaryDiagnosis || clientInfo.primary_diagnosis),
+              !!(data.background_history && Object.keys(data.background_history).length > 0),
+              !!(data.reason_for_referral),
+              !!(data.assessment_data && Object.keys(data.assessment_data).length > 0),
+              !!(data.abc_observations && data.abc_observations.length > 0),
+              !!(data.risk_assessment && Object.keys(data.risk_assessment).length > 0),
+              !!(data.selected_goals && data.selected_goals.length > 0),
+              !!(data.service_plan && Object.keys(data.service_plan).length > 0),
+              !!(data.report_generated),
+            ]
+
+            const completed = sections.filter(Boolean).length
+            const percentage = Math.round((completed / sections.length) * 100)
+
+            console.log(`[v0] Calculated progress for ${item.id}: ${completed}/${sections.length} = ${percentage}%`)
+            return percentage
+          })(),
           data: item.data,
         }
       })
 
       setAssessments(assessmentList)
-      console.log("[v0] Loaded", assessmentList.length, "assessments from Supabase (source of truth)")
+      console.log("[v0] Loaded", assessmentList.length, "assessments from Supabase")
+      // Debug: show raw data structure
+      ;(data || []).forEach((item) => {
+        console.log(`[v0] Assessment raw data:`, {
+          id: item.id,
+          progressColumn: item.progress,
+          dataProgress: item.data?.progress,
+          status: item.status,
+          hasData: !!item.data,
+          dataKeys: item.data ? Object.keys(item.data) : [],
+        })
+      })
     } catch (error) {
       console.error("[v0] Error loading assessments:", error)
       setAssessments([])

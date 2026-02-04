@@ -6,8 +6,16 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
-  const supabaseUrl = process.env.ARIA_SUPABASE_URL || process.env.NEXT_PUBLIC_ARIA_SUPABASE_URL
-  const supabaseKey = process.env.ARIA_SUPABASE_ANON_KEY
+  const supabaseUrl =
+    process.env.ARIA_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_ARIA_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.SUPABASE_URL
+
+  const supabaseKey =
+    process.env.ARIA_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
     console.warn("[v0] Supabase environment variables not configured. Auth is disabled.")

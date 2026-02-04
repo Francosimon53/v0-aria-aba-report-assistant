@@ -146,10 +146,29 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       console.log("[v0] Loading assessment:", id)
       setIsLoading(true)
       try {
-        const { data, error } = await supabase.from("assessments").select("*").eq("id", id).maybeSingle()
+        // Verify Supabase client is available
+        if (!supabase) {
+          console.error("[v0] Supabase client not initialized")
+          throw new Error("Supabase client not available")
+        }
+
+        console.log("[v0] Executing Supabase query for assessment:", id)
+        const { data, error, status, statusText } = await supabase
+          .from("assessments")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle()
+
+        console.log("[v0] Supabase response - status:", status, "statusText:", statusText, "hasData:", !!data, "hasError:", !!error)
 
         if (error) {
-          console.error("[v0] Error loading assessment:", error)
+          console.error("[v0] Supabase error loading assessment:", {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            fullError: JSON.stringify(error, null, 2),
+          })
           throw error
         }
 
@@ -193,11 +212,19 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
         setIsNewAssessment(false)
         setHasUnsavedChanges(false)
         console.log("[v0] Assessment loaded successfully")
-      } catch (error) {
-        console.error("[v0] Error loading assessment:", error)
+      } catch (error: any) {
+        console.error("[v0] Error loading assessment - Full details:", {
+          name: error?.name,
+          message: error?.message,
+          code: error?.code,
+          details: error?.details,
+          hint: error?.hint,
+          stack: error?.stack,
+          fullError: JSON.stringify(error, Object.getOwnPropertyNames(error || {}), 2),
+        })
         toast({
           title: "Error",
-          description: "Failed to load assessment",
+          description: error?.message || "Failed to load assessment",
           variant: "destructive",
         })
       } finally {
