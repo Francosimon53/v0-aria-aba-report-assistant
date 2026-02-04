@@ -217,6 +217,227 @@ const loadGoalsTrackerData = () => {
 
 const NEW_SECTION_IDS = ["standardized_assessments", "fade_plan", "barriers_treatment", "generalization_maintenance"]
 
+// ============================================================================
+// HELPER FUNCTIONS FOR DATA VALIDATION AND AGE-BASED RECOMMENDATIONS
+// ============================================================================
+
+/**
+ * Calculates age from date of birth
+ * @param dob - Date of birth in string format (YYYY-MM-DD or similar)
+ * @returns Age in years, or null if invalid
+ */
+const calculateClientAge = (dob: string | undefined): number | null => {
+  if (!dob) return null
+
+  try {
+    const birthDate = new Date(dob)
+    if (isNaN(birthDate.getTime())) return null
+
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+
+    return age >= 0 ? age : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Returns age-based service hour recommendations
+ * Based on best practices: younger children benefit from more intensive services
+ */
+const getAgeBasedRecommendations = (age: number | null): {
+  weeklyHours: number
+  rbtHours: number
+  bcbaHours: number
+  parentTrainingHours: string
+  intensityLevel: string
+  rationale: string
+} => {
+  if (age === null) {
+    return {
+      weeklyHours: 25,
+      rbtHours: 20,
+      bcbaHours: 4,
+      parentTrainingHours: "2 hours/week",
+      intensityLevel: "Moderate",
+      rationale: "Standard recommendation (age not specified)"
+    }
+  }
+
+  if (age < 3) {
+    return {
+      weeklyHours: 25,
+      rbtHours: 20,
+      bcbaHours: 4,
+      parentTrainingHours: "4 hours/week",
+      intensityLevel: "Intensive (Early Intervention)",
+      rationale: "Research supports intensive early intervention (25+ hours) for children under 3 to maximize neuroplasticity and developmental outcomes"
+    }
+  }
+
+  if (age >= 3 && age < 6) {
+    return {
+      weeklyHours: 30,
+      rbtHours: 25,
+      bcbaHours: 5,
+      parentTrainingHours: "3 hours/week",
+      intensityLevel: "Intensive",
+      rationale: "Intensive ABA (30+ hours) recommended for preschool-aged children to address skill deficits before school entry"
+    }
+  }
+
+  if (age >= 6 && age < 10) {
+    return {
+      weeklyHours: 20,
+      rbtHours: 15,
+      bcbaHours: 4,
+      parentTrainingHours: "2 hours/week",
+      intensityLevel: "Moderate",
+      rationale: "Moderate intensity (20 hours) balances therapy with school participation and social integration"
+    }
+  }
+
+  if (age >= 10 && age < 14) {
+    return {
+      weeklyHours: 15,
+      rbtHours: 12,
+      bcbaHours: 3,
+      parentTrainingHours: "2 hours/week",
+      intensityLevel: "Focused",
+      rationale: "Focused intervention (15 hours) targeting specific skill deficits and social skills development"
+    }
+  }
+
+  // Age 14+
+  return {
+    weeklyHours: 10,
+    rbtHours: 8,
+    bcbaHours: 2,
+    parentTrainingHours: "1-2 hours/week",
+    intensityLevel: "Maintenance/Transition",
+    rationale: "Transition-focused services (10 hours) emphasizing independence, vocational skills, and community integration"
+  }
+}
+
+/**
+ * Defines required fields for each report section
+ */
+const SECTION_REQUIRED_FIELDS: Record<string, { fields: string[], critical: boolean }> = {
+  header: {
+    fields: ["clientInfo.firstName", "clientInfo.lastName", "clientInfo.dob", "clientInfo.diagnosis"],
+    critical: true
+  },
+  service_recommendations: {
+    fields: ["clientInfo.age", "clientInfo.diagnosis"],
+    critical: true
+  },
+  referral: {
+    fields: ["clientInfo.firstName", "clientInfo.diagnosis", "reasonForReferral"],
+    critical: false
+  },
+  background: {
+    fields: ["clientInfo.firstName", "background"],
+    critical: false
+  },
+  behavior_reduction_goals: {
+    fields: ["clientInfo.firstName", "behaviors"],
+    critical: true
+  },
+  skill_acquisition_goals: {
+    fields: ["clientInfo.firstName", "goals"],
+    critical: true
+  },
+  crisis_plan: {
+    fields: ["clientInfo.firstName", "riskAssessment"],
+    critical: false
+  },
+  medical_necessity: {
+    fields: ["clientInfo.firstName", "clientInfo.diagnosis", "clientInfo.age"],
+    critical: true
+  }
+}
+
+/**
+ * Validates if required data exists for a section
+ * @returns Object with validation result and missing fields
+ */
+const validateSectionData = (
+  sectionId: string,
+  data: AssessmentData
+): { valid: boolean; missingFields: string[]; warnings: string[] } => {
+  const requirements = SECTION_REQUIRED_FIELDS[sectionId]
+
+  if (!requirements) {
+    return { valid: true, missingFields: [], warnings: [] }
+  }
+
+  const missingFields: string[] = []
+  const warnings: string[] = []
+
+  for (const fieldPath of requirements.fields) {
+    const parts = fieldPath.split(".")
+    let value: any = data
+
+    for (const part of parts) {
+      value = value?.[part]
+    }
+
+    if (value === undefined || value === null || value === "" ||
+        (Array.isArray(value) && value.length === 0)) {
+      missingFields.push(fieldPath)
+    }
+  }
+
+  // Check for placeholder values that indicate missing data
+  if (data.clientInfo?.firstName === "[First Name]" || !data.clientInfo?.firstName) {
+    if (!missingFields.includes("clientInfo.firstName")) {
+      missingFields.push("clientInfo.firstName")
+    }
+  }
+
+  // Age-specific warnings
+  const age = calculateClientAge(data.clientInfo?.dob)
+  if (age === null && requirements.fields.includes("clientInfo.age")) {
+    warnings.push("Unable to calculate age from date of birth. Service recommendations may not be optimal.")
+  }
+
+  // Behavior-specific warnings
+  if (sectionId === "behavior_reduction_goals") {
+    const behaviors = data.behaviors || []
+    const behaviorGoals = data.behaviorGoals || []
+    const goalsTrackerData = loadGoalsTrackerData().filter(g => g.type === "behavior-reduction")
+
+    if (behaviors.length === 0 && behaviorGoals.length === 0 && goalsTrackerData.length === 0) {
+      warnings.push("No behavior data found. Please complete ABC Observations or Goals Tracker first.")
+    }
+  }
+
+  return {
+    valid: requirements.critical ? missingFields.length === 0 : true,
+    missingFields,
+    warnings
+  }
+}
+
+/**
+ * Gets the client's full name, never returning placeholders
+ */
+const getClientName = (data: AssessmentData): string | null => {
+  const firstName = data.clientInfo?.firstName
+  const lastName = data.clientInfo?.lastName
+
+  if (!firstName || firstName === "[First Name]") return null
+  if (!lastName || lastName === "[Last Name]") return firstName
+
+  return `${firstName} ${lastName}`.trim()
+}
+
 const REPORT_SECTIONS = [
   {
     id: "header",
@@ -811,22 +1032,45 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
   }
 
   const buildPromptForSection = (sectionId: string, data: AssessmentData): string => {
-    const clientName =
-      `${data.clientInfo?.firstName || "[First Name]"} ${data.clientInfo?.lastName || "[Last Name]"}`.trim()
-    const diagnosis = data.clientInfo?.diagnosis || "Autism Spectrum Disorder"
-    const icd10 = data.clientInfo?.icd10Code || "F84.0" // Corrected from icd10 to icd10Code
-    const age = data.clientInfo?.age || "[Age]"
-    const dob = data.clientInfo?.dob || "[DOB]"
-    const clientAge = age // Alias for clarity in prompts
+    // =========================================================================
+    // CALCULATE AGE FROM DOB (consistent across all sections)
+    // =========================================================================
+    const calculatedAge = calculateClientAge(data.clientInfo?.dob)
+    const age = calculatedAge !== null
+      ? calculatedAge
+      : (data.clientInfo?.age ? Number(data.clientInfo.age) : null)
+    const ageDisplay = age !== null ? `${age} years old` : null
+
+    // =========================================================================
+    // GET CLIENT NAME (never use placeholders in prompts)
+    // =========================================================================
+    const clientName = getClientName(data)
+    const firstName = data.clientInfo?.firstName && data.clientInfo.firstName !== "[First Name]"
+      ? data.clientInfo.firstName
+      : null
+
+    // =========================================================================
+    // GET AGE-BASED SERVICE RECOMMENDATIONS
+    // =========================================================================
+    const ageRecs = getAgeBasedRecommendations(age)
+
+    // =========================================================================
+    // OTHER DATA
+    // =========================================================================
+    const diagnosis = data.clientInfo?.diagnosis || null
+    const icd10 = data.clientInfo?.icd10Code || "F84.0"
+    const dob = data.clientInfo?.dob || null
 
     const behaviors = data.behaviors || []
     const goals = data.goals || []
     const behaviorGoals = data.behaviorGoals || []
     const abcObs = data.abcObservations || []
-    const weeklyHours = data.recommendations?.weeklyHours || 25
-    const rbtHours = data.recommendations?.rbtHours || 20
-    const bcbaHours = data.recommendations?.bcbaHours || 4
-    const parentHours = data.recommendations?.parentTrainingHours || "2 hours/week"
+
+    // Use age-based recommendations if no manual override
+    const weeklyHours = data.recommendations?.weeklyHours || ageRecs.weeklyHours
+    const rbtHours = data.recommendations?.rbtHours || ageRecs.rbtHours
+    const bcbaHours = data.recommendations?.bcbaHours || ageRecs.bcbaHours
+    const parentHours = data.recommendations?.parentTrainingHours || ageRecs.parentTrainingHours
 
     // Add prompts for new sections
     const prompts: Record<string, string | (() => string)> = {
@@ -835,27 +1079,27 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
 CLIENT INFORMATION:
 - Name: ${clientName}
 - Date of Birth: ${dob}
-- Age: ${age}
-- Client ID: ${data.clientInfo?.clientId || "[Client ID]"}
-- Address: ${data.clientInfo?.address || "[Address]"}
-- Primary Caregiver: ${data.clientInfo?.caregiver || "[Caregiver Name]"}
-- Phone: ${data.clientInfo?.phone || "[Phone]"}
+- Age: ${ageDisplay}
+- Client ID: ${data.clientInfo?.clientId || "N/A"}
+- Address: ${data.clientInfo?.address || "N/A"}
+- Primary Caregiver: ${data.clientInfo?.caregiver || "N/A"}
+- Phone: ${data.clientInfo?.phone || "N/A"}
 - Diagnosis: ${diagnosis} (${icd10})
 
 PROVIDER INFORMATION:
-- Agency: ${data.providerInfo?.name || "[Agency Name]"}
-- BCBA: ${data.providerInfo?.bcbaName || "[BCBA Name]"}
-- BCBA License: ${data.providerInfo?.bcbaLicense || "[License #]"}
-- Contact: ${data.providerInfo?.bcbaPhone || "[Phone]"} / ${data.providerInfo?.bcbaEmail || "[Email]"}
-- NPI: ${data.providerInfo?.npi || "[NPI #]"}
+- Agency: ${data.providerInfo?.name || "N/A"}
+- BCBA: ${data.providerInfo?.bcbaName || "N/A"}
+- BCBA License: ${data.providerInfo?.bcbaLicense || "N/A"}
+- Contact: ${data.providerInfo?.bcbaPhone || "N/A"} / ${data.providerInfo?.bcbaEmail || "N/A"}
+- NPI: ${data.providerInfo?.npi || "N/A"}
 
 INSURANCE:
-- Provider: ${data.insurance?.provider || "[Insurance Provider]"}
-- Policy #: ${data.insurance?.policyNumber || "[Policy #]"}
-- Authorization #: ${data.insurance?.authNumber || "[Auth #]"}
+- Provider: ${data.insurance?.provider || "N/A"}
+- Policy #: ${data.insurance?.policyNumber || "N/A"}
+- Authorization #: ${data.insurance?.authNumber || "N/A"}
 
 Assessment Type: ${data.clientInfo?.assessmentType === "reassessment" ? "Reassessment (6-month review)" : "Initial Assessment"}
-Assessment Dates: ${data.assessmentDates || "[Assessment Dates]"}
+Assessment Dates: ${data.assessmentDates || "N/A"}
 Report Date: ${new Date().toLocaleDateString()}
 
 ${
@@ -864,9 +1108,15 @@ ${
     : ""
 }
 
+IMPORTANT: Use "${firstName}" (the client's actual name) throughout the report, never generic terms like "the client" or "the individual".
+
 Format this as a professional header with clearly organized recipient info, provider info, and assessment details. Use proper formatting with labels and values.`,
 
       service_recommendations: `Write the SERVICE RECOMMENDATIONS TABLE section for a professional ABA assessment report.
+
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
+INTENSITY LEVEL: ${ageRecs.intensityLevel}
 
 Create a detailed service recommendation table with the following CPT codes:
 
@@ -874,86 +1124,104 @@ Create a detailed service recommendation table with the following CPT codes:
 |----------|-------------|------------|------------|----------|
 | 97153 | Adaptive Behavior Treatment by Technician (RBT) | ${rbtHours * 4} units | ${rbtHours} hrs | ${data.recommendations?.setting || "Home/Community"} |
 | 97155 | Adaptive Behavior Treatment Protocol Modification (BCBA) | ${bcbaHours * 4} units | ${bcbaHours} hrs | ${data.recommendations?.setting || "Home/Community"} |
-| 97156 | Family Adaptive Behavior Treatment Guidance (Parent Training) | ${Number.parseFloat(parentHours) * 4} units | ${parentHours} | ${data.recommendations?.setting || "Home"} |
+| 97156 | Family Adaptive Behavior Treatment Guidance (Parent Training) | ${typeof parentHours === 'string' ? parentHours : `${parentHours} hours/week`} | ${typeof parentHours === 'string' ? parentHours : `${parentHours} hrs`} | ${data.recommendations?.setting || "Home"} |
 | 97151 TS | Behavior Identification Assessment | 18 units | N/A | N/A |
 
 Total Weekly Direct Hours: ${weeklyHours} hours
 Recommended Duration: ${data.recommendations?.duration || "12 months"}
 
-Include a brief paragraph explaining the service model and rationale for the recommended hours. Reference evidence-based practices supporting intensive ABA therapy.`,
+AGE-BASED RATIONALE:
+${ageRecs.rationale}
+
+Include a paragraph explaining why these specific hours are recommended for ${firstName} based on:
+1. Age (${ageDisplay}) and developmental stage
+2. Diagnosis severity and skill deficits
+3. Evidence-based practices supporting this intensity level
+4. Family involvement capacity
+
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".`,
 
       referral: `Write the REASON FOR REFERRAL section (200-300 words) for a professional ABA assessment report.
 
-Client: ${clientName}, Age: ${age}
-Diagnosis: ${diagnosis} (${icd10})
-Diagnosing Provider: [Diagnosing Provider Name]
-Date of Diagnosis: [Diagnosis Date]
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis} (${icd10})
 
-Main concerns reported:
+${data.reasonForReferral ? `
+REFERRAL INFORMATION:
+- Referral Source: ${data.reasonForReferral.referralSource || "N/A"}
+- Referral Date: ${data.reasonForReferral.referralDate || "N/A"}
+- Current Problem Areas: ${data.reasonForReferral.currentProblemAreas || "N/A"}
+- Family Goals: ${data.reasonForReferral.familyGoals || "N/A"}
+` : ""}
+
+Main concerns reported for ${firstName}:
 ${data.background?.weaknesses || "- Deficits in communication and social skills\n- Presence of maladaptive behaviors\n- Delays in adaptive functioning"}
 
-Purpose: Initial comprehensive ABA assessment to determine medical necessity for Applied Behavior Analysis services.
+Purpose: ${data.clientInfo?.assessmentType === "reassessment" ? "6-month reassessment" : "Initial comprehensive ABA assessment"} to determine medical necessity for Applied Behavior Analysis services.
 
-Write a professional narrative paragraph that:
-1. States who referred the client and their relationship
-2. Includes the diagnosis with ICD-10 code and diagnosing provider
+Write a professional narrative paragraph about ${firstName} that:
+1. States who referred ${firstName} and their relationship
+2. Includes ${firstName}'s diagnosis (${diagnosis}) with ICD-10 code (${icd10})
 3. Lists 3-4 primary concerns that prompted the referral
 4. Clearly states the purpose of this assessment
-5. Mentions any relevant previous interventions or services`,
+5. Mentions any relevant previous interventions or services
+
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client" or "the individual".`,
 
       background: `Write a COMPREHENSIVE BACKGROUND INFORMATION section (800-1200 words) for a professional ABA assessment report.
 
-Client: ${clientName}, Age: ${age}
-Diagnosis: ${diagnosis}
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
+PRIMARY CAREGIVER: ${data.clientInfo?.caregiver || "N/A"}
 
 DEVELOPMENTAL HISTORY:
-${data.background?.developmental || "Information gathered through caregiver interview regarding pregnancy, birth, and early developmental milestones."}
+${data.background?.developmental || `Information gathered through caregiver interview regarding ${firstName}'s pregnancy, birth, and early developmental milestones.`}
 
 DAILY SCHEDULE:
-${data.background?.dailySchedule || "Typical daily routine includes morning routine, school/therapy, afternoon activities, dinner, and bedtime routine."}
+${data.background?.dailySchedule || `${firstName}'s typical daily routine includes morning routine, school/therapy, afternoon activities, dinner, and bedtime routine.`}
 
 EDUCATIONAL HISTORY:
-${data.background?.educational || "Currently enrolled in educational program. IEP status and services to be detailed."}
+${data.background?.educational || `${firstName} is currently enrolled in educational program. IEP status and services to be detailed.`}
 
 MEDICAL HISTORY:
-${data.background?.medical || "Medical history reviewed including any hospitalizations, surgeries, or ongoing conditions."}
-Current Medications: [List any current medications]
+${data.background?.medical || `${firstName}'s medical history reviewed including any hospitalizations, surgeries, or ongoing conditions.`}
 
 FAMILY HISTORY:
 ${data.background?.family || "Family composition and relevant family history information."}
 
 PREVIOUS TREATMENTS:
-${data.background?.previousTreatments || "History of therapeutic interventions including speech therapy, occupational therapy, and previous ABA services."}
+${data.background?.previousTreatments || `${firstName}'s history of therapeutic interventions including speech therapy, occupational therapy, and previous ABA services.`}
 
 STRENGTHS:
-${data.background?.strengths || "Areas of relative strength identified through assessment and caregiver report."}
+${data.background?.strengths || `Areas of relative strength identified for ${firstName} through assessment and caregiver report.`}
 
 AREAS OF CONCERN:
-${data.background?.weaknesses || "Primary areas of concern including behavioral, communication, social, and adaptive domains."}
+${data.background?.weaknesses || `Primary areas of concern for ${firstName} including behavioral, communication, social, and adaptive domains.`}
 
-Write this section with detailed subsections covering:
-1. Developmental History (pregnancy complications, birth, milestones achieved/delayed)
-2. Daily Schedule (include a formatted daily schedule table)
+Write this section about ${firstName} with detailed subsections covering:
+1. Developmental History (pregnancy complications, birth, ${firstName}'s milestones achieved/delayed)
+2. Daily Schedule (include a formatted daily schedule table for ${firstName})
 3. Educational Status (school placement, grade, IEP services)
 4. Medical History (diagnoses, hospitalizations, current medications)
 5. Family History (composition, relevant diagnoses in family)
 6. Previous Treatment History (all therapies, ABA history)
-7. Current Strengths (minimum 5 specific strengths)
-8. Current Areas of Concern (minimum 5 specific concerns)
+7. ${firstName}'s Current Strengths (minimum 5 specific strengths)
+8. ${firstName}'s Current Areas of Concern (minimum 5 specific concerns)
 
-Each subsection should be thorough and clinical in tone.`,
+IMPORTANT: Always refer to the client as "${firstName}" throughout this section, never as "the client".`,
 
       assessments: `Write the ASSESSMENTS CONDUCTED section for a professional ABA assessment report.
 
-Assessment Dates: ${data.assessmentDates || "[Assessment Dates]"}
+CLIENT: ${clientName}, ${ageDisplay}
+Assessment Dates: ${data.assessmentDates || "N/A"}
 Observation Settings: ${data.observationSettings || "Home and community"}
 Total Assessment Hours: 18 units (97151 TS)
 
-Assessment Tools Used:
+Assessment Tools Used for ${firstName}:
 ${
   data.assessmentTools?.map((tool) => `- ${tool}`).join("\n") ||
   `- Functional Behavior Assessment (FBA)
-- Motivation Assessment Scale (FAST)
+- Motivation Assessment Scale (MAS)
 - Functional Analysis Screening Tool (FAST)
 - Vineland Adaptive Behavior Scales-3 (Vineland-3)
 - VB-MAPP (Verbal Behavior Milestones Assessment and Placement Program)
@@ -964,18 +1232,20 @@ ${
 - Record Review`
 }
 
-Documents Reviewed:
+Documents Reviewed for ${firstName}:
 - Previous evaluations and assessments
 - Educational records (IEP if applicable)
 - Medical records
 - Previous treatment notes (if applicable)
 
-Write a comprehensive section that:
+Write a comprehensive section about ${firstName}'s assessment that:
 1. Lists all standardized assessments conducted with full names
 2. Describes the observation methodology (dates, settings, duration)
-3. Lists all documents and records reviewed
+3. Lists all documents and records reviewed for ${firstName}
 4. Explains the purpose of each assessment tool used
-5. Notes any limitations or considerations in the assessment process`,
+5. Notes any limitations or considerations in the assessment process
+
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".`,
 
       // Prompt for new section: Standardized Assessment Results
       standardized_assessments: (() => {
@@ -1029,7 +1299,7 @@ ${JSON.stringify(mas, null, 2)}`
 
         return `Write the STANDARDIZED ASSESSMENT RESULTS section for a professional ABA assessment report.
 
-CLIENT: ${clientName}, Age: ${clientAge}
+CLIENT: ${clientName}, ${ageDisplay}
 DIAGNOSIS: ${diagnosis}
 
 ${assessmentDataStr || "No standardized assessment data found in storage. Generate a comprehensive section with typical assessment structure."}
@@ -1099,11 +1369,14 @@ End with a SUMMARY paragraph synthesizing findings across all assessments and th
 
       abc_observations: `Write the ABC OBSERVATIONS section for a professional ABA assessment report.
 
-Observation Period: ${data.assessmentDates || "[Dates]"}
-Settings: ${data.observationSettings || "Home and community"}
-Total Observation Hours: [X] hours across [X] sessions
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
 
-ABC DATA COLLECTED:
+Observation Period: ${data.assessmentDates || "N/A"}
+Settings: ${data.observationSettings || "Home and community"}
+Total Observation Hours: Across multiple sessions
+
+ABC DATA COLLECTED FOR ${firstName?.toUpperCase()}:
 ${
   abcObs.length > 0
     ? abcObs
@@ -1118,7 +1391,9 @@ Observation ${i + 1}:
         )
         .join("\n")
     : `
-Generate 6 realistic ABC observation examples covering different functions:
+NOTE: No ABC observation data available for ${firstName}. Please complete the ABC Observations section first for accurate behavioral function identification.
+
+If generating sample data, create 6 realistic ABC observation examples for a ${age !== null ? `${age}-year-old` : "child"} with ${diagnosis} covering:
 1. Attention-maintained behavior example
 2. Escape-maintained behavior example
 3. Tangible-maintained behavior example
@@ -1127,57 +1402,65 @@ Generate 6 realistic ABC observation examples covering different functions:
 6. Skill deficit example`
 }
 
-Create a professional section that includes:
-1. Introduction paragraph about observation methodology
-2. Formatted ABC observation table with 6 detailed examples
+Create a professional section about ${firstName}'s observations that includes:
+1. Introduction paragraph about observation methodology used with ${firstName}
+2. Formatted ABC observation table with detailed examples
 3. Analysis paragraph discussing:
-   - Patterns observed across observations
+   - Patterns observed across ${firstName}'s observations
    - Environmental variables identified
    - Function impressions based on data
    - Setting events and establishing operations noted
-4. Summary of behavioral functions identified`,
+4. Summary of ${firstName}'s behavioral functions identified
+
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".`,
 
       preference_assessment: `Write the PREFERENCE ASSESSMENT section for a professional ABA assessment report.
 
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
+
 Assessment Method: ${data.preferenceAssessment?.method || "Multiple Stimulus Without Replacement (MSWO), Paired Choice, and Free Operant observations"}
 
-Results: ${data.preferenceAssessment?.results || "Preference hierarchy established through systematic assessment"}
+Results: ${data.preferenceAssessment?.results || `Preference hierarchy established for ${firstName} through systematic assessment`}
 
-Top Reinforcers Identified:
+Top Reinforcers Identified for ${firstName?.toUpperCase()}:
 ${
   data.preferenceAssessment?.topReinforces?.map((r) => `- ${r}`).join("\n") ||
-  `TANGIBLES:
-- [Item 1] - High preference
-- [Item 2] - High preference
-- [Item 3] - Moderate preference
+  `NOTE: No preference assessment data available. Generate age-appropriate reinforcer categories for a ${age !== null ? `${age}-year-old` : "child"} with ${diagnosis}.
+
+TANGIBLES:
+- [Age-appropriate items based on ${firstName}'s interests]
 
 EDIBLES:
-- [Food 1] - High preference
-- [Food 2] - Moderate preference
+- [Age-appropriate food items]
 
 SOCIAL:
-- Verbal praise - Moderate preference
-- Physical interaction (tickles, high-fives) - High preference
+- Verbal praise
+- Physical interaction appropriate for age
 
 ACTIVITIES:
-- [Activity 1] - High preference
-- [Activity 2] - Moderate preference`
+- [Age-appropriate activities]`
 }
 
-Write a comprehensive preference assessment section that includes:
-1. Description of assessment methodology (MSWO, paired choice, free operant)
+Write a comprehensive preference assessment section for ${firstName} that includes:
+1. Description of assessment methodology (MSWO, paired choice, free operant) used with ${firstName}
 2. Assessment conditions and environment
-3. Results presented in clear categories:
+3. ${firstName}'s results presented in clear categories:
    - Tangible items (ranked)
    - Edible items (ranked)
    - Social reinforcers
    - Activity reinforcers
-4. Summary of how these reinforcers will be used in treatment
-5. Notes on any restricted interests or sensory preferences observed`,
+4. Summary of how these reinforcers will be used in ${firstName}'s treatment
+5. Notes on any restricted interests or sensory preferences observed in ${firstName}
+
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".`,
 
       maladaptive_behaviors: `Write the MALADAPTIVE BEHAVIORS section for a professional ABA assessment report.
 
-Target Behaviors Identified:
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
+
+${firstName?.toUpperCase()}'S TARGET BEHAVIORS IDENTIFIED:
 ${
   behaviors.length > 0
     ? behaviors
@@ -1192,7 +1475,9 @@ ${
         )
         .join("\n")
     : `
-Generate 3-4 common maladaptive behaviors for a client with ${diagnosis}:
+NOTE: No behavior data available for ${firstName}. Please complete ABC Observations or add behaviors in the assessment.
+
+If generating, create 3-4 common maladaptive behaviors appropriate for a ${age !== null ? `${age}-year-old` : "child"} with ${diagnosis}:
 1. Aggression
 2. Self-Injurious Behavior
 3. Elopement/Running Away
@@ -1200,163 +1485,197 @@ Generate 3-4 common maladaptive behaviors for a client with ${diagnosis}:
 5. Tantrum Behavior`
 }
 
-For EACH behavior, write a detailed subsection (150-200 words each) including:
+${abcObs.length > 0 ? `
+ABC OBSERVATION CONTEXT FOR ${firstName?.toUpperCase()}:
+${abcObs.map((obs, i) => `${i + 1}. ${obs.behavior} - Function: ${obs.function || "TBD"}`).join("\n")}
+` : ""}
+
+For EACH of ${firstName}'s behaviors, write a detailed subsection (150-200 words each) including:
 
 **[BEHAVIOR NAME]**
 
 Operational Definition:
-[Complete operational definition with specific topography, inclusions and exclusions - must be observable and measurable]
+[Complete operational definition with specific topography for ${firstName}, inclusions and exclusions - must be observable and measurable]
 
 Baseline Data:
 - Frequency: [X] incidents per [time period]
 - Data collection period: [dates]
 - Data collection method: [frequency/duration/interval]
 
-Severity Scale:
+Severity Scale for ${firstName}:
 1 - Mild: [Description of mild presentation]
 2 - Moderate: [Description of moderate presentation]
-3 - Severe: [Description of crisis-level presentation]
+3 - Severe: [Description of severe presentation]
 4 - Crisis: [Description of crisis-level presentation]
 
-Antecedents/Setting Events:
-- [List 3-4 common antecedents]
+Antecedents/Setting Events for ${firstName}:
+- [List 3-4 common antecedents specific to ${firstName}]
 - [List relevant setting events]
 
-Hypothesized Function: [Primary function with supporting evidence]
+Hypothesized Function: [Primary function with supporting evidence from ABC data]
 
-Impact on Daily Functioning:
-[2-3 sentences describing how this behavior impacts the client's daily life, learning, and family]`,
+Impact on ${firstName}'s Daily Functioning:
+[2-3 sentences describing how this behavior impacts ${firstName}'s daily life, learning, and family]
+
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".`,
 
       hypothesis_interventions: `Write the HYPOTHESIS-BASED INTERVENTIONS section (800-1200 words) for a professional ABA assessment report.
 
-Organize interventions by maintaining function:
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
 
-**ATTENTION-MAINTAINED BEHAVIORS**
-Behaviors: [List behaviors maintained by attention]
+${(() => {
+  // Organize ABC observations by function
+  const byFunction: Record<string, typeof abcObs> = {
+    attention: [],
+    escape: [],
+    tangible: [],
+    automatic: [],
+    unknown: []
+  }
 
-Preventive Strategies (Antecedent-Based):
-1. Noncontingent attention delivery (schedule)
+  abcObs.forEach(obs => {
+    const func = (obs.function || "").toLowerCase()
+    if (func.includes("attention")) byFunction.attention.push(obs)
+    else if (func.includes("escape") || func.includes("avoid")) byFunction.escape.push(obs)
+    else if (func.includes("tangible") || func.includes("access")) byFunction.tangible.push(obs)
+    else if (func.includes("automatic") || func.includes("sensory")) byFunction.automatic.push(obs)
+    else byFunction.unknown.push(obs)
+  })
+
+  if (abcObs.length > 0) {
+    return `${firstName?.toUpperCase()}'S BEHAVIORS BY FUNCTION (from ABC analysis):
+
+ATTENTION-MAINTAINED: ${byFunction.attention.length > 0 ? byFunction.attention.map(o => o.behavior).join(", ") : "None identified"}
+ESCAPE-MAINTAINED: ${byFunction.escape.length > 0 ? byFunction.escape.map(o => o.behavior).join(", ") : "None identified"}
+TANGIBLE-MAINTAINED: ${byFunction.tangible.length > 0 ? byFunction.tangible.map(o => o.behavior).join(", ") : "None identified"}
+AUTOMATICALLY-MAINTAINED: ${byFunction.automatic.length > 0 ? byFunction.automatic.map(o => o.behavior).join(", ") : "None identified"}
+${byFunction.unknown.length > 0 ? `FUNCTION TBD: ${byFunction.unknown.map(o => o.behavior).join(", ")}` : ""}`
+  }
+
+  return `NOTE: Limited ABC data available for ${firstName}. Generate function-based interventions based on common presentations for ${diagnosis}.`
+})()}
+
+Organize ${firstName}'s interventions by maintaining function:
+
+**ATTENTION-MAINTAINED BEHAVIORS FOR ${firstName?.toUpperCase()}**
+${abcObs.filter(o => (o.function || "").toLowerCase().includes("attention")).map(o => `- ${o.behavior}`).join("\n") || "Behaviors: [Based on assessment findings]"}
+
+Preventive Strategies for ${firstName}:
+1. Noncontingent attention delivery (schedule appropriate for ${firstName}'s age: ${ageDisplay})
 2. Functional communication training for attention
 3. Environmental enrichment
 4. Visual schedules and predictability
-5. [Additional strategy]
-6. [Additional strategy]
+5. Age-appropriate independent activities
 
-Replacement Skills:
+Replacement Skills for ${firstName}:
 1. Appropriate attention-seeking (tapping shoulder, saying "excuse me")
 2. Independent engagement skills
-3. [Additional skill]
-
-Consequence Strategies:
-- Differential reinforcement of alternative behavior (DRA)
-- Planned ignoring (extinction) with safety considerations
-- Prompt hierarchy for replacement skill
 
 ---
 
-**ESCAPE-MAINTAINED BEHAVIORS**
-Behaviors: [List behaviors maintained by escape]
+**ESCAPE-MAINTAINED BEHAVIORS FOR ${firstName?.toUpperCase()}**
+${abcObs.filter(o => (o.function || "").toLowerCase().includes("escape")).map(o => `- ${o.behavior}`).join("\n") || "Behaviors: [Based on assessment findings]"}
 
-Preventive Strategies:
+Preventive Strategies for ${firstName}:
 1. Demand fading and gradual exposure
 2. Choice-making opportunities
 3. Premack Principle (first-then)
-4. Task modification
-5. [Additional strategy]
-6. [Additional strategy]
+4. Task modification based on ${firstName}'s skill level
 
-Replacement Skills:
+Replacement Skills for ${firstName}:
 1. Requesting break appropriately
 2. Requesting help
 3. Accepting "no" or "wait"
 
-Consequence Strategies:
-- Escape extinction with guided compliance
-- DRA for task completion
-- Break delivery for appropriate requests
-
 ---
 
-**TANGIBLE-MAINTAINED BEHAVIORS**
-Behaviors: [List behaviors maintained by tangible access]
+**TANGIBLE-MAINTAINED BEHAVIORS FOR ${firstName?.toUpperCase()}**
+${abcObs.filter(o => (o.function || "").toLowerCase().includes("tangible")).map(o => `- ${o.behavior}`).join("\n") || "Behaviors: [Based on assessment findings]"}
 
-Preventive Strategies:
-1. Scheduled access to preferred items
-2. Token economy system
+Preventive Strategies for ${firstName}:
+1. Scheduled access to ${firstName}'s preferred items
+2. Token economy system appropriate for age (${ageDisplay})
 3. Visual timers for wait time
-4. [Additional strategies]
 
-Replacement Skills:
-1. Appropriate requesting (verbal, PECS, device)
+Replacement Skills for ${firstName}:
+1. Appropriate requesting (verbal, PECS, device - based on ${firstName}'s communication level)
 2. Accepting "no" or "later"
 3. Waiting skills
 
 ---
 
-**AUTOMATICALLY-MAINTAINED BEHAVIORS**
-Behaviors: [List behaviors maintained by automatic reinforcement]
+**AUTOMATICALLY-MAINTAINED BEHAVIORS FOR ${firstName?.toUpperCase()}**
+${abcObs.filter(o => (o.function || "").toLowerCase().includes("automatic") || (o.function || "").toLowerCase().includes("sensory")).map(o => `- ${o.behavior}`).join("\n") || "Behaviors: [Based on assessment findings]"}
 
-Preventive Strategies:
+Preventive Strategies for ${firstName}:
 1. Environmental enrichment
-2. Sensory diet/regulation activities
+2. Sensory diet/regulation activities appropriate for ${firstName}
 3. Matched stimulation (alternative sensory input)
 4. Antecedent exercise
 
-Replacement Skills:
-1. Appropriate self-regulation strategies
-2. Requesting sensory breaks
-3. Alternative sensory activities`,
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client" or "the individual".`,
 
       intervention_descriptions: `Write the DESCRIPTION OF INTERVENTIONS section (600-800 words) for a professional ABA assessment report.
 
-Provide detailed descriptions of each evidence-based intervention to be used:
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
 
-**DIFFERENTIAL REINFORCEMENT PROCEDURES**
+${behaviors.length > 0 ? `
+${firstName?.toUpperCase()}'S TARGET BEHAVIORS REQUIRING INTERVENTION:
+${behaviors.map(b => `- ${b.name} (Function: ${b.function || "TBD"})`).join("\n")}
+` : ""}
+
+Provide detailed descriptions of each evidence-based intervention to be used with ${firstName}:
+
+**DIFFERENTIAL REINFORCEMENT PROCEDURES FOR ${firstName?.toUpperCase()}**
 
 DRA (Differential Reinforcement of Alternative Behavior):
-[150-word description of DRA including definition, examples, and implementation guidelines]
+[150-word description of DRA including definition, examples specific to ${firstName}'s behaviors, and implementation guidelines]
 
 DRI (Differential Reinforcement of Incompatible Behavior):
-[100-word description]
+[100-word description with examples for ${firstName}]
 
 DRO (Differential Reinforcement of Other Behavior):
-[100-word description including interval schedule]
+[100-word description including interval schedule appropriate for ${firstName}'s age (${ageDisplay})]
 
 DRL (Differential Reinforcement of Low Rates):
 [100-word description]
 
-**FUNCTIONAL COMMUNICATION TRAINING (FCT)**
-[200-word description of FCT implementation including communication modality, prompt hierarchy, and generalization plan]
+**FUNCTIONAL COMMUNICATION TRAINING (FCT) FOR ${firstName?.toUpperCase()}**
+[200-word description of FCT implementation for ${firstName} including communication modality appropriate for ${firstName}'s level, prompt hierarchy, and generalization plan]
 
-**ANTECEDENT INTERVENTIONS**
+**ANTECEDENT INTERVENTIONS FOR ${firstName?.toUpperCase()}**
 
 NCR/NCE (Noncontingent Reinforcement/Escape):
-[100-word description]
+[100-word description specific to ${firstName}'s identified functions]
 
 Environmental Modifications:
-[100-word description]
+[100-word description for ${firstName}'s settings]
 
 Visual Supports:
-[100-word description]
+[100-word description appropriate for ${firstName}'s age and skill level]
 
-**CONSEQUENCE-BASED PROCEDURES**
+**CONSEQUENCE-BASED PROCEDURES FOR ${firstName?.toUpperCase()}**
 
 Planned Ignoring:
-[100-word description with safety considerations]
+[100-word description with safety considerations specific to ${firstName}]
 
 Escape Extinction:
-[100-word description with ethical considerations]
+[100-word description with ethical considerations for ${firstName}]
 
 Response Blocking:
-[100-word description]
+[100-word description for ${firstName}'s specific behaviors]
 
 Redirection:
 [100-word description]
 
-**TEACHING PROCEDURES**
+**TEACHING PROCEDURES FOR ${firstName?.toUpperCase()}**
 
 Discrete Trial Training (DTT):
-[100-word description]
+[100-word description appropriate for ${firstName}'s age]
+
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".
 
 Natural Environment Training (NET):
 [100-word description]
@@ -1379,62 +1698,74 @@ Chaining:
 
       teaching_procedures: `Write the TEACHING PROCEDURES section (800-1200 words) for a professional ABA assessment report.
 
-Create detailed step-by-step teaching procedures for each target skill:
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
+
+${goals.length > 0 ? `
+${firstName?.toUpperCase()}'S SKILL ACQUISITION TARGETS:
+${goals.map(g => `- ${g.domain}: ${g.shortTerm}`).join("\n")}
+` : ""}
+
+Create detailed step-by-step teaching procedures for ${firstName}'s target skills:
 
 **PROCEDURE 1: REQUESTING A BREAK**
-Target: Client will independently request a break using [communication method] when feeling overwhelmed.
+Target: ${firstName} will independently request a break using [communication method appropriate for ${firstName}'s level] when feeling overwhelmed.
 
-Materials: Break card/visual, timer, reinforcers
+Materials: Break card/visual appropriate for ${firstName}'s age (${ageDisplay}), timer, ${firstName}'s preferred reinforcers
 
-Teaching Steps:
+Teaching Steps for ${firstName}:
 1. Present demand/non-preferred activity
-2. Watch for signs of escalation (list specific signs)
+2. Watch for ${firstName}'s specific signs of escalation
 3. Prompt hierarchy: [Full physical → Partial physical → Gestural → Independent]
-4. When client uses break request:
+4. When ${firstName} uses break request:
    - Immediately provide break (30-60 seconds initially)
-   - Provide specific praise
+   - Provide specific praise to ${firstName}
 5. Gradually fade prompt level
 6. Increase demand duration between break opportunities
 7. Thin reinforcement schedule
 
-Mastery Criteria: 80% independent across 3 consecutive sessions
+Mastery Criteria: ${firstName} demonstrates 80% independent across 3 consecutive sessions
 Data Collection: Trial-by-trial data on prompt level
 
 ---
 
 **PROCEDURE 2: FOLLOWING DIRECTIONS**
-[Similar detailed format with 8-12 steps]
+[Similar detailed format with 8-12 steps specific to ${firstName}]
 
 ---
 
 **PROCEDURE 3: ACCEPTING "NO"**
-[Similar detailed format with 8-12 steps]
+[Similar detailed format with 8-12 steps for ${firstName}]
 
 ---
 
 **PROCEDURE 4: WAITING**
-[Similar detailed format with 8-12 steps]
+[Similar detailed format appropriate for ${firstName}'s age (${ageDisplay})]
 
 ---
 
 **PROCEDURE 5: FUNCTIONAL COMMUNICATION**
-[Similar detailed format with 8-12 steps]
+[Similar detailed format based on ${firstName}'s communication level]
 
 ---
 
 **PROCEDURE 6: TASK COMPLETION**
-[Similar detailed format with 8-12 steps]
+[Similar detailed format with age-appropriate tasks for ${firstName}]
 
 ---
 
 **PROCEDURE 7: SAFETY SKILLS**
+[Similar detailed format appropriate for ${firstName}'s age and environment]
+
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client" or "Client will".
 [Similar detailed format with 8-12 steps including specific safety targets]
 
 Include prompt levels, fading criteria, generalization plans, and maintenance procedures for each.`,
 
       skill_acquisition_goals: `Write the SKILL ACQUISITION GOALS section (600-1000 words) for a professional ABA assessment report.
 
-Client: ${clientName}
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
 Assessment Date: ${data.assessmentDates || new Date().toLocaleDateString()}
 
 ${(() => {
@@ -1442,13 +1773,13 @@ ${(() => {
   const skillAcquisitionGoals = goalsTrackerData.filter((g) => g.type === "skill-acquisition")
 
   if (skillAcquisitionGoals.length > 0) {
-    return `GOALS DATA FROM TRACKER (${skillAcquisitionGoals.length} goals):
+    return `${firstName?.toUpperCase()}'S GOALS DATA FROM TRACKER (${skillAcquisitionGoals.length} goals):
 ${JSON.stringify(skillAcquisitionGoals, null, 2)}
 
-For each goal above, create a comprehensive narrative that includes:
+For each of ${firstName}'s goals above, create a comprehensive narrative that includes:
 1. Goal title and domain (extract from description)
-2. Baseline performance with date: ${skillAcquisitionGoals.map((g) => g.startDate).join(", ")}
-3. Current performance: ${skillAcquisitionGoals.map((g) => `${g.progress}% progress`).join(", ")}
+2. ${firstName}'s baseline performance with date: ${skillAcquisitionGoals.map((g) => g.startDate).join(", ")}
+3. ${firstName}'s current performance: ${skillAcquisitionGoals.map((g) => `${g.progress}% progress`).join(", ")}
 4. Mastery criteria (90% accuracy target unless specified)
 5. Overall progress percentage: ${skillAcquisitionGoals.map((g) => g.progress).join(", ")}%
 6. Short-term objectives with individual progress:
@@ -1469,50 +1800,60 @@ ${skillAcquisitionGoals
   )
   .join("\n\n")}
 
-7. Clinical interpretation of progress for each goal
-8. Specific recommendations for continued treatment
+7. Clinical interpretation of ${firstName}'s progress for each goal
+8. Specific recommendations for ${firstName}'s continued treatment
 
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".
 Format as professional ABA documentation suitable for insurance review.`
   }
 
-  return `Create 4-6 comprehensive skill acquisition goals with the following format:
+  // Check if we have goals from assessment
+  if (goals.length === 0) {
+    return `NOTE: No skill acquisition goals data available for ${firstName}. Please complete the Goals section first.
+
+If generating sample goals, create age-appropriate goals for a ${age !== null ? `${age}-year-old` : "child"} with ${diagnosis}.`
+  }
+
+  return `Create 4-6 comprehensive skill acquisition goals for ${firstName} (${ageDisplay}) with the following format:
 
 **GOAL 1: COMMUNICATION - Functional Requesting**
 
 Long-Term Objective (LTO):
-${clientName} will independently request desired items, activities, and assistance using [verbal/PECS/AAC device] with 90% accuracy across 3 settings for 8 consecutive weeks.
+${firstName} will independently request desired items, activities, and assistance using [verbal/PECS/AAC device - based on ${firstName}'s communication level] with 90% accuracy across 3 settings for 8 consecutive weeks.
 
 Baseline: [X]% accuracy (established [Month/Year])
 Current Level: Working on STO #[X]
 
 Short-Term Objectives:
-- STO 1 (Weeks 1-4): Client will request with full physical prompt with 80% accuracy
-- STO 2 (Weeks 5-8): Client will request with partial physical prompt with 80% accuracy
-- STO 3 (Weeks 9-12): Client will request with gestural prompt with 80% accuracy
-- STO 4 (Weeks 13-16): Client will request with verbal prompt with 80% accuracy
-- STO 5 (Weeks 17-20): Client will request independently with 70% accuracy
-- STO 6 (Weeks 21-24): Client will request independently with 80% accuracy
-- STO 7 (Weeks 25-28): Client will request independently with 90% accuracy
+- STO 1 (Weeks 1-4): ${firstName} will request with full physical prompt with 80% accuracy
+- STO 2 (Weeks 5-8): ${firstName} will request with partial physical prompt with 80% accuracy
+- STO 3 (Weeks 9-12): ${firstName} will request with gestural prompt with 80% accuracy
+- STO 4 (Weeks 13-16): ${firstName} will request with verbal prompt with 80% accuracy
+- STO 5 (Weeks 17-20): ${firstName} will request independently with 70% accuracy
+- STO 6 (Weeks 21-24): ${firstName} will request independently with 80% accuracy
+- STO 7 (Weeks 25-28): ${firstName} will request independently with 90% accuracy
 
 ---
 
 **GOAL 2: SOCIAL SKILLS - Peer Interaction**
-[Same detailed format]
+[Same detailed format for ${firstName}, age-appropriate for ${ageDisplay}]
 
 ---
 
 **GOAL 3: ADAPTIVE SKILLS - Daily Living**
-[Same detailed format]
+[Same detailed format for ${firstName}, age-appropriate]
 
 ---
 
 **GOAL 4: PLAY/LEISURE - Appropriate Play**
-[Same detailed format]
+[Same detailed format for ${firstName}]
 
 ---
 
 **GOAL 5: ACADEMIC READINESS - Pre-Academic Skills**
-[Same detailed format]
+[Same detailed format for ${firstName}, if age-appropriate]
+
+IMPORTANT: Always use "${firstName}" - never "the client" or "Client will".
 
 Each goal must include:
 1. Measurable LTO with accuracy criterion and duration
@@ -1524,15 +1865,26 @@ Each goal must include:
 
       behavior_reduction_goals: `Write the BEHAVIOR REDUCTION GOALS section (400-600 words) for a professional ABA assessment report.
 
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
+
 ${(() => {
   const goalsTrackerData = loadGoalsTrackerData()
   const behaviorReductionGoals = goalsTrackerData.filter((g) => g.type === "behavior-reduction")
 
+  // Get ABC observations for function analysis
+  const abcData = abcObs.length > 0
+    ? `\nABC OBSERVATIONS (use to identify behavior functions):\n${abcObs.map((obs, i) =>
+        `  ${i + 1}. Antecedent: ${obs.antecedent}\n     Behavior: ${obs.behavior}\n     Consequence: ${obs.consequence}\n     Function: ${obs.function || "To be determined"}`
+      ).join("\n")}`
+    : ""
+
   if (behaviorReductionGoals.length > 0) {
     return `GOALS DATA FROM TRACKER (${behaviorReductionGoals.length} goals):
 ${JSON.stringify(behaviorReductionGoals, null, 2)}
+${abcData}
 
-For each behavior reduction goal above, create a comprehensive narrative that includes:
+For ${firstName}'s behavior reduction goals, create a comprehensive narrative that includes:
 
 1. Target behavior definition (extract from description)
 2. Baseline rate/frequency/duration with date: ${behaviorReductionGoals.map((g) => g.startDate).join(", ")}
@@ -1557,15 +1909,30 @@ ${behaviorReductionGoals
   )
   .join("\n\n")}
 
-7. Function of behavior (if identified in description or STOs)
+7. Function of behavior (link to ABC observations above)
 8. Intervention effectiveness analysis comparing baseline to current
 9. Clinical recommendations for continued treatment
 
-Format as professional ABA documentation suitable for insurance review. Emphasize data-driven progress and clinical significance of reductions.`
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client" or "the individual".
+Format as professional ABA documentation suitable for insurance review.`
   }
 
-  return `Create behavior reduction goals for each target behavior:
+  // Check if we have behavior data from other sources
+  if (behaviorGoals.length === 0 && behaviors.length === 0) {
+    return `ERROR: No behavior data available for ${firstName}.
 
+To generate this section, please complete one of the following:
+1. ABC Observations section (to identify target behaviors and functions)
+2. Goals Tracker (add behavior reduction goals)
+3. Risk Assessment (if behaviors are safety-related)
+
+This section cannot be generated without baseline behavior data.`
+  }
+
+  return `Create behavior reduction goals for ${firstName}:
+${abcData}
+
+TARGET BEHAVIORS:
 ${
   behaviorGoals.length > 0
     ? behaviorGoals
@@ -1580,70 +1947,79 @@ Target: ${bg.target}`,
         .map(
           (b) => `
 **${b.name.toUpperCase()} REDUCTION**
+Definition: ${b.definition}
 Baseline: ${b.baseline}
-Target: ${b.baseline} (80% reduction)`,
+Frequency: ${b.frequency}
+Intensity: ${b.intensity}
+Function: ${b.function}
+Target: 80% reduction from baseline`,
         )
         .join("\n")
 }
 
-Each behavior goal must include:
+For each of ${firstName}'s behavior goals, include:
 1. Operational definition
-2. Baseline data with measurement
+2. Baseline data with measurement method
 3. Current performance level
-4. Target reduction criterion
+4. Target reduction criterion (80-90% reduction)
 5. Progress toward goal
-6. Function of behavior
-7. Intervention strategies used
-8. Data collection methods`
+6. Function of behavior (from ABC analysis)
+7. Function-based intervention strategies
+8. Data collection methods
+
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".`
 })()}`,
 
       caregiver_goals: `Write the CAREGIVER TRAINING GOALS section (300-400 words) for a professional ABA assessment report.
 
-Caregiver(s): ${data.clientInfo?.caregiver || "[Primary Caregiver Name]"}
+CLIENT: ${clientName}, ${ageDisplay}
+PRIMARY CAREGIVER: ${data.clientInfo?.caregiver || "N/A"}
 
-Create 4 comprehensive caregiver training goals:
+Create 4 comprehensive caregiver training goals specific to ${firstName}'s treatment plan:
 
-**CAREGIVER GOAL 1: DATA COLLECTION**
+**CAREGIVER GOAL 1: DATA COLLECTION FOR ${firstName?.toUpperCase()}**
 
 Long-Term Objective:
-Caregiver will independently and accurately collect data on target behaviors and skill acquisition programs with 90% accuracy for 8 consecutive weeks.
+${data.clientInfo?.caregiver || "Caregiver"} will independently and accurately collect data on ${firstName}'s target behaviors and skill acquisition programs with 90% accuracy for 8 consecutive weeks.
 
 Baseline: 0% accuracy (no prior training)
 Short-Term Objectives:
-- STO 1: Caregiver will identify target behaviors with 80% accuracy
-- STO 2: Caregiver will use frequency count data collection with 70% accuracy
-- STO 3: Caregiver will use ABC data collection with 70% accuracy
-- STO 4: Caregiver will collect data across all targets with 80% accuracy
-- STO 5: Caregiver will collect data independently with 90% accuracy
+- STO 1: Identify ${firstName}'s target behaviors with 80% accuracy
+- STO 2: Use frequency count data collection for ${firstName}'s behaviors with 70% accuracy
+- STO 3: Use ABC data collection for ${firstName}'s behaviors with 70% accuracy
+- STO 4: Collect data across all of ${firstName}'s targets with 80% accuracy
+- STO 5: Collect data independently with 90% accuracy
 
 ---
 
-**CAREGIVER GOAL 2: INTERVENTION IMPLEMENTATION**
+**CAREGIVER GOAL 2: INTERVENTION IMPLEMENTATION FOR ${firstName?.toUpperCase()}**
 
 Long-Term Objective:
-Caregiver will correctly implement behavior intervention strategies with 90% procedural fidelity for 8 consecutive weeks.
+${data.clientInfo?.caregiver || "Caregiver"} will correctly implement ${firstName}'s behavior intervention strategies with 90% procedural fidelity for 8 consecutive weeks.
 
-[Same STO format progressing from 0% to 90%]
+[Same STO format progressing from 0% to 90%, specific to ${firstName}'s interventions]
 
 ---
 
-**CAREGIVER GOAL 3: SKILL ACQUISITION PROGRAM IMPLEMENTATION**
+**CAREGIVER GOAL 3: SKILL ACQUISITION PROGRAM IMPLEMENTATION FOR ${firstName?.toUpperCase()}**
 
 Long-Term Objective:
-Caregiver will correctly implement skill acquisition programs (DTT, NET) with 90% procedural fidelity.
+${data.clientInfo?.caregiver || "Caregiver"} will correctly implement ${firstName}'s skill acquisition programs (DTT, NET) with 90% procedural fidelity.
+
+[Same STO format, specific to ${firstName}'s programs]
+
+---
+
+**CAREGIVER GOAL 4: REINFORCEMENT DELIVERY FOR ${firstName?.toUpperCase()}**
+
+Long-Term Objective:
+${data.clientInfo?.caregiver || "Caregiver"} will correctly identify and deliver ${firstName}'s preferred reinforcers contingent on appropriate behavior with 90% accuracy.
 
 [Same STO format]
 
----
+Training will occur during 97156 Family Guidance sessions (${parentHours}).
 
-**CAREGIVER GOAL 4: REINFORCEMENT DELIVERY**
-
-Long-Term Objective:
-Caregiver will correctly identify and deliver reinforcement contingent on appropriate behavior with 90% accuracy.
-
-[Same STO format]
-
-Training will occur during 97156 Family Guidance sessions (${parentHours} hours/week).`,
+IMPORTANT: Reference ${firstName} by name throughout, never as "the client".`,
 
       parent_training_progress: (() => {
         console.log("[v0] Loading parent training data for report...")
@@ -1772,47 +2148,55 @@ Training will occur during 97156 Family Guidance sessions (${parentHours} hours/
 
       medical_necessity: `Write a MEDICAL NECESSITY STATEMENT (250-350 words, 4 paragraphs, NO BULLETS) for a professional ABA assessment report.
 
-Client: ${clientName}
-Age: ${age}
-Diagnosis: ${diagnosis} (${icd10})
+CLIENT: ${clientName}
+AGE: ${ageDisplay}
+DIAGNOSIS: ${diagnosis} (${icd10})
+SERVICE INTENSITY: ${ageRecs.intensityLevel}
 
-Behavioral Concerns:
-${behaviors.map((b) => `- ${b.name}: ${b.baseline || b.frequency}`).join("\n") || "- Maladaptive behaviors interfering with learning and daily functioning"}
+${firstName?.toUpperCase()}'S BEHAVIORAL CONCERNS:
+${behaviors.length > 0
+  ? behaviors.map((b) => `- ${b.name}: ${b.baseline || b.frequency} (Function: ${b.function || "TBD"})`).join("\n")
+  : "- Maladaptive behaviors interfering with learning and daily functioning"}
 
-Skill Deficits:
+${firstName?.toUpperCase()}'S SKILL DEFICITS:
 ${
   Object.entries(data.domains || {})
     .map(([domain, info]) => `- ${domain}: ${(info as any)?.level || "Moderate"} deficits`)
     .join("\n") || "- Communication, social, adaptive, and behavioral deficits"
 }
 
-Recommended Hours: ${weeklyHours} hours/week
+RECOMMENDED HOURS FOR ${firstName?.toUpperCase()} (${ageDisplay}): ${weeklyHours} hours/week
 - RBT Services (97153): ${rbtHours} hours/week
 - BCBA Supervision (97155): ${bcbaHours} hours/week
-- Parent Training (97156): ${parentHours} hours/week
+- Parent Training (97156): ${parentHours}
 
-CRITICAL FORMATTING: Write 4 flowing paragraphs with NO headers, NO bullet points, NO numbered lists.
+AGE-BASED RATIONALE:
+${ageRecs.rationale}
 
-Paragraph 1: Diagnosis and Impact
-- Present the diagnosis with ICD-10 code
-- Describe how autism impacts daily functioning
-- Mention age of diagnosis and current presentation
+CRITICAL FORMATTING: Write 4 flowing paragraphs with NO headers, NO bullet points, NO numbered lists. Use "${firstName}" throughout, never "the client".
 
-Paragraph 2: Behavioral Presentation
-- List specific behaviors with frequencies (write as prose, not bullets)
-- Describe impact on learning, safety, and family
-- Note severity and urgency
+Paragraph 1: ${firstName}'s Diagnosis and Impact
+- Present ${firstName}'s diagnosis (${diagnosis}) with ICD-10 code (${icd10})
+- Describe how autism impacts ${firstName}'s daily functioning
+- Mention ${firstName}'s current age (${ageDisplay}) and presentation
 
-Paragraph 3: Skill Deficits
-- Describe deficits across all domains as flowing text
-- Explain developmental delays
-- Connect deficits to diagnosis
+Paragraph 2: ${firstName}'s Behavioral Presentation
+- Describe ${firstName}'s specific behaviors with frequencies as prose
+- Describe impact on ${firstName}'s learning, safety, and family
+- Note severity and urgency for ${firstName}
 
-Paragraph 4: Treatment Justification
-- Justify the specific hours recommended
-- Reference research supporting intensive ABA
-- Explain why this level of service is medically necessary
-- State expected outcomes with treatment`,
+Paragraph 3: ${firstName}'s Skill Deficits
+- Describe ${firstName}'s deficits across all domains as flowing text
+- Explain ${firstName}'s developmental delays relative to same-age peers
+- Connect deficits to ${firstName}'s diagnosis
+
+Paragraph 4: Treatment Justification for ${firstName}
+- Justify why ${weeklyHours} hours/week is appropriate for ${firstName}'s age (${ageDisplay})
+- Reference: "${ageRecs.rationale}"
+- Explain why this intensity level (${ageRecs.intensityLevel}) is medically necessary for ${firstName}
+- State expected outcomes for ${firstName} with treatment
+
+IMPORTANT: Always use "${firstName}" - never "the client" or "the individual".`,
 
       // Prompts for new sections: Fade Plan, Barriers, Generalization
       fade_plan: (() => {
@@ -1827,49 +2211,51 @@ ${JSON.stringify(fadePlanData, null, 2)}`
 
         return `Write the FADE PLAN & DISCHARGE CRITERIA section for a professional ABA assessment report.
 
-CLIENT: ${clientName}, Age: ${clientAge}
+CLIENT: ${clientName}, ${ageDisplay}
 DIAGNOSIS: ${diagnosis}
+CURRENT INTENSITY: ${ageRecs.intensityLevel} (${weeklyHours} hours/week)
 
-${fadeDataStr || "No fade plan data found. Generate a comprehensive fade plan based on typical ABA treatment progression."}
+${fadeDataStr || `No fade plan data found. Generate a comprehensive fade plan for ${firstName} based on typical ABA treatment progression.`}
 
 REQUIRED CONTENT:
 
-## Fade Plan
+## Fade Plan for ${firstName?.toUpperCase()}
 
-**Treatment Phase Progression**
+**${firstName}'s Treatment Phase Progression**
 
-| Phase | Hours/Week | Focus Areas | Duration |
+| Phase | Hours/Week | Focus Areas for ${firstName} | Duration |
 |-----------|------------|-------------|----------|
-| Intensive | 30-40 hrs | Initial skill building, behavior stabilization | 6-12 months |
-| Moderate | 20-30 hrs | Skill generalization, reduced prompting | 6-12 months |
-| Focused | 10-20 hrs | Independence, maintenance | 6-12 months |
-| Maintenance | 5-10 hrs | Monitoring, caregiver support | Ongoing |
+| Intensive | ${ageRecs.weeklyHours}-40 hrs | Initial skill building, behavior stabilization | 6-12 months |
+| Moderate | 20-${ageRecs.weeklyHours} hrs | ${firstName}'s skill generalization, reduced prompting | 6-12 months |
+| Focused | 10-20 hrs | ${firstName}'s independence, maintenance | 6-12 months |
+| Maintenance | 5-10 hrs | Monitoring, ${data.clientInfo?.caregiver || "caregiver"} support | Ongoing |
 | Discharge | 0 hrs | Community resources, school supports | N/A |
 
-**Criteria for Phase Transitions**
-1. [Specific measurable criteria for moving from Intensive to Moderate]
+**Criteria for ${firstName}'s Phase Transitions**
+1. [Specific measurable criteria for ${firstName} moving from Intensive to Moderate]
 2. [Criteria for Moderate to Focused]
 3. [Criteria for Focused to Maintenance]
 4. [Criteria for Maintenance to Discharge]
 
-## Discharge Criteria
+## Discharge Criteria for ${firstName?.toUpperCase()}
 
-The following criteria must be met for discharge from ABA services:
+The following criteria must be met for ${firstName}'s discharge from ABA services:
 
-| Criterion | Target | Current Status |
+| Criterion | Target | ${firstName}'s Current Status |
 |-----------|--------|----------------|
-| Skill acquisition goals mastered | 80% of goals | [status] |
+| Skill acquisition goals mastered | 80% of ${firstName}'s goals | [status] |
 | Behavior reduction targets met | 80% reduction | [status] |
-| Caregiver training completed | 90% fidelity | [status] |
+| ${data.clientInfo?.caregiver || "Caregiver"} training completed | 90% fidelity | [status] |
 | Generalization demonstrated | 3+ settings | [status] |
-| Maintenance of skills | 3+ months | [status] |
+| Maintenance of ${firstName}'s skills | 3+ months | [status] |
 
-**Discharge Planning Considerations:**
-- Transition to school-based services
+**Discharge Planning Considerations for ${firstName}:**
+- Transition to school-based services (if age-appropriate for ${ageDisplay})
 - Community resources and supports
-- Follow-up assessment schedule
-- Caregiver maintenance training
+- Follow-up assessment schedule for ${firstName}
+- ${data.clientInfo?.caregiver || "Caregiver"} maintenance training
 
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".
 Write in professional clinical language, approximately 300-400 words.`
       })(),
 
@@ -1885,25 +2271,26 @@ ${JSON.stringify(barriersData, null, 2)}`
 
         return `Write the BARRIERS TO TREATMENT section for a professional ABA assessment report.
 
-CLIENT: ${clientName}, Age: ${clientAge}
+CLIENT: ${clientName}, ${ageDisplay}
 DIAGNOSIS: ${diagnosis}
+PRIMARY CAREGIVER: ${data.clientInfo?.caregiver || "N/A"}
 
-${barriersStr || "No barriers data found. Generate a comprehensive barriers section based on common treatment barriers."}
+${barriersStr || `No barriers data found for ${firstName}. Generate a comprehensive barriers section based on common treatment barriers for a ${age !== null ? `${age}-year-old` : "child"} with ${diagnosis}.`}
 
 REQUIRED CONTENT:
 
-## Identified Barriers to Treatment
+## Identified Barriers to ${firstName}'s Treatment
 
-**Client-Related Barriers:**
+**${firstName}-Related Barriers:**
 | Barrier | Impact Level | Mitigation Strategy |
 |---------|--------------|---------------------|
-| Medical conditions affecting participation | [High/Med/Low] | [strategy] |
-| Sensory sensitivities | [level] | [strategy] |
+| Medical conditions affecting ${firstName}'s participation | [High/Med/Low] | [strategy] |
+| ${firstName}'s sensory sensitivities | [level] | [strategy] |
 | Sleep disturbances | [level] | [strategy] |
 | Medication side effects | [level] | [strategy] |
-| Communication limitations | [level] | [strategy] |
+| ${firstName}'s communication limitations | [level] | [strategy] |
 
-**Environmental Barriers:**
+**Environmental Barriers for ${firstName}:**
 | Barrier | Impact Level | Mitigation Strategy |
 |---------|--------------|---------------------|
 | Transportation limitations | [level] | [strategy] |
@@ -1911,7 +2298,7 @@ REQUIRED CONTENT:
 | Sibling/family needs | [level] | [strategy] |
 | School schedule conflicts | [level] | [strategy] |
 
-**Family/Caregiver Barriers:**
+**Family/Caregiver Barriers (${data.clientInfo?.caregiver || "Caregiver"}):**
 | Barrier | Impact Level | Mitigation Strategy |
 |---------|--------------|---------------------|
 | Work schedules | [level] | [strategy] |
@@ -1926,10 +2313,11 @@ REQUIRED CONTENT:
 | Staffing availability | [level] | [strategy] |
 | Service area limitations | [level] | [strategy] |
 
-## Mitigation Plan Summary
+## Mitigation Plan Summary for ${firstName}
 
-[2-3 paragraph summary of how the treatment team will address identified barriers, including specific accommodations, schedule modifications, and family support strategies]
+[2-3 paragraph summary of how the treatment team will address ${firstName}'s identified barriers, including specific accommodations, schedule modifications, and ${data.clientInfo?.caregiver || "family"} support strategies]
 
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".
 Write in professional clinical language, approximately 200-300 words.`
       })(),
 
@@ -1945,133 +2333,208 @@ ${JSON.stringify(generalizationData, null, 2)}`
 
         return `Write the GENERALIZATION & MAINTENANCE section for a professional ABA assessment report.
 
-CLIENT: ${clientName}, Age: ${clientAge}
+CLIENT: ${clientName}, ${ageDisplay}
 DIAGNOSIS: ${diagnosis}
+PRIMARY CAREGIVER: ${data.clientInfo?.caregiver || "N/A"}
 
-${genStr || "No generalization data found. Generate a comprehensive generalization plan based on ABA best practices."}
+${genStr || `No generalization data found for ${firstName}. Generate a comprehensive generalization plan based on ABA best practices appropriate for a ${age !== null ? `${age}-year-old` : "child"}.`}
 
 REQUIRED CONTENT:
 
-## Generalization Plan
+## Generalization Plan for ${firstName?.toUpperCase()}
 
-**Stimulus Generalization Strategies:**
+**Stimulus Generalization Strategies for ${firstName}:**
 | Strategy | Implementation | Settings |
 |-----------|---------------|----------|
-| Multiple exemplar training | Vary materials, instructions | Home, school, clinic |
-| General case programming | Teach range of examples | All environments |
-| Natural environment teaching | Embed in daily routines | Community, home |
+| Multiple exemplar training | Vary ${firstName}'s materials, instructions | Home, school, clinic |
+| General case programming | Teach ${firstName} range of examples | All environments |
+| Natural environment teaching | Embed in ${firstName}'s daily routines | Community, home |
 
-**Response Generalization Strategies:**
+**Response Generalization Strategies for ${firstName}:**
 | Strategy | Implementation | Target Behaviors |
 |-----------|---------------|-----------------|
-| Teaching functionally equivalent responses | Multiple communication forms | Requesting, commenting |
+| Teaching functionally equivalent responses | Multiple communication forms for ${firstName} | Requesting, commenting |
 | Training sufficient examples | Various response forms | All skill domains |
-| Reinforcing response variability | Reward novel appropriate responses | Play, social skills |
+| Reinforcing ${firstName}'s response variability | Reward novel appropriate responses | Play, social skills |
 
-**Settings for Generalization:**
+**Settings for ${firstName}'s Generalization:**
 - [ ] Home environment
-- [ ] School/classroom
+- [ ] School/classroom (if age-appropriate for ${ageDisplay})
 - [ ] Community (stores, restaurants, parks)
 - [ ] Therapy clinic
 - [ ] Extended family settings
 - [ ] Peer interactions
 
-**People for Generalization:**
-- [ ] Parents/primary caregivers
+**People for ${firstName}'s Generalization:**
+- [ ] ${data.clientInfo?.caregiver || "Parents/primary caregivers"}
 - [ ] Siblings
 - [ ] Teachers/school staff
 - [ ] Peers
 - [ ] Extended family
 - [ ] Community members
 
-## Maintenance Plan
+## Maintenance Plan for ${firstName?.toUpperCase()}
 
-**Strategies for Long-Term Maintenance:**
+**Strategies for ${firstName}'s Long-Term Maintenance:**
 1. Intermittent reinforcement schedules
-2. Natural contingencies in environment
-3. Self-management training
+2. Natural contingencies in ${firstName}'s environment
+3. Self-management training (if age-appropriate)
 4. Periodic booster sessions
-5. Caregiver maintenance training
+5. ${data.clientInfo?.caregiver || "Caregiver"} maintenance training
 
-**Monitoring Schedule:**
+**Monitoring Schedule for ${firstName}:**
 | Timeframe | Assessment Type | Responsible Party |
 |-----------|-----------------|-------------------|
-| Weekly | Data review | BCBA/RBT |
+| Weekly | ${firstName}'s data review | BCBA/RBT |
 | Monthly | Generalization probes | BCBA |
 | Quarterly | Formal assessment | BCBA |
 | Annually | Comprehensive review | Treatment team |
 
+IMPORTANT: Always refer to the client as "${firstName}", never as "the client".
 Write in professional clinical language, approximately 200-300 words.`
       })(),
 
       crisis_plan: `Write the CRISIS PLAN & COORDINATION OF CARE section for a professional ABA assessment report.
 
-**CRISIS PLAN**
+CLIENT: ${clientName}, ${ageDisplay}
+DIAGNOSIS: ${diagnosis}
 
-This plan outlines steps to be taken in the event of a crisis situation involving the client. A crisis is defined as any event that poses an immediate risk of harm to the client or others, or results in significant disruption to safety and well-being.
+${(() => {
+  // Get risk assessment data
+  const riskData = data.riskAssessment
+  const hasRiskData = riskData && (riskData.extinctionBurst || riskData.safetyProtocols || riskData.emergencyContacts)
 
-**DE-ESCALATION TECHNIQUES:**
+  // Get high-risk behaviors from behaviors array
+  const highRiskBehaviors = behaviors.filter(b =>
+    b.intensity === "High" || b.intensity === "Severe" ||
+    b.name.toLowerCase().includes("self-injur") ||
+    b.name.toLowerCase().includes("aggress") ||
+    b.name.toLowerCase().includes("elop")
+  )
 
-The following techniques will be employed to de-escalate potential crisis situations:
+  let riskSection = ""
 
-1.  **Reduce Demands:** Immediately remove or reduce any demands or aversive stimuli that may be contributing to the escalation.
-2.  **Provide Space:** Allow the client personal space and avoid excessive proximity unless safety requires intervention.
-3.  **Reduce Sensory Input:** Minimize auditory, visual, and tactile stimulation in the environment.
-4.  **Use Calm, Neutral Tone:** Speak in a soft, low-pitched, and non-confrontational voice.
-5.  **Offer Choices:** Provide limited, acceptable choices to give the client a sense of control (e.g., "Would you like to take a break in the quiet room or on the couch?").
-6.  **Re-direct:** Gently redirect the client's attention to a more appropriate activity or item once they begin to calm.
-7.  **Reinforce Calm Behavior:** Provide praise and positive reinforcement for any instances of calm behavior or reduced intensity.
-8.  **Visual Supports:** Utilize calming visuals or social stories if the client responds well to them.
+  if (hasRiskData) {
+    riskSection = `
+RISK ASSESSMENT DATA FOR ${firstName}:
+- Extinction Burst Risk: ${riskData.extinctionBurst || "Not assessed"}
+- Safety Protocols: ${riskData.safetyProtocols || "Not specified"}
+- Emergency Contacts: ${riskData.emergencyContacts || "Not specified"}
+`
+  }
 
-**IDENTIFYING AND RESPONDING TO EARLY WARNING SIGNS:**
-[List specific early warning signs for this client, e.g., pacing, increased vocalizations, furrowed brow, rigidity in body posture, avoidance behaviors, specific verbalizations.]
+  if (highRiskBehaviors.length > 0) {
+    riskSection += `
+IDENTIFIED HIGH-RISK BEHAVIORS:
+${highRiskBehaviors.map(b => `- ${b.name}: ${b.definition} (Intensity: ${b.intensity}, Function: ${b.function})`).join("\n")}
+`
+  }
+
+  if (!hasRiskData && highRiskBehaviors.length === 0) {
+    riskSection = `
+NOTE: No specific risk assessment data available. Generate a standard crisis plan template that can be customized for ${firstName}'s needs.
+`
+  }
+
+  return riskSection
+})()}
+
+**CRISIS PLAN FOR ${firstName?.toUpperCase() || "CLIENT"}**
+
+This plan outlines steps to be taken in the event of a crisis situation involving ${firstName}. A crisis is defined as any event that poses an immediate risk of harm to ${firstName} or others, or results in significant disruption to safety and well-being.
+
+**${firstName?.toUpperCase()}'S SPECIFIC EARLY WARNING SIGNS:**
+Based on assessment data, identify and list ${firstName}'s specific early warning signs (e.g., changes in vocalizations, body tension, specific phrases, pacing patterns).
+
+**DE-ESCALATION TECHNIQUES SPECIFIC TO ${firstName?.toUpperCase()}:**
+
+1.  **Reduce Demands:** Remove demands or aversive stimuli contributing to escalation
+2.  **Provide Space:** Allow personal space; avoid excessive proximity unless safety requires intervention
+3.  **Reduce Sensory Input:** Minimize auditory, visual, and tactile stimulation
+4.  **Use Calm, Neutral Tone:** Speak in a soft, low-pitched, non-confrontational voice
+5.  **Offer Choices:** Provide limited, acceptable choices for sense of control
+6.  **Re-direct:** Gently redirect attention to appropriate activity once calming begins
+7.  **Reinforce Calm Behavior:** Provide praise for any calm behavior or reduced intensity
+8.  **Visual Supports:** Utilize calming visuals or social stories if effective for ${firstName}
 
 **LEVELS OF INTERVENTION:**
-*   **Level 1 (Mild Escalation):** Use verbal redirection, planned ignoring (if appropriate for function), and offer a break.
-*   **Level 2 (Moderate Escalation):** Implement sensory strategies, offer choices, utilize de-escalation techniques, and increase supervision.
-*   **Level 3 (Severe Escalation/Crisis):** Implement safety protocols, use blocking procedures if necessary, and contact emergency services if immediate danger exists.
+*   **Level 1 (Mild):** Verbal redirection, planned ignoring (if function-appropriate), offer break
+*   **Level 2 (Moderate):** Sensory strategies, choices, de-escalation techniques, increased supervision
+*   **Level 3 (Severe/Crisis):** Safety protocols, blocking if necessary, emergency services if danger exists
 
-**EMERGENCY CONTACTS:**
-*   **Primary Caregiver:** ${data.clientInfo?.caregiver || "[Caregiver Name]"} - Phone: ${data.clientInfo?.phone || "[Caregiver Phone]"}
-*   **BCBA Supervisor:** ${data.providerInfo?.bcbaName || "[BCBA Name]"} - Phone: ${data.providerInfo?.bcbaPhone || "[BCBA Phone]"}
+**EMERGENCY CONTACTS FOR ${firstName?.toUpperCase()}:**
+*   **Primary Caregiver:** ${data.clientInfo?.caregiver || "N/A"} - Phone: ${data.clientInfo?.phone || "N/A"}
+*   **BCBA Supervisor:** ${data.providerInfo?.bcbaName || "N/A"} - Phone: ${data.providerInfo?.bcbaPhone || "N/A"}
 *   **Emergency Services:** 911
-*   **Local Crisis Line:** [Insert Local Crisis Line Number]
-*   **Client's Physician:** [Physician Name & Phone]
+${data.riskAssessment?.emergencyContacts ? `*   **Additional Contacts:** ${data.riskAssessment.emergencyContacts}` : ""}
 
-**WHEN TO SEEK EMERGENCY HELP:**
-*   Imminent risk of serious harm to self or others.
-*   Client elopes and cannot be immediately located.
-*   Client experiences a medical emergency.
-*   Significant property destruction that poses a safety risk.
+**WHEN TO SEEK EMERGENCY HELP FOR ${firstName?.toUpperCase()}:**
+*   Imminent risk of serious harm to self or others
+*   ${firstName} elopes and cannot be immediately located
+*   Medical emergency occurs
+*   Significant property destruction posing safety risk
 
 **COORDINATION OF CARE**
 
-Effective treatment requires collaboration with all relevant parties involved in the client's care.
+Effective treatment for ${firstName} requires collaboration with all relevant parties.
 
-**Key Stakeholders:**
-*   **Client and Family/Caregivers:** Central to all decision-making and implementation.
-*   **Behavior Technicians (RBTs):** Provide direct services and collect data.
-*   **BCBA Supervisor:** Oversees treatment plan, provides supervision and training.
-*   **Medical Professionals:** Primary Care Physician, specialists (e.g., neurologist, psychiatrist) for co-occurring conditions.
-*   **Educational Team:** Teachers, school psychologists, school psychologists, special education staff.
-*   **Other Therapists:** Speech-Language Pathologists (SLP), Occupational Therapists (OT), Physical Therapists (PT), mental health counselors.
+**Key Stakeholders for ${firstName}'s Care:**
+*   **Family/Caregivers:** ${data.clientInfo?.caregiver || "Primary caregiver"} - Central to decision-making
+*   **Behavior Technicians (RBTs):** Direct services and data collection
+*   **BCBA Supervisor:** ${data.providerInfo?.bcbaName || "Assigned BCBA"} - Treatment oversight
+*   **Medical Professionals:** Primary Care Physician and relevant specialists
+*   **Educational Team:** School staff (if applicable, with consent)
+*   **Other Therapists:** SLP, OT, PT, mental health professionals as applicable
 
-**Communication Plan:**
-*   **Regular Team Meetings:** Scheduled [e.g., monthly] to discuss progress, challenges, and treatment plan adjustments.
-*   **Written Reports:** Progress reports will be shared with designated stakeholders [e.g., quarterly, or as required by funding sources].
-*   **Phone Consultations:** Available for urgent matters and coordination between sessions.
-*   **Caregiver Training:** Integrated into therapy sessions and dedicated training appointments.
-*   **School Collaboration:** If applicable, with parental consent, communication will occur with school staff to ensure consistency of services and support.
-
-This collaborative approach ensures a holistic and consistent intervention plan, maximizing the client's potential for growth and success.`,
+IMPORTANT: Always refer to the client as "${firstName}" throughout this section.`,
     }
 
     return prompts[sectionId] || `Write the "${sectionId}" section for an ABA assessment report.`
   }
 
   const generateSection = async (sectionId: string) => {
+    // =========================================================================
+    // VALIDATE REQUIRED DATA BEFORE GENERATING
+    // =========================================================================
+    const validation = validateSectionData(sectionId, assessmentData)
+
+    if (!validation.valid) {
+      // Format missing fields for display
+      const fieldLabels: Record<string, string> = {
+        "clientInfo.firstName": "Client First Name",
+        "clientInfo.lastName": "Client Last Name",
+        "clientInfo.dob": "Date of Birth",
+        "clientInfo.diagnosis": "Diagnosis",
+        "clientInfo.age": "Age",
+        "behaviors": "Target Behaviors (complete ABC Observations)",
+        "goals": "Treatment Goals (complete Goals section)",
+        "riskAssessment": "Risk Assessment data",
+        "reasonForReferral": "Reason for Referral",
+        "background": "Background Information",
+      }
+
+      const missingLabels = validation.missingFields.map(
+        (field) => fieldLabels[field] || field
+      )
+
+      const errorMessage = `Cannot generate "${REPORT_SECTIONS.find(s => s.id === sectionId)?.title || sectionId}" section.\n\nMissing required data:\n• ${missingLabels.join("\n• ")}\n\nPlease complete these fields in the corresponding sections first.`
+
+      setError(errorMessage)
+      setSections((prev) =>
+        prev.map((s) => (s.id === sectionId ? { ...s, status: "error" } : s))
+      )
+      return // BLOCK generation
+    }
+
+    // Show warnings if any (but don't block)
+    if (validation.warnings.length > 0) {
+      console.warn(`[Report Generator] Warnings for ${sectionId}:`, validation.warnings)
+    }
+
+    // =========================================================================
+    // PROCEED WITH GENERATION
+    // =========================================================================
     setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, status: "generating", generated: true } : s)))
-    //setCurrentGenerating(sectionId) // Set current generating section - Replaced by section.status === "generating" logic
     setError(null) // Clear previous errors
 
     try {
@@ -2101,8 +2564,6 @@ This collaborative approach ensures a holistic and consistent intervention plan,
       console.error("Generation error:", error)
       setError(error.message || "An unexpected error occurred.")
       setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, status: "error" } : s)))
-    } finally {
-      //setCurrentGenerating(null) // Clear current generating section - Replaced by section.status === "generating" logic
     }
   }
 

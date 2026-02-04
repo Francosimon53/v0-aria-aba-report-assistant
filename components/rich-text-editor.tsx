@@ -3,8 +3,10 @@
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { TableKit } from "@tiptap/extension-table"
-import { Bold, Italic, List, ListOrdered, TableIcon, Trash2 } from "lucide-react"
+import { Bold, Italic, List, ListOrdered, TableIcon, Trash2, Sparkles, Loader2, Wand2, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Input } from "@/components/ui/input"
 import { useEffect, useState } from "react"
 import DOMPurify from "dompurify"
 
@@ -12,8 +14,8 @@ interface RichTextEditorProps {
   value?: string
   onChange?: (html: string) => void
   placeholder?: string
-  onAIGenerate?: () => void
-  isGenerating?: boolean
+  fieldName?: string
+  clientData?: any
 }
 
 function cleanWordPaste(html: string): string {
@@ -44,10 +46,13 @@ export default function RichTextEditor({
   value = "",
   onChange,
   placeholder = "Start typing or paste content from Word/Excel...",
-  onAIGenerate,
-  isGenerating = false,
+  fieldName,
+  clientData,
 }: RichTextEditorProps) {
   const [isMounted, setIsMounted] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [customPrompt, setCustomPrompt] = useState("")
 
   useEffect(() => {
     setIsMounted(true)
@@ -111,6 +116,76 @@ export default function RichTextEditor({
       editor.commands.setContent(value)
     }
   }, [editor, value])
+
+  const handleGenerate = async (action: "generate" | "improve" | "template" | "custom") => {
+    if (!editor) return
+
+    setIsGenerating(true)
+
+    try {
+      let prompt = ""
+      const currentValue = editor.getHTML()
+
+      switch (action) {
+        case "generate":
+          prompt = `Generate professional ABA assessment text for the field "${fieldName}". Make it detailed and clinically appropriate.`
+          break
+        case "improve":
+          prompt = `Improve this text for the field "${fieldName}": "${currentValue}". Make it more professional and detailed while maintaining the key information.`
+          break
+        case "template":
+          prompt = `Provide a professional template for the field "${fieldName}" in an ABA assessment report.`
+          break
+        case "custom":
+          prompt = customPrompt
+          break
+      }
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: prompt }],
+          clientData,
+          currentStep: fieldName,
+          isTextGeneration: true,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to generate text: ${errorText}`)
+      }
+
+      const data = await response.json()
+      const text = data.message || data.content || ""
+
+      if (!text || typeof text !== "string") {
+        throw new Error("No text content in response")
+      }
+
+      // Clean markdown formatting
+      const cleanedText = text
+        .replace(/#{1,6}\s/g, "")
+        .replace(/\*\*(.+?)\*\*/g, "$1")
+        .replace(/\*(.+?)\*/g, "$1")
+        .replace(/^\s*[-*]\s+/gm, "")
+        .replace(/\[([^\]]+)\]/g, "$1")
+        .trim()
+
+      // Insert into editor
+      editor.commands.setContent(cleanedText)
+      onChange?.(cleanedText)
+
+      setIsOpen(false)
+      setCustomPrompt("")
+    } catch (error) {
+      console.error("[RichTextEditor] AI generation error:", error)
+      alert(`Error generating text: ${error instanceof Error ? error.message : "Unknown error"}`)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   if (!isMounted) {
     return (
@@ -190,33 +265,90 @@ export default function RichTextEditor({
           </Button>
         )}
 
-        {onAIGenerate && (
-          <>
-            <div className="flex-1" />
-            <button
+        {/* AI Popover */}
+        <div className="flex-1" />
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <Button
               type="button"
-              onClick={() => {
-                console.log("[v0] AI Generate button clicked")
-                onAIGenerate()
-              }}
+              variant="ghost"
+              size="sm"
+              className="hover:bg-purple-50 hover:text-purple-600"
               disabled={isGenerating}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-md hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {isGenerating ? (
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
-                  <path d="M19 15l.9 2.7 2.7.9-2.7.9-.9 2.7-.9-2.7-2.7-.9 2.7-.9.9-2.7z" />
-                </svg>
+                <Sparkles className="h-4 w-4" />
               )}
-              {isGenerating ? "Generating..." : "AI Generate"}
-            </button>
-          </>
-        )}
+            </Button>
+          </PopoverTrigger>
+
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b pb-2">
+                <Sparkles className="h-4 w-4 text-purple-600" />
+                <h4 className="font-semibold text-sm">AI Writing Assistant</h4>
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-transparent"
+                  onClick={() => handleGenerate("generate")}
+                  disabled={isGenerating}
+                >
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Generate Text
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-transparent"
+                  onClick={() => handleGenerate("improve")}
+                  disabled={isGenerating || !editor?.getText()?.trim()}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Improve Writing
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-transparent"
+                  onClick={() => handleGenerate("template")}
+                  disabled={isGenerating}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Use Template
+                </Button>
+              </div>
+
+              <div className="space-y-2 border-t pt-3">
+                <p className="text-xs text-muted-foreground">Or describe what you need:</p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Ask AI to help..."
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && customPrompt.trim()) {
+                        handleGenerate("custom")
+                      }
+                    }}
+                    disabled={isGenerating}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => handleGenerate("custom")}
+                    disabled={isGenerating || !customPrompt.trim()}
+                  >
+                    Send
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Editor */}
