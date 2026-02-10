@@ -79,7 +79,22 @@ export async function updateAssessment(assessmentId: string, updates: any) {
 
 export async function deleteAssessment(assessmentId: string) {
   const supabase = await createClient()
-  const { error } = await supabase.from("assessments").delete().eq("id", assessmentId)
+
+  // Verify the current user owns this assessment before deleting
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("User not authenticated")
+  }
+
+  const { error } = await supabase
+    .from("assessments")
+    .delete()
+    .eq("id", assessmentId)
+    .eq("user_id", user.id)
+
   if (error) throw error
 
   revalidatePath("/dashboard")

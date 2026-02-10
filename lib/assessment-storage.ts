@@ -409,11 +409,45 @@ export async function saveAssessmentToSupabase(
       }
     })
 
+    // Calculate real progress based on which sections have data
+    const sectionKeys = [
+      STORAGE_KEYS.CLIENT_INFO,
+      STORAGE_KEYS.BACKGROUND_HISTORY,
+      STORAGE_KEYS.ASSESSMENT_DATA,
+      STORAGE_KEYS.ABC_OBSERVATIONS,
+      STORAGE_KEYS.RISK_ASSESSMENT,
+      STORAGE_KEYS.GOALS,
+      STORAGE_KEYS.INTERVENTIONS,
+      STORAGE_KEYS.TEACHING_PROTOCOLS,
+      STORAGE_KEYS.PARENT_TRAINING,
+      STORAGE_KEYS.SERVICE_SCHEDULE,
+      STORAGE_KEYS.MEDICAL_NECESSITY,
+    ]
+
+    let filledSections = 0
+    sectionKeys.forEach((key) => {
+      try {
+        const value = localStorage.getItem(key)
+        if (value && value !== "null" && value !== "{}" && value !== "[]") {
+          const parsed = JSON.parse(value)
+          const hasData =
+            Array.isArray(parsed)
+              ? parsed.length > 0
+              : typeof parsed === "object" && parsed !== null
+                ? Object.keys(parsed.data || parsed).length > 0
+                : Boolean(parsed)
+          if (hasData) filledSections++
+        }
+      } catch {
+        // skip unparseable keys
+      }
+    })
+
     const progressResult = {
-      percentage: 0,
+      percentage: Math.round((filledSections / sectionKeys.length) * 100),
     }
 
-    console.log("[v0] Calculated progress:", progressResult)
+    console.log("[v0] Calculated progress:", progressResult, `(${filledSections}/${sectionKeys.length} sections)`)
 
     // Extract client name for better display
     let clientName = "Unnamed Client"

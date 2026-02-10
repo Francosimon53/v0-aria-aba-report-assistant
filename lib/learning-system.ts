@@ -151,7 +151,7 @@ export function collectSectionsFromStorage(): {
   const sectionMappings = [
     { key: "aria-reason-for-referral", type: "reason_for_referral", field: "currentProblemAreas" },
     { key: "aria-background", type: "background_information", field: "content" },
-    { key: "aria-abc-observation", type: "abc_observations", field: "summary" },
+    { key: "aria-abc-observations", type: "abc_observations", field: "summary" },
     { key: "aria-risk-assessment", type: "risk_assessment", field: "crisisPlan" },
     { key: "aria-goals-tracker", type: "skill_acquisition_goals", field: "goals" },
     { key: "aria-behavior-reduction", type: "behavior_reduction_goals", field: "goals" },

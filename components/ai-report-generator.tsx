@@ -721,7 +721,7 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
       safeParseAndExtract("aria-background-history") || safeParseAndExtract("aria_background_history")
     const reasonForReferral = safeParseAndExtract("aria-reason-for-referral")
     const riskAssessment = safeParseAndExtract("aria-risk-assessment")
-    const abcObservation = safeParseAndExtract("aria-abc-observation")
+    const abcObservation = safeParseAndExtract("aria-abc-observations")
     const goals = safeParseAndExtract("aria-goals")
     const standardizedAssessments = safeParseAndExtract("aria-standardized-assessments")
 
@@ -1058,7 +1058,7 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
     // OTHER DATA
     // =========================================================================
     const diagnosis = data.clientInfo?.diagnosis || null
-    const icd10 = data.clientInfo?.icd10Code || "F84.0"
+    const icd10 = data.clientInfo?.icd10Code || "ICD-10 code required — please complete Client Information"
     const dob = data.clientInfo?.dob || null
 
     const behaviors = data.behaviors || []
@@ -3090,7 +3090,8 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
 
                   const colCount = tableData.headers.length
                   const colWidth = maxWidth / colCount
-                  const rowHeight = 20
+                  const cellPadding = 5
+                  const cellFontSize = 7
                   const headerHeight = 22
 
                   // Table header
@@ -3101,29 +3102,44 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
                   doc.setFont("helvetica", "bold")
 
                   tableData.headers.forEach((header, i) => {
-                    doc.text(cleanMarkdown(header).substring(0, 20), margin + i * colWidth + 5, yPosition + 14)
+                    const headerText = cleanMarkdown(header)
+                    const wrappedHeader = doc.splitTextToSize(headerText, colWidth - cellPadding * 2)
+                    doc.text(wrappedHeader[0] || "", margin + i * colWidth + cellPadding, yPosition + 14)
                   })
                   yPosition += headerHeight
 
                   // Table rows
                   doc.setTextColor(51, 65, 85)
                   doc.setFont("helvetica", "normal")
+                  doc.setFontSize(cellFontSize)
 
                   tableData.rows.forEach((row, rowIdx) => {
-                    checkPageBreak(rowHeight)
+                    // Calculate dynamic row height based on wrapped content
+                    let maxLines = 1
+                    const wrappedCells = row.map((cell) => {
+                      const cellText = cleanMarkdown(cell)
+                      const lines = doc.splitTextToSize(cellText, colWidth - cellPadding * 2)
+                      if (lines.length > maxLines) maxLines = lines.length
+                      return lines
+                    })
+                    const dynamicRowHeight = Math.max(20, maxLines * 10 + 10)
+
+                    checkPageBreak(dynamicRowHeight)
 
                     if (rowIdx % 2 === 0) {
                       doc.setFillColor(248, 250, 252)
-                      doc.rect(margin, yPosition, maxWidth, rowHeight, "F")
+                      doc.rect(margin, yPosition, maxWidth, dynamicRowHeight, "F")
                     }
 
                     doc.setDrawColor(203, 213, 225)
-                    doc.rect(margin, yPosition, maxWidth, rowHeight, "S")
+                    doc.rect(margin, yPosition, maxWidth, dynamicRowHeight, "S")
 
-                    row.forEach((cell, i) => {
-                      doc.text(cleanMarkdown(cell).substring(0, 25), margin + i * colWidth + 5, yPosition + 13)
+                    wrappedCells.forEach((lines, i) => {
+                      lines.forEach((line: string, lineIdx: number) => {
+                        doc.text(line, margin + i * colWidth + cellPadding, yPosition + 12 + lineIdx * 10)
+                      })
                     })
-                    yPosition += rowHeight
+                    yPosition += dynamicRowHeight
                   })
 
                   yPosition += 10
@@ -3202,7 +3218,8 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
                 checkPageBreak(100)
                 const colCount = tableData.headers.length
                 const colWidth = maxWidth / colCount
-                const rowHeight = 20
+                const cellPadding = 5
+                const cellFontSize = 7
                 const headerHeight = 22
 
                 doc.setFillColor(30, 41, 59)
@@ -3212,25 +3229,40 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
                 doc.setFont("helvetica", "bold")
 
                 tableData.headers.forEach((header, i) => {
-                  doc.text(cleanMarkdown(header).substring(0, 20), margin + i * colWidth + 5, yPosition + 14)
+                  const headerText = cleanMarkdown(header)
+                  const wrappedHeader = doc.splitTextToSize(headerText, colWidth - cellPadding * 2)
+                  doc.text(wrappedHeader[0] || "", margin + i * colWidth + cellPadding, yPosition + 14)
                 })
                 yPosition += headerHeight
 
                 doc.setTextColor(51, 65, 85)
                 doc.setFont("helvetica", "normal")
+                doc.setFontSize(cellFontSize)
 
                 tableData.rows.forEach((row, rowIdx) => {
-                  checkPageBreak(rowHeight)
+                  // Calculate dynamic row height based on wrapped content
+                  let maxLines = 1
+                  const wrappedCells = row.map((cell) => {
+                    const cellText = cleanMarkdown(cell)
+                    const lines = doc.splitTextToSize(cellText, colWidth - cellPadding * 2)
+                    if (lines.length > maxLines) maxLines = lines.length
+                    return lines
+                  })
+                  const dynamicRowHeight = Math.max(20, maxLines * 10 + 10)
+
+                  checkPageBreak(dynamicRowHeight)
                   if (rowIdx % 2 === 0) {
                     doc.setFillColor(248, 250, 252)
-                    doc.rect(margin, yPosition, maxWidth, rowHeight, "F")
+                    doc.rect(margin, yPosition, maxWidth, dynamicRowHeight, "F")
                   }
                   doc.setDrawColor(203, 213, 225)
-                  doc.rect(margin, yPosition, maxWidth, rowHeight, "S")
-                  row.forEach((cell, i) => {
-                    doc.text(cleanMarkdown(cell).substring(0, 25), margin + i * colWidth + 5, yPosition + 13)
+                  doc.rect(margin, yPosition, maxWidth, dynamicRowHeight, "S")
+                  wrappedCells.forEach((lines, i) => {
+                    lines.forEach((line: string, lineIdx: number) => {
+                      doc.text(line, margin + i * colWidth + cellPadding, yPosition + 12 + lineIdx * 10)
+                    })
                   })
-                  yPosition += rowHeight
+                  yPosition += dynamicRowHeight
                 })
                 yPosition += 10
               }

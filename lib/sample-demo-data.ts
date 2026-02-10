@@ -156,7 +156,7 @@ export const DEMO_CLIENT_DATA: Record<string, unknown> = {
   },
 
   // ABC Observations
-  "aria-abc-observation": {
+  "aria-abc-observations": {
     observations: [
       {
         id: "1",
