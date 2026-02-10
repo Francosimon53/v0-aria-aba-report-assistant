@@ -628,47 +628,71 @@ export default function InitialAssessmentDashboard() {
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto p-2">
               <Accordion type="multiple" defaultValue={phases.map((_, i) => `phase-${i}`)} className="space-y-1">
-                {phases.map((phase, phaseIndex) => (
-                  <AccordionItem key={phaseIndex} value={`phase-${phaseIndex}`} className="border-none">
-                    <AccordionTrigger className="py-2 px-3 text-sm font-semibold text-gray-700 hover:no-underline hover:bg-gray-50 rounded-lg">
-                      {phase.title}
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-1 pt-0">
-                      <div className="space-y-0.5 ml-2">
-                        {phase.items.map((item) => {
-                          const isActive = activeView === item.id
-                          const isComplete = completedSteps.has(item.id)
-                          const Icon = item.icon
+                {phases.map((phase, phaseIndex) => {
+                  const phaseCompleted = phase.items.filter((item) => completedSteps.has(item.id)).length
+                  const phaseTotal = phase.items.length
+                  const phaseAllDone = phaseCompleted === phaseTotal
 
-                          return (
-                            <button
-                              key={item.id}
-                              onClick={() => handleNavItemClick(item.id)}
-                              className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all ${
-                                isActive
-                                  ? "bg-teal-50 text-teal-700 border-l-4 border-teal-500"
-                                  : "text-gray-600 hover:bg-gray-50"
-                              }`}
-                            >
-                              <div
-                                className={`h-5 w-5 rounded-full flex items-center justify-center ${
-                                  isComplete ? "bg-teal-500" : isActive ? "bg-teal-200" : "bg-gray-200"
+                  return (
+                    <AccordionItem key={phaseIndex} value={`phase-${phaseIndex}`} className="border-none">
+                      <AccordionTrigger className="py-2 px-3 text-sm font-semibold text-gray-700 hover:no-underline hover:bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between w-full pr-2">
+                          <span>{phase.title}</span>
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                              phaseAllDone
+                                ? "bg-teal-100 text-teal-700"
+                                : phaseCompleted > 0
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-gray-100 text-gray-500"
+                            }`}
+                          >
+                            {phaseCompleted}/{phaseTotal}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-1 pt-0">
+                        <div className="space-y-0.5 ml-2">
+                          {phase.items.map((item) => {
+                            const isActive = activeView === item.id
+                            const isComplete = completedSteps.has(item.id)
+                            const Icon = item.icon
+
+                            return (
+                              <button
+                                key={item.id}
+                                onClick={() => handleNavItemClick(item.id)}
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all ${
+                                  isActive
+                                    ? "bg-teal-50 text-teal-700 border-l-4 border-teal-500"
+                                    : "text-gray-600 hover:bg-gray-50"
                                 }`}
                               >
-                                {isComplete ? (
-                                  <CheckCircleIcon className="h-3 w-3 text-white" />
-                                ) : (
-                                  <Icon className={`h-3 w-3 ${isActive ? "text-teal-700" : "text-gray-500"}`} />
-                                )}
-                              </div>
-                              <span className="text-sm font-medium">{item.label}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
+                                <div
+                                  className={`h-5 w-5 rounded-full flex items-center justify-center ${
+                                    isComplete ? "bg-teal-500" : isActive ? "bg-teal-200" : "bg-gray-200"
+                                  }`}
+                                >
+                                  {isComplete ? (
+                                    <CheckCircleIcon className="h-3 w-3 text-white" />
+                                  ) : (
+                                    <Icon className={`h-3 w-3 ${isActive ? "text-teal-700" : "text-gray-500"}`} />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-sm font-medium">{item.label}</span>
+                                  {item.description && (
+                                    <p className="text-[10px] text-gray-400 truncate">{item.description}</p>
+                                  )}
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  )
+                })}
               </Accordion>
             </nav>
 
@@ -736,47 +760,72 @@ export default function InitialAssessmentDashboard() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-2">
           <Accordion type="multiple" defaultValue={phases.map((_, i) => `phase-${i}`)} className="space-y-1">
-            {phases.map((phase, phaseIndex) => (
-              <AccordionItem key={phaseIndex} value={`phase-${phaseIndex}`} className="border-none">
-                <AccordionTrigger className="py-2 px-3 text-sm font-semibold text-gray-700 hover:no-underline hover:bg-gray-50 rounded-lg">
-                  {phase.title}
-                </AccordionTrigger>
-                <AccordionContent className="pb-1 pt-0">
-                  <div className="space-y-0.5 ml-2">
-                    {phase.items.map((item) => {
-                      const isActive = activeView === item.id
-                      const isComplete = completedSteps.has(item.id)
-                      const Icon = item.icon
+            {phases.map((phase, phaseIndex) => {
+              const phaseCompleted = phase.items.filter((item) => completedSteps.has(item.id)).length
+              const phaseTotal = phase.items.length
+              const phaseAllDone = phaseCompleted === phaseTotal
+              const phaseHasActive = phase.items.some((item) => activeView === item.id)
 
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => setActiveView(item.id)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
-                            isActive
-                              ? "bg-teal-50 text-teal-700 border-l-4 border-teal-500"
-                              : "text-gray-600 hover:bg-gray-50"
-                          }`}
-                        >
-                          <div
-                            className={`h-5 w-5 rounded-full flex items-center justify-center ${
-                              isComplete ? "bg-teal-500" : isActive ? "bg-teal-200" : "bg-gray-200"
+              return (
+                <AccordionItem key={phaseIndex} value={`phase-${phaseIndex}`} className="border-none">
+                  <AccordionTrigger className="py-2 px-3 text-sm font-semibold text-gray-700 hover:no-underline hover:bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <span>{phase.title}</span>
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                          phaseAllDone
+                            ? "bg-teal-100 text-teal-700"
+                            : phaseCompleted > 0
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {phaseCompleted}/{phaseTotal}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-1 pt-0">
+                    <div className="space-y-0.5 ml-2">
+                      {phase.items.map((item) => {
+                        const isActive = activeView === item.id
+                        const isComplete = completedSteps.has(item.id)
+                        const Icon = item.icon
+
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => setActiveView(item.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
+                              isActive
+                                ? "bg-teal-50 text-teal-700 border-l-4 border-teal-500"
+                                : "text-gray-600 hover:bg-gray-50"
                             }`}
                           >
-                            {isComplete ? (
-                              <CheckCircleIcon className="h-3 w-3 text-white" />
-                            ) : (
-                              <Icon className={`h-3 w-3 ${isActive ? "text-teal-700" : "text-gray-500"}`} />
-                            )}
-                          </div>
-                          <span className="text-sm font-medium">{item.label}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+                            <div
+                              className={`h-5 w-5 rounded-full flex items-center justify-center ${
+                                isComplete ? "bg-teal-500" : isActive ? "bg-teal-200" : "bg-gray-200"
+                              }`}
+                            >
+                              {isComplete ? (
+                                <CheckCircleIcon className="h-3 w-3 text-white" />
+                              ) : (
+                                <Icon className={`h-3 w-3 ${isActive ? "text-teal-700" : "text-gray-500"}`} />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium">{item.label}</span>
+                              {item.description && (
+                                <p className="text-[10px] text-gray-400 truncate">{item.description}</p>
+                              )}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )
+            })}
           </Accordion>
         </nav>
 

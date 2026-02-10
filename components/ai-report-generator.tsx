@@ -44,6 +44,9 @@ import Link from "next/link"
 // import { sampleAssessmentData } from "@/lib/sample-data/sample-data"
 import { safeGetItem } from "@/lib/safe-storage"
 import { saveContentForLearning } from "@/lib/learning-system"
+import { ReportReadinessCheck } from "@/components/report-readiness-check"
+import { GenerationProgress } from "@/components/generation-progress"
+import { PostGenerationSummary } from "@/components/post-generation-summary"
 
 // Remove the duplicate React import
 // import type React from "react"
@@ -666,6 +669,8 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
 
   const [savedToLearning, setSavedToLearning] = useState(false)
   const [savingToLearning, setSavingToLearning] = useState(false)
+  const [generationStartTime, setGenerationStartTime] = useState<number | null>(null)
+  const [generationElapsed, setGenerationElapsed] = useState(0)
 
   const printRef = useRef<HTMLDivElement>(null)
 
@@ -2570,6 +2575,8 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
   const generateAllSections = async () => {
     setIsGeneratingAll(true)
     setError(null) // Clear previous errors
+    const startTs = Date.now()
+    setGenerationStartTime(startTs)
 
     for (const section of REPORT_SECTIONS) {
       // Only generate if not already complete and not currently generating
@@ -2581,6 +2588,7 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
       }
     }
 
+    setGenerationElapsed(Math.floor((Date.now() - startTs) / 1000))
     setIsGeneratingAll(false)
   }
 
@@ -3975,56 +3983,32 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
       </div>
 
       {completedCount === sections.length && sections.length > 0 && (
-        <div className="bg-gradient-to-r from-[#0D9488] to-cyan-600 rounded-2xl p-6 text-white shadow-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <Trophy className="h-8 w-8" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold">Report successfully completed</h3>
-                <p className="text-white/80 text-sm">
-                  {totalWords.toLocaleString()} words in {sections.length} sections | You saved ~
-                  {Math.ceil(totalWords / 40)} minutes of manual work
-                </p>
-              </div>
+        <>
+          <PostGenerationSummary
+            totalWords={totalWords}
+            sectionCount={sections.length}
+            generationTime={generationElapsed}
+            onExport={exportReport}
+            onCopyAll={copyFullReport}
+          />
+          {/* Learning system indicator */}
+          {(savedToLearning || savingToLearning) && (
+            <div className="mb-4">
+              {savedToLearning && (
+                <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-200">
+                  <Brain className="h-4 w-4" />
+                  <span>ARIA learned from this assessment to improve future reports</span>
+                </div>
+              )}
+              {savingToLearning && (
+                <div className="flex items-center gap-2 text-sm text-gray-500 px-4 py-2">
+                  <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  <span>Saving to learning system...</span>
+                </div>
+              )}
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => exportReport("pdf")}
-                className="px-5 py-2.5 bg-white text-[#0D9488] rounded-xl font-semibold hover:bg-gray-50 transition-all flex items-center gap-2 shadow-lg"
-              >
-                <FileDown className="h-5 w-5" />
-                Download PDF
-              </button>
-              <button
-                onClick={() => setShowExportModal(true)}
-                className="px-5 py-2.5 bg-white/20 text-white rounded-xl font-medium hover:bg-white/30 transition-all flex items-center gap-2 backdrop-blur-sm"
-              >
-                <Share2 className="h-5 w-5" />
-                More options
-              </button>
-            </div>
-          </div>
-          {/* Add learning indicator after export buttons in the completion banner */}
-          {/* Find the closing </div> of the flex gap-3 buttons, add after it: */}
-          <div className="flex items-center gap-3 mt-4">
-            {" "}
-            {/* Moved flex gap-3 here */}
-            {savedToLearning && (
-              <div className="flex items-center gap-2 text-sm text-emerald-100 bg-emerald-600/30 px-4 py-2 rounded-xl backdrop-blur-sm">
-                <Brain className="h-4 w-4" />
-                <span>ARIA learned from this assessment to improve future reports</span>
-              </div>
-            )}
-            {savingToLearning && (
-              <div className="flex items-center gap-2 text-sm text-white/70 px-4 py-2">
-                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Saving to learning system...</span>
-              </div>
-            )}
-          </div>
-        </div>
+          )}
+        </>
       )}
 
       {viewMode === "preview" ? (
@@ -4101,34 +4085,21 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
       ) : (
         /* Edit Mode - Feed style section cards */
         <div className="space-y-3">
+          {/* Pre-generation readiness check */}
           {completedCount === 0 && !isGeneratingAll && (
-            <div className="bg-gradient-to-br from-gray-50 to-slate-100 rounded-2xl border-2 border-dashed border-gray-300 p-8 text-center">
-              <div className="p-4 bg-white rounded-2xl inline-block mb-4 shadow-sm">
-                <Brain className="h-10 w-10 text-[#0D9488]" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Ready to create your professional report</h3>
-              <p className="text-gray-500 mb-4 max-w-md mx-auto">
-                ARIA will generate 21 complete sections based on assessment data. You can generate everything at once or
-                section by section.
-              </p>
-              <div className="flex items-center justify-center gap-3">
-                <button
-                  onClick={generateAllSections}
-                  className="px-6 py-3 bg-gradient-to-r from-[#0D9488] to-cyan-600 text-white rounded-xl font-semibold hover:from-[#0B7C7C] hover:to-cyan-700 transition-all flex items-center gap-2 shadow-lg"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  Generate full report
-                </button>
-                <span className="text-gray-400">or</span>
-                <button
-                  onClick={() => setExpandedSection(sections[0]?.id || null)}
-                  className="px-5 py-3 bg-white text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all border border-gray-200"
-                >
-                  Generate by sections
-                </button>
-              </div>
-            </div>
+            <ReportReadinessCheck
+              assessmentData={assessmentData}
+              onGenerate={generateAllSections}
+              isGenerating={isGeneratingAll}
+            />
           )}
+
+          {/* Live generation progress tracker */}
+          <GenerationProgress
+            sections={sections}
+            isGenerating={isGeneratingAll}
+            startTime={generationStartTime}
+          />
 
           {/* Section cards */}
           {sections.map((section, index) => {

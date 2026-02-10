@@ -21,6 +21,7 @@ import { TrialBanner } from "@/components/trial-banner"
 import { TrialExpiredModal } from "@/components/trial-expired-modal"
 import { clearAssessmentCache } from "@/lib/assessment-storage"
 import { createClient } from "@/lib/supabase/client"
+import { OnboardingChecklist } from "@/components/onboarding-checklist"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -120,7 +121,11 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{stats.completedReports}</div>
-              <p className="text-xs text-muted-foreground mt-1">Ready for review</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats.completedReports === 0 && stats.totalAssessments > 0
+                  ? "Generate a report from any assessment to see it here"
+                  : "Ready for review"}
+              </p>
             </CardContent>
           </Card>
 
@@ -141,40 +146,18 @@ export default function DashboardPage() {
               <ClockIcon className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{stats.timeSaved} hrs</div>
-              <p className="text-xs text-muted-foreground mt-1">Automated with AI</p>
+              <div className="text-2xl font-bold text-purple-600">{stats.timeSaved} min</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats.timeSaved === 0
+                  ? "Complete your first report to start tracking time saved"
+                  : "Automated with AI"}
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Try Demo Card for new users */}
-        {stats.totalAssessments === 0 && (
-          <div className="mb-8">
-            <Card className="border-2 border-dashed border-teal-200 bg-gradient-to-br from-teal-50/50 to-cyan-50/50">
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <div className="h-16 w-16 bg-gradient-to-br from-teal-100 to-teal-200 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0">
-                    <SparklesIcon className="h-8 w-8 text-teal-600" />
-                  </div>
-                  <div className="flex-1 text-center sm:text-left">
-                    <h3 className="text-xl font-bold text-teal-800 mb-1">New to ARIA?</h3>
-                    <p className="text-teal-600">
-                      See a complete assessment with sample data for Marcus Johnson. Experience how ARIA generates
-                      professional 21-section reports in minutes.
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleTryDemo}
-                    className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-5 shadow-lg shadow-teal-500/25 whitespace-nowrap"
-                  >
-                    <SparklesIcon className="h-4 w-4 mr-2" />
-                    Try Demo
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        {/* Onboarding Checklist for new users */}
+        <OnboardingChecklist stats={stats} />
 
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Start New Assessment</h2>

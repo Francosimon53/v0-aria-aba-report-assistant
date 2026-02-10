@@ -28,6 +28,7 @@ import type { ClientData } from "@/lib/types"
 import { insuranceTemplates } from "@/lib/data/insurance-templates"
 import { useToast } from "@/hooks/use-toast"
 import { ImportDataModal } from "./import-data-modal" // Import AI Import Modal
+import { DiagnosisSuggestions } from "./diagnosis-suggestions"
 import { cn } from "@/lib/utils" // Import cn for conditional styling
 import { AssessmentTypeBadge } from "./assessment-type-badge"
 
@@ -795,6 +796,9 @@ export function ClientForm({ clientData, onSave, assessmentType: propAssessmentT
                     </div>
                   )}
                 </div>
+
+                {/* Diagnosis-based assessment suggestions */}
+                <DiagnosisSuggestions diagnosis={formData.primaryDiagnosis || ""} />
               </CardContent>
             </Card>
 
