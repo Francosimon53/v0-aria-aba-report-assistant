@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -204,6 +204,70 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
     warnings.push({ type: "success", message: "Service mix looks appropriate" })
   }
 
+  // =========================================================================
+  // PERSIST CPT data to localStorage so the report generator can read it
+  // =========================================================================
+  useEffect(() => {
+    // Only save if there's actual schedule data
+    const hasScheduleData = Object.keys(schedule).some(day =>
+      Object.values(schedule[day] || {}).some((slots: any) => slots && slots.length > 0)
+    )
+    if (!hasScheduleData && !justification) return
+
+    // Compute primary location from schedule
+    const locationTotals: Record<string, number> = { Home: 0, Community: 0, Telehealth: 0 }
+    DAYS.forEach(day => {
+      CPT_CODES.forEach(({ code }) => {
+        const slots = schedule[day]?.[code] || []
+        slots.forEach(slot => {
+          locationTotals[slot.location] = (locationTotals[slot.location] || 0) + slot.hours
+        })
+      })
+    })
+    const primaryLocation = Object.entries(locationTotals)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || "Home/Community"
+
+    const cptData = {
+      data: {
+        schedule,
+        justification,
+        totalWeeklyHours,
+        rbtHours,
+        bcbaHours,
+        familyTrainingHours,
+        supervisionRatio,
+        primaryLocation,
+      },
+      savedAt: new Date().toISOString(),
+    }
+    localStorage.setItem("aria-cpt-authorization", JSON.stringify(cptData))
+    console.log("[v0] CPT Authorization auto-saved:", {
+      totalWeeklyHours,
+      rbtHours,
+      bcbaHours,
+      familyTrainingHours,
+    })
+  }, [schedule, justification, totalWeeklyHours, rbtHours, bcbaHours, familyTrainingHours, supervisionRatio])
+
+  // Load saved CPT data on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("aria-cpt-authorization")
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      const saved = parsed.data || parsed
+      if (saved.schedule) {
+        setSchedule(saved.schedule)
+      }
+      if (saved.justification) {
+        setJustification(saved.justification)
+      }
+      console.log("[v0] CPT Authorization loaded from localStorage")
+    } catch (e) {
+      console.error("[v0] Error loading CPT Authorization:", e)
+    }
+  }, [])
+
   const exportToPDF = () => {
     window.print()
   }
@@ -242,9 +306,17 @@ export function CPTAuthorizationRequest({ clientData, onSave }: CPTAuthorization
       const backgroundHistory = rawBackgroundHistory.data || rawBackgroundHistory
       const rawAssessmentData = JSON.parse(localStorage.getItem("aria-assessment-data") || "{}")
       const assessmentData = rawAssessmentData.data || rawAssessmentData
-      const rawAbcObservations = JSON.parse(localStorage.getItem("aria-abc-observations") || "{}")
+      const rawAbcObservations = JSON.parse(
+        localStorage.getItem("aria-assessment-abc-observations") ||
+        localStorage.getItem("aria-abc-observations") ||
+        localStorage.getItem("aria-abc-observation") || "{}"
+      )
       const abcObservations = rawAbcObservations.data || rawAbcObservations
-      const goalsData = JSON.parse(localStorage.getItem("aria-goals") || "[]")
+      const goalsData = JSON.parse(
+        localStorage.getItem("aria-assessment-selected-goals") ||
+        localStorage.getItem("aria-goals") ||
+        localStorage.getItem("aria-goals-tracker") || "[]"
+      )
 
       // Build impairment scores from assessment data
       const impairmentScores = []

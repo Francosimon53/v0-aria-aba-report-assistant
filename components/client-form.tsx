@@ -56,6 +56,8 @@ interface ExtendedClientData extends ClientData {
   evaluationEndDate?: string
   bcbaName?: string
   bcbaLicense?: string
+  bcbaEmail?: string
+  npiNumber?: string
   bcabaName?: string
   age?: number
   gender?: string
@@ -122,6 +124,8 @@ export function ClientForm({ clientData, onSave, assessmentType: propAssessmentT
     evaluationEndDate: "",
     bcbaName: "",
     bcbaLicense: "",
+    bcbaEmail: "",
+    npiNumber: "",
     bcabaName: "",
     age: undefined,
     gender: undefined,
@@ -682,6 +686,52 @@ export function ClientForm({ clientData, onSave, assessmentType: propAssessmentT
                     value={formData.providerSuite}
                     onChange={(e) => handleChange("providerSuite", e.target.value)}
                     placeholder="Suite 100"
+                  />
+                </div>
+
+                {/* BCBA Credential Fields */}
+                <div className="md:col-span-2 border-t pt-4 mt-2">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">BCBA / Supervising Analyst Credentials</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bcbaName">
+                    BCBA Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="bcbaName"
+                    value={formData.bcbaName}
+                    onChange={(e) => handleChange("bcbaName", e.target.value)}
+                    placeholder="Dr. Jane Smith, BCBA-D"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bcbaLicense">BCBA License #</Label>
+                  <Input
+                    id="bcbaLicense"
+                    value={formData.bcbaLicense}
+                    onChange={(e) => handleChange("bcbaLicense", e.target.value)}
+                    placeholder="e.g., 1-23-45678"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bcbaEmail">BCBA Email</Label>
+                  <Input
+                    id="bcbaEmail"
+                    type="email"
+                    value={formData.bcbaEmail}
+                    onChange={(e) => handleChange("bcbaEmail", e.target.value)}
+                    placeholder="bcba@agency.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="npiNumber">
+                    NPI Number <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="npiNumber"
+                    value={formData.npiNumber}
+                    onChange={(e) => handleChange("npiNumber", e.target.value)}
+                    placeholder="10-digit NPI"
                   />
                 </div>
               </CardContent>

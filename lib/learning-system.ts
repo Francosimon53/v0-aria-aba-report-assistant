@@ -151,8 +151,10 @@ export function collectSectionsFromStorage(): {
   const sectionMappings = [
     { key: "aria-reason-for-referral", type: "reason_for_referral", field: "currentProblemAreas" },
     { key: "aria-background", type: "background_information", field: "content" },
+    { key: "aria-assessment-abc-observations", type: "abc_observations", field: "summary" },
     { key: "aria-abc-observations", type: "abc_observations", field: "summary" },
     { key: "aria-risk-assessment", type: "risk_assessment", field: "crisisPlan" },
+    { key: "aria-assessment-selected-goals", type: "skill_acquisition_goals", field: "goals" },
     { key: "aria-goals-tracker", type: "skill_acquisition_goals", field: "goals" },
     { key: "aria-behavior-reduction", type: "behavior_reduction_goals", field: "goals" },
     { key: "aria-interventions", type: "interventions", field: "selected" },
@@ -165,8 +167,11 @@ export function collectSectionsFromStorage(): {
   ]
 
   const sections: { sectionType: string; aiGenerated: string; approved: string }[] = []
+  const collectedTypes = new Set<string>()
 
   for (const { key, type, field } of sectionMappings) {
+    // Skip if we already collected data for this section type (avoids duplicates from fallback keys)
+    if (collectedTypes.has(type)) continue
     try {
       const rawData = localStorage.getItem(key)
       if (!rawData) continue
@@ -190,6 +195,7 @@ export function collectSectionsFromStorage(): {
           aiGenerated: aiGenerated,
           approved: content,
         })
+        collectedTypes.add(type)
       }
     } catch (e) {
       console.log("[v0] Error parsing section:", key, e)

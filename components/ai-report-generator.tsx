@@ -726,9 +726,16 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
       safeParseAndExtract("aria-background-history") || safeParseAndExtract("aria_background_history")
     const reasonForReferral = safeParseAndExtract("aria-reason-for-referral")
     const riskAssessment = safeParseAndExtract("aria-risk-assessment")
-    const abcObservation = safeParseAndExtract("aria-abc-observations")
-    const goals = safeParseAndExtract("aria-goals")
+    const abcObservation =
+      safeParseAndExtract("aria-assessment-abc-observations") ||
+      safeParseAndExtract("aria-abc-observations") ||
+      safeParseAndExtract("aria-abc-observation")
+    const goals =
+      safeParseAndExtract("aria-assessment-selected-goals") ||
+      safeParseAndExtract("aria-goals") ||
+      safeParseAndExtract("aria-goals-tracker")
     const standardizedAssessments = safeParseAndExtract("aria-standardized-assessments")
+    const cptAuthorization = safeParseAndExtract("aria-cpt-authorization")
 
     // Build client_info in the format expected by the report
     const assembledData = {
@@ -745,6 +752,10 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
             providerPhone: clientInfo.providerPhone || clientInfo.provider_phone || "",
             insuranceProvider: clientInfo.insuranceProvider || clientInfo.insurance_provider || "",
             insuranceId: clientInfo.insuranceId || clientInfo.insurance_id || "",
+            bcbaName: clientInfo.bcbaName || "",
+            bcbaLicense: clientInfo.bcbaLicense || "",
+            bcbaEmail: clientInfo.bcbaEmail || "",
+            npiNumber: clientInfo.npiNumber || "",
           }
         : null,
       background_history: backgroundHistory,
@@ -753,6 +764,7 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
       abc_observation: abcObservation,
       goals: goals,
       standardized_assessments: standardizedAssessments,
+      cpt_authorization: cptAuthorization,
     }
 
     console.log("[v0] Assembled assessment data:", assembledData)
@@ -789,11 +801,11 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
         },
         providerInfo: {
           name: loadedData?.client_info?.providerName || "",
-          bcbaName: loadedData?.client_info?.providerName || "", // Assuming BCBA name might be provider name
-          bcbaLicense: (safeGetItem("aria-provider-info") || {}).bcbaLicense || "",
+          bcbaName: loadedData?.client_info?.bcbaName || loadedData?.client_info?.providerName || "",
+          bcbaLicense: loadedData?.client_info?.bcbaLicense || "",
           bcbaPhone: loadedData?.client_info?.providerPhone || "",
-          bcbaEmail: (safeGetItem("aria-provider-info") || {}).bcbaEmail || "",
-          npi: (safeGetItem("aria-provider-info") || {}).npi || "",
+          bcbaEmail: loadedData?.client_info?.bcbaEmail || "",
+          npi: loadedData?.client_info?.npiNumber || "",
           agencyLogo: (safeGetItem("aria-provider-info") || {}).agencyLogo || "",
         },
         insurance: {
@@ -831,6 +843,14 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
           safetyProtocols: loadedData?.risk_assessment?.safetyProtocols || "",
           emergencyContacts: loadedData?.risk_assessment?.emergencyContacts || "",
         },
+        // CPT Authorization data overrides age-based defaults when available
+        recommendations: loadedData?.cpt_authorization ? {
+          weeklyHours: loadedData.cpt_authorization.totalWeeklyHours || 0,
+          rbtHours: loadedData.cpt_authorization.rbtHours || 0,
+          bcbaHours: loadedData.cpt_authorization.bcbaHours || 0,
+          parentTrainingHours: loadedData.cpt_authorization.familyTrainingHours || 0,
+          setting: loadedData.cpt_authorization.primaryLocation || "Home/Community",
+        } : undefined,
       }
 
       console.log("[v0] Final assembled user data:", userData)
