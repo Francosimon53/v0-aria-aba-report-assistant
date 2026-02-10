@@ -114,6 +114,53 @@ function checkReadiness(data: any): ReadinessItem[] {
           : "No goals defined — goal sections will be minimal",
   })
 
+  // BCBA Credentials (required for insurance authorization)
+  const provider = data?.providerInfo || {}
+  const bcbaName = (provider.bcbaName || "").trim()
+  const npi = (provider.npi || "").trim()
+  const bcbaLicense = (provider.bcbaLicense || "").trim()
+  const bcbaEmail = (provider.bcbaEmail || "").trim()
+
+  // BCBA Name — required (missing = red)
+  items.push({
+    id: "bcba_name",
+    label: "BCBA Name",
+    description: "Supervising analyst name required on all reports",
+    status: bcbaName && bcbaName !== provider.name ? "ready" : bcbaName ? "warning" : "missing",
+    detail: bcbaName && bcbaName !== provider.name
+      ? bcbaName
+      : bcbaName
+        ? "BCBA name matches agency name — confirm this is correct"
+        : "Not provided — required for insurance authorization",
+  })
+
+  // NPI Number — required (missing = red)
+  items.push({
+    id: "npi",
+    label: "NPI Number",
+    description: "National Provider Identifier required by all payers",
+    status: npi ? "ready" : "missing",
+    detail: npi ? `NPI: ${npi}` : "Not provided — required for insurance authorization",
+  })
+
+  // BCBA License — recommended (missing = yellow)
+  items.push({
+    id: "bcba_license",
+    label: "BCBA License",
+    description: "Certification number for supervising analyst",
+    status: bcbaLicense ? "ready" : "warning",
+    detail: bcbaLicense ? `License: ${bcbaLicense}` : "Optional — but recommended for payer compliance",
+  })
+
+  // BCBA Email — recommended (missing = yellow)
+  items.push({
+    id: "bcba_email",
+    label: "BCBA Email",
+    description: "Contact email for the supervising analyst",
+    status: bcbaEmail ? "ready" : "warning",
+    detail: bcbaEmail ? bcbaEmail : "Optional — helpful for payer follow-up",
+  })
+
   // Risk Assessment
   const risk = data?.riskAssessment || {}
   const hasRisk = risk.extinctionBurst || risk.safetyProtocols

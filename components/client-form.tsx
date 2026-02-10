@@ -628,7 +628,7 @@ export function ClientForm({ clientData, onSave, assessmentType: propAssessmentT
                     <PhoneIcon className="h-5 w-5 text-[#0D9488]" />
                     <CardTitle>Provider Information</CardTitle>
                   </div>
-                  {isSectionComplete(["providerName", "providerPhone", "providerAddress"]) && (
+                  {isSectionComplete(["providerName", "providerPhone", "providerAddress", "bcbaName", "npiNumber"]) && (
                     <CheckCircle2Icon className="h-5 w-5 text-green-600" />
                   )}
                 </div>

@@ -123,7 +123,7 @@ export default function BackgroundHistoryForm({ clientData, onSave }: Background
   useEffect(() => {
     console.log("[ARIA] Loading Background & History data from localStorage")
     try {
-      const stored = localStorage.getItem("aria_background_history")
+      const stored = localStorage.getItem("aria-background-history")
       if (stored) {
         const parsed = JSON.parse(stored)
         console.log("[ARIA] Loaded Background & History data:", parsed)
@@ -138,7 +138,7 @@ export default function BackgroundHistoryForm({ clientData, onSave }: Background
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       console.log("[ARIA] Auto-saving Background & History data")
-      localStorage.setItem("aria_background_history", JSON.stringify(data))
+      localStorage.setItem("aria-background-history", JSON.stringify(data))
     }, 500)
     return () => clearTimeout(timeoutId)
   }, [data])
@@ -180,7 +180,7 @@ export default function BackgroundHistoryForm({ clientData, onSave }: Background
   }
 
   const handleSave = () => {
-    localStorage.setItem("aria_background_history", JSON.stringify(data))
+    localStorage.setItem("aria-background-history", JSON.stringify(data))
     toast({
       title: "Draft Saved",
       description: "Background & history has been saved successfully",
