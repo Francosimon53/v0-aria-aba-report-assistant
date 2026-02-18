@@ -6,6 +6,27 @@ import { useWebMCP, useWebMCPContext, useWebMCPResource } from "@mcp-b/react-web
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/client"
 
+// Fire-and-forget audit log — never blocks the tool response
+function logToolCall(
+  userId: string,
+  toolName: string,
+  inputs: unknown,
+  clientId?: string
+) {
+  const supabase = createClient()
+  supabase
+    .from("mcp_audit_log")
+    .insert({
+      user_id: userId,
+      tool_name: toolName,
+      client_id: clientId ?? null,
+      action: `${toolName}:${JSON.stringify(inputs)}`,
+    })
+    .then(({ error }: { error: { message: string } | null }) => {
+      if (error) console.error("[mcp-audit]", error.message)
+    })
+}
+
 // Initialize Web MCP once on mount
 function WebMCPInit() {
   useEffect(() => {
@@ -23,6 +44,7 @@ function UserProfileContext() {
       const supabase = createClient()
       return supabase.auth.getUser().then(({ data: { user } }: { data: { user: { id: string; email?: string } | null } }) => {
         if (!user) return { authenticated: false }
+        logToolCall(user.id, "aria_user_profile", {})
         return supabase
           .from("profiles")
           .select("id, email, full_name, subscription_status, trial_ends_at, trial_started_at, trial_used, stripe_customer_id, npi, created_at")
@@ -62,6 +84,8 @@ function ListAssessmentsTool() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Not authenticated")
 
+      logToolCall(user.id, "aria_list_assessments", {})
+
       const { data, error } = await supabase
         .from("assessments")
         .select("id, title, status, evaluation_type, created_at, updated_at")
@@ -98,6 +122,8 @@ function GetAssessmentTool() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Not authenticated")
 
+      logToolCall(user.id, "aria_get_assessment", { assessmentId })
+
       const { data, error } = await supabase
         .from("assessments")
         .select("id, user_id, title, status, evaluation_type, data, created_at, updated_at")
@@ -129,6 +155,8 @@ function DashboardStatsTool() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Not authenticated")
+
+      logToolCall(user.id, "aria_dashboard_stats", {})
 
       const { data, error } = await supabase
         .from("assessments")
@@ -172,6 +200,8 @@ function UpdateAssessmentStatusTool() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Not authenticated")
 
+      logToolCall(user.id, "aria_update_assessment_status", { assessmentId, status })
+
       const { error } = await supabase
         .from("assessments")
         .update({ status, updated_at: new Date().toISOString() })
@@ -198,6 +228,8 @@ function AssessmentsResource() {
       if (!user) {
         return { contents: [{ uri: uri.href, text: JSON.stringify({ error: "Not authenticated" }) }] }
       }
+
+      logToolCall(user.id, "aria_resource_assessments", {})
 
       const { data, error } = await supabase
         .from("assessments")
@@ -230,6 +262,8 @@ function AssessmentByIdResource() {
       if (!user) {
         return { contents: [{ uri: uri.href, text: JSON.stringify({ error: "Not authenticated" }) }] }
       }
+
+      logToolCall(user.id, "aria_resource_assessment_detail", { assessmentId })
 
       const { data, error } = await supabase
         .from("assessments")

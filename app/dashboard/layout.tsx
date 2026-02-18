@@ -1,7 +1,7 @@
 import type React from "react"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { AriaMCPProvider } from "@/components/aria-mcp-provider"
+import { AriaMCPProvider } from "@/lib/mcp/aria-mcp-provider"
 
 export default async function DashboardLayout({
   children,
