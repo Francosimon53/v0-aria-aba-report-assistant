@@ -1,6 +1,7 @@
 import type React from "react"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { AriaMCPProvider } from "@/components/aria-mcp-provider"
 
 export default async function DashboardLayout({
   children,
@@ -32,5 +33,9 @@ export default async function DashboardLayout({
   // If trial expired and not paid, allow access to dashboard but modal will block actions
   // This allows users to see their data and upgrade
 
-  return <>{children}</>
+  return (
+    <AriaMCPProvider>
+      {children}
+    </AriaMCPProvider>
+  )
 }
