@@ -292,7 +292,7 @@ function StepNavigationBar({
         {/* Navigation buttons */}
         <div className="flex items-center justify-between gap-4">
           {/* Previous button */}
-          <div className="flex-1">
+          <div>
             {hasPrevious && prevStepId && (
               <Button variant="outline" onClick={onPrevious} className="bg-transparent">
                 <ChevronLeftIcon className="h-4 w-4 mr-2" />
@@ -302,7 +302,7 @@ function StepNavigationBar({
           </div>
 
           {/* Next/Continue button */}
-          <div className="flex-1 flex justify-end">
+          <div className="flex justify-end ml-auto">
             {hasNext && nextStepId && (
               <Button
                 onClick={handleSaveAndContinue}
