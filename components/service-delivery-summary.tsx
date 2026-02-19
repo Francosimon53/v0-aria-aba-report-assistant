@@ -165,10 +165,12 @@ export function ServiceDeliverySummary({ onSave }: ServiceDeliverySummaryProps) 
             </div>
           </div>
 
-          <Button onClick={handleSave} className="w-full bg-orange-500 hover:bg-orange-600">
-            <SaveIcon className="h-4 w-4 mr-2" />
-            Save & Continue
-          </Button>
+          <div className="flex justify-end">
+            <Button onClick={handleSave} className="bg-orange-500 hover:bg-orange-600">
+              <SaveIcon className="h-4 w-4 mr-2" />
+              Save & Continue
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

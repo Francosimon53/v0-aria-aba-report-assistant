@@ -171,8 +171,7 @@ export function StepNavigation({
               <Button
                 onClick={handleSaveAndContinue}
                 disabled={isSaving}
-                className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white shadow-lg"
-                size="lg"
+                className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white shadow-lg"
               >
                 {isSaving ? (
                   <>
@@ -194,8 +193,7 @@ export function StepNavigation({
               <Button
                 onClick={handleSaveAndContinue}
                 disabled={isSaving}
-                className="w-full sm:w-auto bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-                size="lg"
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
               >
                 {isSaving ? (
                   <>

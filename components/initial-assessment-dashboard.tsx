@@ -274,7 +274,6 @@ function StepNavigationBar({
                 onClick={handleSaveAndContinue}
                 disabled={isSaving}
                 className={`bg-gradient-to-r ${colors.button} text-white shadow-lg`}
-                size="lg"
               >
                 {isSaving ? (
                   <>
@@ -296,7 +295,6 @@ function StepNavigationBar({
                 onClick={handleSaveAndContinue}
                 disabled={isSaving}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-                size="lg"
               >
                 {isSaving ? (
                   <>
