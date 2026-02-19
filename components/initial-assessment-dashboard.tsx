@@ -17,6 +17,7 @@ import {
   ShieldAlertIcon,
   CheckCircleIcon,
   ChevronLeftIcon,
+  ChevronRightIcon,
   TrendingDownIcon,
   Menu,
   X,
@@ -211,113 +212,70 @@ function StepNavigationBar({
         }
 
   return (
-    <Card className={`mt-8 border-t-4 ${colors.border} shadow-lg`}>
-      <CardContent className="p-6">
-        {/* Progress indicator */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Assessment Progress</span>
-            <span className={`text-sm font-bold ${colors.text}`}>{progressPercent}% Complete</span>
-          </div>
-          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className={`h-full bg-gradient-to-r ${colors.progress} transition-all duration-500 rounded-full`}
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-          <div className="flex justify-between mt-2 text-xs text-gray-500">
-            <span>
-              Step {currentIndex + 1} of {totalSteps}
-            </span>
-            <span>{getStepLabel(currentStep)}</span>
-          </div>
-        </div>
-
-        {/* Save status indicator */}
-        {saveStatus !== "idle" && (
-          <div
-            className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm ${
-              saveStatus === "saving" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"
-            }`}
-          >
-            {saveStatus === "saving" && (
-              <>
-                <ClockIcon className="h-4 w-4 animate-spin" />
-                <span>Saving your progress...</span>
-              </>
-            )}
-            {saveStatus === "saved" && (
-              <>
-                <CheckCircleIcon className="h-4 w-4" />
-                <span>All changes saved successfully!</span>
-              </>
-            )}
-          </div>
+    <div className="border-t bg-white/80 backdrop-blur-sm px-4 py-2 sticky bottom-0 mt-6">
+      <div className="flex items-center gap-3 max-w-4xl mx-auto">
+        {/* Previous button */}
+        {hasPrevious && prevStepId ? (
+          <Button variant="ghost" size="sm" onClick={onPrevious} className="shrink-0 text-gray-500 h-7 px-2">
+            <ChevronLeftIcon className="h-3.5 w-3.5 mr-1" />
+            Back
+          </Button>
+        ) : (
+          <div className="w-16" />
         )}
 
-        {/* Navigation buttons */}
-        <div className="flex items-center justify-between gap-4">
-          {/* Previous button */}
-          <div>
-            {hasPrevious && prevStepId && (
-              <Button variant="outline" onClick={onPrevious} className="bg-transparent">
-                <ChevronLeftIcon className="h-4 w-4 mr-2" />
-                Back to {getStepLabel(prevStepId)}
-              </Button>
-            )}
-          </div>
-
-          {/* Next/Continue button */}
-          <div className="flex justify-end ml-auto">
-            {hasNext && nextStepId && (
-              <Button
-                onClick={handleSaveAndContinue}
-                disabled={isSaving}
-                className={`bg-gradient-to-r ${colors.button} text-white shadow-lg`}
-              >
-                {isSaving ? (
-                  <>
-                    <ClockIcon className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <SaveIcon className="h-4 w-4 mr-2" />
-                    Save & Continue to {getStepLabel(nextStepId)}
-                    <ChevronLeftIcon className="h-4 w-4 ml-2" />
-                  </>
-                )}
-              </Button>
-            )}
-
-            {isLastStep && (
-              <Button
-                onClick={handleSaveAndContinue}
-                disabled={isSaving}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-              >
-                {isSaving ? (
-                  <>
-                    <ClockIcon className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircleIcon className="h-4 w-4 mr-2" />
-                    Complete Assessment
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
+        {/* Progress bar */}
+        <span className="text-xs font-medium text-gray-500 whitespace-nowrap">
+          Step {currentIndex + 1} of {totalSteps}
+        </span>
+        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full bg-gradient-to-r ${colors.progress} rounded-full transition-all duration-500`}
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
+        <span className={`text-xs font-semibold ${colors.text} whitespace-nowrap`}>
+          {progressPercent}%
+        </span>
 
-        {/* Help text */}
-        <p className="mt-4 text-xs text-gray-500 text-center">
-          Your progress is automatically saved. Click "Save & Continue" to proceed to the next step.
-        </p>
-      </CardContent>
-    </Card>
+        {/* Save status */}
+        {saveStatus === "saving" && (
+          <span className="text-xs text-blue-600 flex items-center gap-1 whitespace-nowrap">
+            <ClockIcon className="h-3 w-3 animate-spin" />
+            Saving...
+          </span>
+        )}
+        {saveStatus === "saved" && (
+          <span className="text-xs text-green-600 flex items-center gap-1 whitespace-nowrap">
+            <CheckCircleIcon className="h-3 w-3" />
+            Saved
+          </span>
+        )}
+
+        {/* Next / Complete button */}
+        {hasNext && nextStepId && (
+          <Button
+            onClick={handleSaveAndContinue}
+            disabled={isSaving}
+            size="sm"
+            className={`bg-gradient-to-r ${colors.button} text-white shrink-0 h-7 px-3 text-xs`}
+          >
+            {isSaving ? "Saving..." : "Save & Continue"}
+            {!isSaving && <ChevronRightIcon className="h-3.5 w-3.5 ml-1" />}
+          </Button>
+        )}
+        {isLastStep && (
+          <Button
+            onClick={handleSaveAndContinue}
+            disabled={isSaving}
+            size="sm"
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shrink-0 h-7 px-3 text-xs"
+          >
+            {isSaving ? "Saving..." : "Complete Assessment"}
+          </Button>
+        )}
+      </div>
+    </div>
   )
 }
 
