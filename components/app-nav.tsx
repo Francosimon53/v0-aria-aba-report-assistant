@@ -29,8 +29,7 @@ const navLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/assessments", label: "Assessments" },
   { href: "/demo/generate-report", label: "Reports" },
-  { href: "/goals", label: "Goal Bank" },
-  { href: "/settings", label: "Settings" },
+  { href: "/help", label: "Help" },
 ]
 
 function getInitials(name?: string, email?: string): string {
@@ -113,15 +112,15 @@ export function AppNav({ user }: AppNavProps) {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer">
+                <Link href="/dashboard" className="cursor-pointer">
                   <User className="mr-2 h-4 w-4" />
-                  My Profile
+                  My Dashboard
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer">
+                <Link href="/help" className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  Help Center
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

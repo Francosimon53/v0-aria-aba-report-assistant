@@ -384,15 +384,15 @@ export default function DashboardPage() {
           </button>
 
           <Link
-            href="/goals"
+            href="/demo/generate-report"
             className="bg-white rounded-lg border border-gray-100 shadow-sm p-5 text-left hover:border-teal-200 hover:shadow-md transition-all group"
           >
             <div className="h-9 w-9 rounded-full bg-teal-50 flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors">
               <BookOpen className="h-4 w-4 text-teal-600" />
             </div>
-            <p className="text-sm font-semibold text-gray-900">Browse Goal Bank</p>
+            <p className="text-sm font-semibold text-gray-900">Generate Report</p>
             <p className="text-xs text-gray-500 mt-1">
-              Find and select treatment goals
+              Create an AI-powered assessment report
             </p>
           </Link>
         </div>
