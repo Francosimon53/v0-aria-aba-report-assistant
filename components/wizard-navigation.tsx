@@ -119,7 +119,6 @@ export function WizardNavigation({
                 onClick={onNext}
                 disabled={!canProceed || isSaving}
                 className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white shadow-lg"
-                size="lg"
               >
                 <SaveIcon className="h-4 w-4 mr-2" />
                 {nxtLabel}
@@ -132,7 +131,6 @@ export function WizardNavigation({
                 onClick={onNext}
                 disabled={!canProceed || isSaving}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-                size="lg"
               >
                 <CheckIcon className="h-4 w-4 mr-2" />
                 Finish & Generate Report
