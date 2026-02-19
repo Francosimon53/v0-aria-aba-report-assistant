@@ -3,37 +3,81 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import {
-  FileTextIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  RefreshCwIcon,
-  TrendingUpIcon,
-  TargetIcon,
-  FileCheckIcon,
-  UserPlusIcon,
-  SparklesIcon,
-} from "@/components/icons"
-import { loadDemoData } from "@/lib/load-demo-data"
-import { TrialBanner } from "@/components/trial-banner"
-import { TrialExpiredModal } from "@/components/trial-expired-modal"
-import { clearAssessmentCache } from "@/lib/assessment-storage"
+  FileText,
+  Clock,
+  CheckCircle2,
+  Timer,
+  ArrowRight,
+  UserPlus,
+  RefreshCw,
+  BookOpen,
+} from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Skeleton } from "@/components/ui/skeleton"
 import { createClient } from "@/lib/supabase/client"
-import { OnboardingChecklist } from "@/components/onboarding-checklist"
+import { clearAssessmentCache } from "@/lib/assessment-storage"
+
+interface AssessmentRow {
+  id: string
+  clientName: string
+  type: "initial" | "reassessment"
+  status: "draft" | "in_progress" | "complete"
+  updatedAt: string
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return "Good morning"
+  if (hour < 17) return "Good afternoon"
+  return "Good evening"
+}
+
+function getFormattedDate(): string {
+  return new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+}
+
+function formatRelativeDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return "Just now"
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
 
 export default function DashboardPage() {
   const router = useRouter()
+  const [firstName, setFirstName] = useState("")
+  const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
-    totalAssessments: 0,
-    completedReports: 0,
+    total: 0,
     inProgress: 0,
-    timeSaved: 0,
+    completed: 0,
+    hoursSaved: 0,
   })
+  const [recentAssessments, setRecentAssessments] = useState<AssessmentRow[]>([])
 
   useEffect(() => {
-    const loadStats = async () => {
+    async function loadDashboard() {
       try {
         const supabase = createClient()
         const {
@@ -41,277 +85,317 @@ export default function DashboardPage() {
         } = await supabase.auth.getUser()
 
         if (!user) {
-          setStats({
-            totalAssessments: 0,
-            completedReports: 0,
-            inProgress: 0,
-            timeSaved: 0,
-          })
+          router.push("/login")
           return
         }
 
-        const { data, error } = await supabase.from("assessments").select("status").eq("user_id", user.id)
+        // Fetch profile for name
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .single()
+
+        if (profile?.full_name) {
+          setFirstName(profile.full_name.split(" ")[0])
+        }
+
+        // Fetch assessments
+        const { data, error } = await supabase
+          .from("assessments")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
 
         if (error) {
-          console.error("[v0] Error loading stats:", error)
+          console.error("Error loading assessments:", error)
+          setLoading(false)
           return
         }
 
         const assessments = data || []
-        setStats({
-          totalAssessments: assessments.length,
-          completedReports: assessments.filter((a) => a.status === "complete").length,
-          inProgress: assessments.filter((a) => a.status === "in_progress").length,
-          timeSaved: assessments.length * 45,
+
+        // Compute stats
+        const total = assessments.length
+        const inProgress = assessments.filter((a: any) => a.status === "in_progress").length
+        const completed = assessments.filter((a: any) => a.status === "complete").length
+        const hoursSaved = Math.round((total * 45) / 60)
+
+        setStats({ total, inProgress, completed, hoursSaved })
+
+        // Map recent 5 to table rows
+        const recent: AssessmentRow[] = assessments.slice(0, 5).map((item: any) => {
+          const clientInfo = item.data?.client_info || item.data?.clientInformation
+          const fName =
+            clientInfo?.firstName ||
+            clientInfo?.first_name ||
+            clientInfo?.client_first_name
+          const lName =
+            clientInfo?.lastName ||
+            clientInfo?.last_name ||
+            clientInfo?.client_last_name
+          const clientName =
+            fName && lName
+              ? `${fName} ${lName}`
+              : fName || item.title || "Unnamed Client"
+
+          // Determine type based on assessment data
+          const isReassessment =
+            item.type === "reassessment" ||
+            item.data?.assessment_type === "reassessment" ||
+            !!item.data?.previous_assessment_id
+
+          return {
+            id: item.id,
+            clientName,
+            type: isReassessment ? "reassessment" : "initial",
+            status: item.status || "draft",
+            updatedAt: item.updated_at || item.created_at,
+          }
         })
-      } catch (e) {
-        console.error("[v0] Error loading stats:", e)
+
+        setRecentAssessments(recent)
+        setLoading(false)
+      } catch (err) {
+        console.error("Dashboard error:", err)
+        setLoading(false)
       }
     }
 
-    loadStats()
-  }, [])
+    loadDashboard()
+  }, [router])
 
-  const handleTryDemo = () => {
-    loadDemoData()
-    router.push("/assessment/initial/new")
-  }
-
-  const handleNewInitialAssessment = () => {
+  const handleNewInitial = () => {
     clearAssessmentCache()
-    console.log("[v0] Starting new initial assessment with clean slate")
     router.push("/assessment/initial/new")
   }
 
   const handleNewReassessment = () => {
     clearAssessmentCache()
-    console.log("[v0] Starting new reassessment with clean slate")
     router.push("/assessment/reassessment/new")
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
-      <TrialBanner />
-      <TrialExpiredModal />
+  const statCards = [
+    {
+      label: "Total Assessments",
+      value: stats.total,
+      icon: FileText,
+    },
+    {
+      label: "In Progress",
+      value: stats.inProgress,
+      icon: Clock,
+    },
+    {
+      label: "Completed",
+      value: stats.completed,
+      icon: CheckCircle2,
+    },
+    {
+      label: "Hours Saved",
+      value: stats.hoursSaved,
+      icon: Timer,
+    },
+  ]
 
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">Welcome back to ARIA</h1>
-          <p className="text-gray-600 dark:text-gray-400">Your AI-powered ABA reporting assistant</p>
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Greeting skeleton */}
+        <div className="mb-10">
+          <Skeleton className="h-9 w-72 mb-2" />
+          <Skeleton className="h-5 w-56" />
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          <Card className="border-teal-200 dark:border-teal-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Assessments</CardTitle>
-              <FileTextIcon className="h-4 w-4 text-teal-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-teal-600">{stats.totalAssessments}</div>
-              <p className="text-xs text-muted-foreground mt-1">All time</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-green-200 dark:border-green-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed Reports</CardTitle>
-              <CheckCircleIcon className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.completedReports}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats.completedReports === 0 && stats.totalAssessments > 0
-                  ? "Generate a report from any assessment to see it here"
-                  : "Ready for review"}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-amber-200 dark:border-amber-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-              <ClockIcon className="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-600">{stats.inProgress}</div>
-              <p className="text-xs text-muted-foreground mt-1">Active assessments</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-purple-200 dark:border-purple-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Time Saved</CardTitle>
-              <ClockIcon className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{stats.timeSaved} min</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats.timeSaved === 0
-                  ? "Complete your first report to start tracking time saved"
-                  : "Automated with AI"}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Onboarding Checklist for new users */}
-        <OnboardingChecklist stats={stats} />
-
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Start New Assessment</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-            {/* Initial Assessment Card */}
-            <Card
-              onClick={handleNewInitialAssessment}
-              className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-teal-500 hover:scale-[1.02] h-full"
-            >
-              <CardHeader>
-                <div className="h-14 w-14 bg-gradient-to-br from-teal-100 to-teal-200 rounded-xl flex items-center justify-center mb-4 shadow-sm">
-                  <UserPlusIcon className="h-7 w-7 text-teal-600" />
-                </div>
-                <CardTitle className="text-xl text-teal-700">Initial Assessment</CardTitle>
-                <CardDescription className="text-base">
-                  Comprehensive first-time evaluation for new clients
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-sm text-gray-600">
-                  <li className="flex items-center gap-3">
-                    <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
-                      <CheckCircleIcon className="h-3 w-3 text-teal-600" />
-                    </div>
-                    Complete diagnostic evaluation
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
-                      <CheckCircleIcon className="h-3 w-3 text-teal-600" />
-                    </div>
-                    Baseline skill assessment
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <div className="h-5 w-5 rounded-full bg-teal-100 flex items-center justify-center">
-                      <CheckCircleIcon className="h-3 w-3 text-teal-600" />
-                    </div>
-                    Initial treatment plan
-                  </li>
-                </ul>
-                <div className="flex justify-between items-center mt-6 pt-4 border-t border-teal-100">
-                  <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-1 rounded">NEW CLIENT</span>
-                  <span className="text-sm font-semibold text-teal-600 flex items-center gap-1">
-                    First Evaluation
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Reassessment Card */}
-            <Card
-              onClick={handleNewReassessment}
-              className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-orange-500 hover:scale-[1.02] h-full"
-            >
-              <CardHeader>
-                <div className="h-14 w-14 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center mb-4 shadow-sm">
-                  <RefreshCwIcon className="h-7 w-7 text-orange-600" />
-                </div>
-                <CardTitle className="text-xl text-orange-600">Reassessment</CardTitle>
-                <CardDescription className="text-base">
-                  Periodic review to measure progress and update treatment
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-sm text-gray-600">
-                  <li className="flex items-center gap-3">
-                    <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
-                      <TrendingUpIcon className="h-3 w-3 text-orange-600" />
-                    </div>
-                    Progress analysis & comparison
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
-                      <TargetIcon className="h-3 w-3 text-orange-600" />
-                    </div>
-                    Goal achievement review
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
-                      <FileCheckIcon className="h-3 w-3 text-orange-600" />
-                    </div>
-                    Authorization renewal
-                  </li>
-                </ul>
-                <div className="flex justify-between items-center mt-6 pt-4 border-t border-orange-100">
-                  <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                    EXISTING CLIENT
-                  </span>
-                  <span className="text-sm font-semibold text-orange-600 flex items-center gap-1">
-                    6-Month Review
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Access your recent work</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Link href="/assessments">
-                <Button variant="outline" className="w-full bg-transparent">
-                  View All Assessments
-                </Button>
-              </Link>
-              <Link href="/assessment/initial/new">
-                <Button
-                  variant="outline"
-                  className="w-full bg-transparent border-teal-200 text-teal-700 hover:bg-teal-50"
-                >
-                  Continue Initial
-                </Button>
-              </Link>
-              <Link href="/assessment/reassessment/new">
-                <Button
-                  variant="outline"
-                  className="w-full bg-transparent border-orange-200 text-orange-700 hover:bg-orange-50"
-                >
-                  Continue Reassessment
-                </Button>
-              </Link>
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-100 shadow-sm p-5">
+              <Skeleton className="h-4 w-24 mb-3" />
+              <Skeleton className="h-8 w-16" />
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
 
-        {/* Info Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Getting Started</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              Welcome to ARIA, your AI-powered ABA reporting assistant. Choose an assessment type above to get started.
+        {/* Table skeleton */}
+        <div className="bg-white rounded-lg border border-gray-100 shadow-sm p-6">
+          <Skeleton className="h-6 w-48 mb-4" />
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full mb-2" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {/* Hero / Greeting */}
+      <div className="mb-10">
+        <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">
+          {getGreeting()}, {firstName || "there"}
+        </h1>
+        <p className="text-gray-500 mt-1">{getFormattedDate()}</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        {statCards.map((card) => {
+          const Icon = card.icon
+          return (
+            <div
+              key={card.label}
+              className="bg-white rounded-lg border border-gray-100 shadow-sm p-5"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-9 w-9 rounded-full bg-teal-50 flex items-center justify-center">
+                  <Icon className="h-4 w-4 text-teal-600" />
+                </div>
+                <span className="text-sm text-gray-500">{card.label}</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Recent Assessments Table */}
+      <div className="bg-white rounded-lg border border-gray-100 shadow-sm mb-10">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
+          <h2 className="text-base font-semibold text-gray-900">Recent Assessments</h2>
+          <Link
+            href="/assessments"
+            className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
+          >
+            View All
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {recentAssessments.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <FileText className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-500 mb-1">No assessments yet</p>
+            <p className="text-xs text-gray-400">
+              Create your first assessment to get started
             </p>
-            <ul className="list-disc list-inside space-y-1 mt-2">
-              <li>
-                <strong>Initial Assessment:</strong> For new clients requiring comprehensive evaluation
-              </li>
-              <li>
-                <strong>Reassessment:</strong> For existing clients at 6-month review periods
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">
+                  Client Name
+                </TableHead>
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">
+                  Type
+                </TableHead>
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">
+                  Status
+                </TableHead>
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">
+                  Last Updated
+                </TableHead>
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider text-right">
+                  Action
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentAssessments.map((assessment) => (
+                <TableRow key={assessment.id} className="group">
+                  <TableCell className="font-medium text-gray-900">
+                    {assessment.clientName}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={
+                        assessment.type === "initial"
+                          ? "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-teal-50 text-teal-700"
+                          : "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700"
+                      }
+                    >
+                      {assessment.type === "initial" ? "Initial" : "Reassessment"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={
+                        assessment.status === "complete"
+                          ? "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700"
+                          : assessment.status === "in_progress"
+                            ? "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700"
+                            : "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600"
+                      }
+                    >
+                      {assessment.status === "complete"
+                        ? "Complete"
+                        : assessment.status === "in_progress"
+                          ? "In Progress"
+                          : "Draft"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-gray-500 text-sm">
+                    {formatRelativeDate(assessment.updatedAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Link
+                      href={`/assessment/new?id=${assessment.id}`}
+                      className="text-gray-400 group-hover:text-teal-600 transition-colors"
+                    >
+                      <ArrowRight className="h-4 w-4 inline-block" />
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+
+      {/* Quick Start */}
+      <div className="mb-10">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">Quick Start</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <button
+            onClick={handleNewInitial}
+            className="bg-white rounded-lg border border-gray-100 shadow-sm p-5 text-left hover:border-teal-200 hover:shadow-md transition-all group"
+          >
+            <div className="h-9 w-9 rounded-full bg-teal-50 flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors">
+              <UserPlus className="h-4 w-4 text-teal-600" />
+            </div>
+            <p className="text-sm font-semibold text-gray-900">New Initial Assessment</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Comprehensive evaluation for new clients
+            </p>
+          </button>
+
+          <button
+            onClick={handleNewReassessment}
+            className="bg-white rounded-lg border border-gray-100 shadow-sm p-5 text-left hover:border-teal-200 hover:shadow-md transition-all group"
+          >
+            <div className="h-9 w-9 rounded-full bg-teal-50 flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors">
+              <RefreshCw className="h-4 w-4 text-teal-600" />
+            </div>
+            <p className="text-sm font-semibold text-gray-900">New Reassessment</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Periodic review for existing clients
+            </p>
+          </button>
+
+          <Link
+            href="/goals"
+            className="bg-white rounded-lg border border-gray-100 shadow-sm p-5 text-left hover:border-teal-200 hover:shadow-md transition-all group"
+          >
+            <div className="h-9 w-9 rounded-full bg-teal-50 flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors">
+              <BookOpen className="h-4 w-4 text-teal-600" />
+            </div>
+            <p className="text-sm font-semibold text-gray-900">Browse Goal Bank</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Find and select treatment goals
+            </p>
+          </Link>
+        </div>
       </div>
     </div>
   )
