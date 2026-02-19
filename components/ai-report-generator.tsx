@@ -44,6 +44,7 @@ import Link from "next/link"
 // import { sampleAssessmentData } from "@/lib/sample-data/sample-data"
 import { safeGetItem } from "@/lib/safe-storage"
 import { saveContentForLearning } from "@/lib/learning-system"
+import { createClient } from "@/lib/supabase/client"
 import { ReportReadinessCheck } from "@/components/report-readiness-check"
 import { GenerationProgress } from "@/components/generation-progress"
 import { PostGenerationSummary } from "@/components/post-generation-summary"
@@ -186,6 +187,18 @@ interface AssessmentData {
   dischargeCriteria?: string
   crisisPlan?: string
   medicalNecessity?: string
+  // Standardized assessment instruments
+  standardizedAssessments?: unknown
+  ablls?: unknown
+  vinelandParent?: unknown
+  vinelandTeacher?: unknown
+  srs2?: unknown
+  mas?: unknown
+  // Additional section data
+  parentTrainingData?: unknown
+  fadePlan?: unknown
+  barriers?: unknown
+  generalization?: unknown
 }
 
 const loadGoalsTrackerData = () => {
@@ -740,6 +753,21 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
     const standardizedAssessments = safeParseAndExtract("aria-standardized-assessments")
     const cptAuthorization = safeParseAndExtract("aria-cpt-authorization")
 
+    // Load individual standardized instruments
+    const ablls = safeParseAndExtract("aria-ablls-r")
+    const vinelandParent = safeParseAndExtract("aria-vineland-parent")
+    const vinelandTeacher = safeParseAndExtract("aria-vineland-teacher")
+    const srs2 = safeParseAndExtract("aria-srs2")
+    const mas = safeParseAndExtract("aria-mas")
+
+    // Load additional section-specific data
+    const parentTrainingData =
+      safeParseAndExtract("aria-parent-training-data") ||
+      safeParseAndExtract("aria-assessment-parent-training")
+    const fadePlan = safeParseAndExtract("aria-fade-plan")
+    const barriers = safeParseAndExtract("aria-barriers")
+    const generalization = safeParseAndExtract("aria-generalization")
+
     // Build client_info in the format expected by the report
     const assembledData = {
       client_info: clientInfo
@@ -768,6 +796,15 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
       goals: goals,
       standardized_assessments: standardizedAssessments,
       cpt_authorization: cptAuthorization,
+      ablls,
+      vineland_parent: vinelandParent,
+      vineland_teacher: vinelandTeacher,
+      srs2,
+      mas,
+      parent_training_data: parentTrainingData,
+      fade_plan: fadePlan,
+      barriers,
+      generalization,
     }
 
     console.log("[v0] Assembled assessment data:", assembledData)
@@ -854,6 +891,18 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
           parentTrainingHours: loadedData.cpt_authorization.familyTrainingHours || 0,
           setting: loadedData.cpt_authorization.primaryLocation || "Home/Community",
         } : undefined,
+        // Individual standardized instruments
+        standardizedAssessments: loadedData?.standardized_assessments || null,
+        ablls: loadedData?.ablls || null,
+        vinelandParent: loadedData?.vineland_parent || null,
+        vinelandTeacher: loadedData?.vineland_teacher || null,
+        srs2: loadedData?.srs2 || null,
+        mas: loadedData?.mas || null,
+        // Additional section data
+        parentTrainingData: loadedData?.parent_training_data || null,
+        fadePlan: loadedData?.fade_plan || null,
+        barriers: loadedData?.barriers || null,
+        generalization: loadedData?.generalization || null,
       }
 
       console.log("[v0] Final assembled user data:", userData)
@@ -1277,21 +1326,19 @@ IMPORTANT: Always refer to the client as "${firstName}", never as "the client".`
 
       // Prompt for new section: Standardized Assessment Results
       standardized_assessments: (() => {
-        // Load all standardized assessment data from localStorage
-        const ablls = JSON.parse(localStorage.getItem("aria-ablls-r") || "null")
-        const vinelandParent = JSON.parse(localStorage.getItem("aria-vineland-parent") || "null")
-        const vinelandTeacher = JSON.parse(localStorage.getItem("aria-vineland-teacher") || "null")
-        const srs2 = JSON.parse(localStorage.getItem("aria-srs2") || "null")
-        const mas = JSON.parse(localStorage.getItem("aria-mas") || "null")
-
-        // Also try alternative keys
-        const standardizedData = JSON.parse(localStorage.getItem("aria-standardized-assessments") || "null")
+        // Use assessment data already loaded into state
+        const ablls = data.ablls
+        const vinelandParent = data.vinelandParent
+        const vinelandTeacher = data.vinelandTeacher
+        const srs2 = data.srs2
+        const mas = data.mas
+        const standardizedData = data.standardizedAssessments
 
         let assessmentDataStr = ""
 
         if (standardizedData) {
           assessmentDataStr = `
-STANDARDIZED ASSESSMENT DATA FROM STORAGE:
+STANDARDIZED ASSESSMENT DATA:
 ${JSON.stringify(standardizedData, null, 2)}`
         }
 
@@ -2052,23 +2099,14 @@ IMPORTANT: Reference ${firstName} by name throughout, never as "the client".`,
       parent_training_progress: (() => {
         console.log("[v0] Loading parent training data for report...")
 
-        // Try primary key first
-        let trainingDataStr = localStorage.getItem("aria-parent-training-data")
-        console.log("[v0] Data from aria-parent-training-data:", trainingDataStr ? "Found" : "Not found")
+        const trainingData = data.parentTrainingData as Record<string, unknown> | null
 
-        // Try alternative key if primary doesn't exist
-        if (!trainingDataStr) {
-          trainingDataStr = localStorage.getItem("aria-assessment-parent-training")
-          console.log("[v0] Data from aria-assessment-parent-training:", trainingDataStr ? "Found" : "Not found")
-        }
-
-        if (!trainingDataStr) {
-          console.log("[v0] No parent training data found in localStorage")
+        if (!trainingData) {
+          console.log("[v0] No parent training data found")
           return `## Parent Training Progress\n\nNo parent training data found. Please complete and save parent training modules first.`
         }
 
         try {
-          const trainingData = JSON.parse(trainingDataStr)
           console.log("[v0] Parsed parent training data:", trainingData)
 
           // The actual data structure has: modules, moduleContent, newFidelityScores
@@ -2228,12 +2266,12 @@ IMPORTANT: Always use "${firstName}" - never "the client" or "the individual".`,
 
       // Prompts for new sections: Fade Plan, Barriers, Generalization
       fade_plan: (() => {
-        const fadePlanData = JSON.parse(localStorage.getItem("aria-fade-plan") || "null")
+        const fadePlanData = data.fadePlan
 
         let fadeDataStr = ""
         if (fadePlanData) {
           fadeDataStr = `
-FADE PLAN DATA FROM STORAGE:
+FADE PLAN DATA:
 ${JSON.stringify(fadePlanData, null, 2)}`
         }
 
@@ -2288,12 +2326,12 @@ Write in professional clinical language, approximately 300-400 words.`
       })(),
 
       barriers_treatment: (() => {
-        const barriersData = JSON.parse(localStorage.getItem("aria-barriers") || "null")
+        const barriersData = data.barriers
 
         let barriersStr = ""
         if (barriersData) {
           barriersStr = `
-BARRIERS DATA FROM STORAGE:
+BARRIERS DATA:
 ${JSON.stringify(barriersData, null, 2)}`
         }
 
@@ -2350,12 +2388,12 @@ Write in professional clinical language, approximately 200-300 words.`
       })(),
 
       generalization_maintenance: (() => {
-        const generalizationData = JSON.parse(localStorage.getItem("aria-generalization") || "null")
+        const generalizationData = data.generalization
 
         let genStr = ""
         if (generalizationData) {
           genStr = `
-GENERALIZATION DATA FROM STORAGE:
+GENERALIZATION DATA:
 ${JSON.stringify(generalizationData, null, 2)}`
         }
 
@@ -3794,6 +3832,40 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
           }
         }),
       )
+
+      // Persist to Supabase if we have an assessment ID (fire-and-forget)
+      const assessmentId = new URLSearchParams(window.location.search).get("id")
+      if (assessmentId) {
+        const supabase = createClient()
+        supabase
+          .from("assessments")
+          .select("data")
+          .eq("id", assessmentId)
+          .single()
+          .then(({ data: row }) => {
+            if (!row) return
+            const existing = (row.data as Record<string, unknown>) || {}
+            const reportSections = (existing.report_sections as Record<string, unknown>) || {}
+            const prev = (reportSections[sectionId] as Record<string, string>) || {}
+            reportSections[sectionId] = {
+              content: action === "append" ? ((prev.content || "") + "\n\n" + content) : content,
+              status: "complete",
+              updated_at: new Date().toISOString(),
+            }
+            return supabase
+              .from("assessments")
+              .update({
+                data: { ...existing, report_sections: reportSections },
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", assessmentId)
+          })
+          .then((result) => {
+            if (result && "error" in result && result.error) {
+              console.error("[aria] Failed to persist section update:", result.error)
+            }
+          })
+      }
     },
     [],
   )

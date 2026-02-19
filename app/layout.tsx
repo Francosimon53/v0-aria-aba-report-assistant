@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { ToastProvider } from "@/components/ui/premium-toast"
 import { ToastBridge } from "@/components/ui/toast-bridge"
 import { AriaHelpChat } from "@/components/aria-help-chat"
+import { AriaMCPProvider } from "@/lib/mcp/aria-mcp-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -25,7 +26,9 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`}>
         <ToastProvider>
           <ToastBridge />
-          {children}
+          <AriaMCPProvider>
+            {children}
+          </AriaMCPProvider>
           <Toaster />
           <AriaHelpChat />
         </ToastProvider>
