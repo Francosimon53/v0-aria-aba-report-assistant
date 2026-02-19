@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useRef, forwardRef, useImperativeHandle, useEffect } from "react"
+import { useMemo, useState, useRef, forwardRef, useImperativeHandle, useEffect, useCallback } from "react"
 import type React from "react"
 import {
   FileText,
@@ -47,6 +47,7 @@ import { saveContentForLearning } from "@/lib/learning-system"
 import { ReportReadinessCheck } from "@/components/report-readiness-check"
 import { GenerationProgress } from "@/components/generation-progress"
 import { PostGenerationSummary } from "@/components/post-generation-summary"
+import { ReportChatPanel } from "@/components/report-chat-panel"
 
 // Remove the duplicate React import
 // import type React from "react"
@@ -672,6 +673,8 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
   const [generationStartTime, setGenerationStartTime] = useState<number | null>(null)
   const [generationElapsed, setGenerationElapsed] = useState(0)
 
+  const [highlightedSection, setHighlightedSection] = useState<string | null>(null)
+  const [chatPanelOpen, setChatPanelOpen] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
   // Helper function to safely parse JSON from localStorage
@@ -3777,6 +3780,45 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
     setSavingToLearning(false) // Reset learning state
   }
 
+  // Chat panel handlers
+  const handleChatSectionUpdate = useCallback(
+    (sectionId: string, content: string, action: "replace" | "append") => {
+      setSections((prev) =>
+        prev.map((s) => {
+          if (s.id !== sectionId) return s
+          return {
+            ...s,
+            content: action === "append" ? s.content + "\n\n" + content : content,
+            status: "complete" as const,
+            generated: true,
+          }
+        }),
+      )
+    },
+    [],
+  )
+
+  const handleHighlightSection = useCallback(
+    (sectionId: string) => {
+      setHighlightedSection(sectionId)
+      setExpandedSection(sectionId)
+
+      // Scroll to section
+      setTimeout(() => {
+        const el = document.getElementById(`section-${sectionId}`)
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" })
+        }
+      }, 100)
+
+      // Clear highlight after animation
+      setTimeout(() => {
+        setHighlightedSection(null)
+      }, 2000)
+    },
+    [],
+  )
+
   useImperativeHandle(
     ref,
     () => ({
@@ -4130,12 +4172,13 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
 
             return (
               <div
+                id={`section-${section.id}`}
                 key={section.id}
                 className={`bg-white rounded-xl border overflow-hidden transition-all duration-300 ${
                   isExpanded
                     ? "border-[#0D9488] shadow-lg ring-1 ring-[#0D9488]/20"
                     : "border-gray-200 hover:border-gray-300 hover:shadow-md"
-                }`}
+                } ${highlightedSection === section.id ? "animate-section-highlight" : ""}`}
               >
                 {/* Section Header - clickable card style */}
                 <div
@@ -4522,6 +4565,14 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
           </div>
         </div>
       )}
+
+      {/* Report Chat Panel */}
+      <ReportChatPanel
+        assessmentData={assessmentData}
+        sections={sections}
+        onSectionUpdate={handleChatSectionUpdate}
+        onHighlightSection={handleHighlightSection}
+      />
     </div>
   )
 })

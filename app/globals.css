@@ -573,3 +573,14 @@
 .ProseMirror u {
   @apply underline;
 }
+
+/* Report section highlight animation */
+@keyframes section-highlight {
+  0%   { box-shadow: 0 0 0 0 oklch(0.55 0.14 175 / 0.4); }
+  50%  { box-shadow: 0 0 0 6px oklch(0.55 0.14 175 / 0.15); }
+  100% { box-shadow: 0 0 0 0 oklch(0.55 0.14 175 / 0); }
+}
+
+.animate-section-highlight {
+  animation: section-highlight 1s ease-in-out 2;
+}
