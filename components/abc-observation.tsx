@@ -672,7 +672,7 @@ export function ABCObservation({ onSave }: ABCObservationProps) {
       </div>
 
       <div className="flex justify-end gap-3 pt-6 border-t">
-        <Button onClick={onSave} className="gap-2 bg-[#0D9488] hover:bg-[#0F766E]">
+        <Button onClick={onSave} size="lg" className="gap-2 bg-[#0D9488] hover:bg-[#0F766E]">
           Save & Continue
           <ArrowRightIcon className="h-4 w-4" />
         </Button>

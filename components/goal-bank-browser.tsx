@@ -638,7 +638,7 @@ export function GoalBankBrowser({ onGoalSelect, onGoalRemove, selectedGoals = []
                 ? `${selectedGoals?.length} goal${(selectedGoals?.length ?? 0) !== 1 ? "s" : ""} selected`
                 : "No goals selected yet"}
             </p>
-            <Button onClick={onSave} className="gap-2 bg-[#0D9488] hover:bg-[#0F766E]">
+            <Button onClick={onSave} size="lg" className="gap-2 bg-[#0D9488] hover:bg-[#0F766E]">
               Save & Continue
               <ChevronRightIcon className="h-4 w-4" />
             </Button>
