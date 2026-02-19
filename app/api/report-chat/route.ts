@@ -125,17 +125,18 @@ INSTRUCTIONS:
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
-      const response = await client.messages.create({
+      const response = client.messages.stream({
         model: "claude-sonnet-4-20250514",
         max_tokens: 2000,
         system: systemPrompt,
         messages,
         tools: [TOOL_DEFINITION],
-        stream: true,
       })
 
       let currentTextId = ""
       let currentToolCallId = ""
+      let currentToolName = ""
+      let currentToolJson = ""
       let textIdCounter = 0
 
       for await (const event of response) {
@@ -147,6 +148,8 @@ INSTRUCTIONS:
               writer.write({ type: "text-start", id: currentTextId })
             } else if (block.type === "tool_use") {
               currentToolCallId = block.id
+              currentToolName = block.name
+              currentToolJson = ""
               writer.write({
                 type: "tool-input-start",
                 toolCallId: block.id,
@@ -162,6 +165,7 @@ INSTRUCTIONS:
             if (delta.type === "text_delta") {
               writer.write({ type: "text-delta", id: currentTextId, delta: delta.text })
             } else if (delta.type === "input_json_delta") {
+              currentToolJson += delta.partial_json
               writer.write({
                 type: "tool-input-delta",
                 toolCallId: currentToolCallId,
@@ -176,7 +180,23 @@ INSTRUCTIONS:
               writer.write({ type: "text-end", id: currentTextId })
               currentTextId = ""
             }
-            currentToolCallId = ""
+            if (currentToolCallId) {
+              try {
+                const input = JSON.parse(currentToolJson)
+                writer.write({
+                  type: "tool-input-available",
+                  toolCallId: currentToolCallId,
+                  toolName: currentToolName,
+                  input,
+                  dynamic: true,
+                })
+              } catch {
+                console.error("[report-chat] Failed to parse tool input JSON")
+              }
+              currentToolCallId = ""
+              currentToolName = ""
+              currentToolJson = ""
+            }
             break
           }
 
@@ -184,20 +204,6 @@ INSTRUCTIONS:
           case "message_delta":
           case "message_stop":
             break
-        }
-      }
-
-      // After stream ends, emit finalized tool calls from the full message
-      const finalMessage = await response.finalMessage()
-      for (const block of finalMessage.content) {
-        if (block.type === "tool_use") {
-          writer.write({
-            type: "tool-input-available",
-            toolCallId: block.id,
-            toolName: block.name,
-            input: block.input,
-            dynamic: true,
-          })
         }
       }
     },
