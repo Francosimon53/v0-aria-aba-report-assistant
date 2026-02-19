@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
-import { usePathname } from "next/navigation"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { MessageSquare, Send, Sparkles, X, ChevronLeft, Check } from "lucide-react"
@@ -61,14 +60,14 @@ export function ReportChatPanel({
   onSectionUpdate,
   onHighlightSection,
 }: ReportChatPanelProps) {
-  const pathname = usePathname()
+  const [isOpen, setIsOpen] = useState(false)
 
-  // Only render on report pages
-  const isReportPage = pathname === "/assessment/report" || pathname === "/demo/generate-report"
-
-  const [isOpen, setIsOpen] = useState(() => {
-    return sections.some((s) => s.status === "pending")
-  })
+  // Open panel on mount if there are pending sections (avoids hydration mismatch)
+  useEffect(() => {
+    if (sections.some((s) => s.status === "pending")) {
+      setIsOpen(true)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [input, setInput] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -150,8 +149,6 @@ export function ReportChatPanel({
       handleSend()
     }
   }
-
-  if (!isReportPage) return null
 
   return (
     <>
