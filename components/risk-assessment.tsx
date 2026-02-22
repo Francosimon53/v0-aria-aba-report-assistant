@@ -94,35 +94,23 @@ function RiskAssessment({ clientData, onSave }: RiskAssessmentProps) {
   }
 
   useEffect(() => {
-    const loadFromStorage = () => {
-      console.log("[ARIA] Loading Risk Assessment data from localStorage")
-      try {
-        const stored = localStorage.getItem("aria-risk-assessment")
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          const unwrapped = parsed.data !== undefined ? parsed.data : parsed
-          console.log("[ARIA] Loaded Risk Assessment data:", unwrapped)
-          if (unwrapped.riskFactors) setRiskFactors(unwrapped.riskFactors)
-          if (unwrapped.otherRisk) setOtherRisk(unwrapped.otherRisk)
-          if (unwrapped.emergencyProcedures) setEmergencyProcedures(unwrapped.emergencyProcedures)
-          if (unwrapped.lastAssessmentDate) setLastAssessmentDate(unwrapped.lastAssessmentDate)
-          if (unwrapped.nextReviewDate) setNextReviewDate(unwrapped.nextReviewDate)
-          if (unwrapped.crisisContacts) setCrisisContacts(unwrapped.crisisContacts)
-          if (unwrapped.crisisPlan) setCrisisPlan(unwrapped.crisisPlan)
-        }
-      } catch (e) {
-        console.error("[ARIA] Error loading risk assessment data:", e)
+    console.log("[ARIA] Loading Risk Assessment data from localStorage")
+    try {
+      const stored = localStorage.getItem("aria-risk-assessment")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        console.log("[ARIA] Loaded Risk Assessment data:", parsed)
+        if (parsed.riskFactors) setRiskFactors(parsed.riskFactors)
+        if (parsed.otherRisk) setOtherRisk(parsed.otherRisk)
+        if (parsed.emergencyProcedures) setEmergencyProcedures(parsed.emergencyProcedures)
+        if (parsed.lastAssessmentDate) setLastAssessmentDate(parsed.lastAssessmentDate)
+        if (parsed.nextReviewDate) setNextReviewDate(parsed.nextReviewDate)
+        if (parsed.crisisContacts) setCrisisContacts(parsed.crisisContacts)
+        if (parsed.crisisPlan) setCrisisPlan(parsed.crisisPlan)
       }
+    } catch (e) {
+      console.error("[ARIA] Error loading risk assessment data:", e)
     }
-
-    loadFromStorage()
-
-    const handleDataLoaded = () => {
-      console.log("[ARIA] RiskAssessment received aria-data-loaded event")
-      loadFromStorage()
-    }
-    window.addEventListener("aria-data-loaded", handleDataLoaded)
-    return () => window.removeEventListener("aria-data-loaded", handleDataLoaded)
   }, [])
 
   useEffect(() => {

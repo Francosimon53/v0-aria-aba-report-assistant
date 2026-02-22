@@ -121,54 +121,17 @@ export default function BackgroundHistoryForm({ clientData, onSave }: Background
 
   // Load data from localStorage on mount
   useEffect(() => {
-    const loadFromStorage = () => {
-      console.log("[ARIA] Loading Background & History data from localStorage")
-      try {
-        const stored = localStorage.getItem("aria-background-history")
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          const unwrapped = parsed.data !== undefined ? parsed.data : parsed
-          console.log("[ARIA] Loaded Background & History data:", unwrapped)
-          if (unwrapped && typeof unwrapped === "object") {
-            setData((prev) => ({
-              ...prev,
-              ...unwrapped,
-              developmentalMilestones: {
-                ...prev.developmentalMilestones,
-                ...(unwrapped.developmentalMilestones || {}),
-              },
-              educationStatus: {
-                ...prev.educationStatus,
-                ...(unwrapped.educationStatus || {}),
-              },
-              medicalHistory: {
-                ...prev.medicalHistory,
-                ...(unwrapped.medicalHistory || {}),
-              },
-              familyHistory: {
-                ...prev.familyHistory,
-                ...(unwrapped.familyHistory || {}),
-              },
-              previousTreatments: {
-                ...prev.previousTreatments,
-                ...(unwrapped.previousTreatments || {}),
-              },
-            }))
-          }
-        }
-      } catch (e) {
-        console.error("[ARIA] Error loading background history data:", e)
+    console.log("[ARIA] Loading Background & History data from localStorage")
+    try {
+      const stored = localStorage.getItem("aria-background-history")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        console.log("[ARIA] Loaded Background & History data:", parsed)
+        setData(parsed)
       }
+    } catch (e) {
+      console.error("[ARIA] Error loading background history data:", e)
     }
-
-    loadFromStorage()
-
-    const handleDataLoaded = () => {
-      console.log("[ARIA] BackgroundHistory received aria-data-loaded event")
-      loadFromStorage()
-    }
-    window.addEventListener("aria-data-loaded", handleDataLoaded)
-    return () => window.removeEventListener("aria-data-loaded", handleDataLoaded)
   }, [])
 
   // Auto-save data whenever it changes

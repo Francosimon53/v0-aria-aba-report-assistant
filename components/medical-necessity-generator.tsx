@@ -261,20 +261,17 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
     try {
       const rawClientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
       const clientInfo = rawClientInfo.data || rawClientInfo
-      const rawAbc = JSON.parse(
+      const abcObservations = JSON.parse(
         localStorage.getItem("aria-assessment-abc-observations") ||
         localStorage.getItem("aria-abc-observations") ||
         localStorage.getItem("aria-abc-observation") || "[]"
       )
-      const abcObservations = rawAbc.data || rawAbc
-      const rawGoals = JSON.parse(
+      const goals = JSON.parse(
         localStorage.getItem("aria-assessment-selected-goals") ||
         localStorage.getItem("aria-goals") ||
         localStorage.getItem("aria-goals-tracker") || "[]"
       )
-      const goals = rawGoals.data || rawGoals
-      const rawInterventions = JSON.parse(localStorage.getItem("aria-interventions") || "[]")
-      const interventions = rawInterventions.data || rawInterventions
+      const interventions = JSON.parse(localStorage.getItem("aria-interventions") || "[]")
       const rawRiskAssessment = JSON.parse(localStorage.getItem("aria-risk-assessment") || "{}")
       const riskAssessment = rawRiskAssessment.data || rawRiskAssessment
 
@@ -331,20 +328,17 @@ Generate a professional, insurance-compliant medical necessity statement (300-50
     try {
       const rawClientInfo = JSON.parse(localStorage.getItem("aria-client-info") || "{}")
       const clientInfo = rawClientInfo.data || rawClientInfo
-      const rawAbc2 = JSON.parse(
+      const abcObservations = JSON.parse(
         localStorage.getItem("aria-assessment-abc-observations") ||
         localStorage.getItem("aria-abc-observations") ||
         localStorage.getItem("aria-abc-observation") || "[]"
       )
-      const abcObservations = rawAbc2.data || rawAbc2
-      const rawGoals2 = JSON.parse(
+      const goals = JSON.parse(
         localStorage.getItem("aria-assessment-selected-goals") ||
         localStorage.getItem("aria-goals") ||
         localStorage.getItem("aria-goals-tracker") || "[]"
       )
-      const goals = rawGoals2.data || rawGoals2
-      const rawInterventions2 = JSON.parse(localStorage.getItem("aria-interventions") || "[]")
-      const interventions = rawInterventions2.data || rawInterventions2
+      const interventions = JSON.parse(localStorage.getItem("aria-interventions") || "[]")
 
       const response = await fetch("/api/smart-fill-medical-necessity", {
         method: "POST",

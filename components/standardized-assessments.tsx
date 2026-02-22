@@ -306,7 +306,7 @@ export function StandardizedAssessments({ onSave }: StandardizedAssessmentsProps
 
       const srs2 = localStorage.getItem("aria-srs2")
       if (srs2) {
-        const parsed = JSON.parse(srs2)
+        const parsed = JSON.JSON.parse(srs2)
         setSrs2Data(normalizeSrs2Data(parsed))
       }
 

@@ -74,38 +74,23 @@ export function GoalsTracker() {
   const [generatingForLTO, setGeneratingForLTO] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadFromStorage = () => {
-      const savedGoals = localStorage.getItem("aria-goals")
-      if (savedGoals) {
-        try {
-          const parsed = JSON.parse(savedGoals)
-          const unwrapped = parsed.data !== undefined ? parsed.data : parsed
-          if (unwrapped && Array.isArray(unwrapped) && unwrapped.length > 0) {
-            setLtos(unwrapped)
-            console.log("[v0] Goals loaded from localStorage:", unwrapped.length, "goals")
-          } else if (Array.isArray(parsed) && parsed.length > 0) {
-            setLtos(parsed)
-            console.log("[v0] Goals loaded from localStorage (raw array):", parsed.length, "goals")
-          } else {
-            loadDemoData()
-          }
-        } catch (e) {
-          console.error("[v0] Error loading goals from localStorage:", e)
+    const savedGoals = localStorage.getItem("aria-goals")
+    if (savedGoals) {
+      try {
+        const parsed = JSON.parse(savedGoals)
+        if (parsed && parsed.length > 0) {
+          setLtos(parsed)
+          console.log("[v0] Goals loaded from localStorage:", parsed.length, "goals")
+        } else {
           loadDemoData()
         }
-      } else {
+      } catch (e) {
+        console.error("[v0] Error loading goals from localStorage:", e)
         loadDemoData()
       }
+    } else {
+      loadDemoData()
     }
-
-    loadFromStorage()
-
-    const handleDataLoaded = () => {
-      console.log("[v0] GoalsTracker received aria-data-loaded event")
-      loadFromStorage()
-    }
-    window.addEventListener("aria-data-loaded", handleDataLoaded)
-    return () => window.removeEventListener("aria-data-loaded", handleDataLoaded)
   }, [])
 
   useEffect(() => {
