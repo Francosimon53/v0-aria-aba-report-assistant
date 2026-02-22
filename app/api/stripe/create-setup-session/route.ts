@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request) {
@@ -11,11 +11,11 @@ export async function POST(request: Request) {
     }
 
     // Create or get Stripe customer
-    const customers = await stripe.customers.list({ email, limit: 1 })
+    const customers = await getStripe().customers.list({ email, limit: 1 })
     let customer = customers.data[0]
 
     if (!customer) {
-      customer = await stripe.customers.create({
+      customer = await getStripe().customers.create({
         email,
         metadata: { userId },
       })
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
     // Create setup session (captures card without charging)
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customer.id,
       mode: "setup",
       payment_method_types: ["card"],

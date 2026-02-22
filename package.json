@@ -13,12 +13,9 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "3.0.1",
-    "@ai-sdk/react": "2.0.104",
     "@anthropic-ai/sdk": "0.71.2",
     "@hookform/resolvers": "^3.10.0",
     "@jest/globals": "30.2.0",
-    "@mcp-b/global": "^1.5.0",
-    "@mcp-b/react-webmcp": "^1.1.1",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",

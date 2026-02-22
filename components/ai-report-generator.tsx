@@ -48,7 +48,6 @@ import { createClient } from "@/lib/supabase/client"
 import { ReportReadinessCheck } from "@/components/report-readiness-check"
 import { GenerationProgress } from "@/components/generation-progress"
 import { PostGenerationSummary } from "@/components/post-generation-summary"
-import { ReportChatPanel } from "@/components/report-chat-panel"
 
 // Remove the duplicate React import
 // import type React from "react"
@@ -687,7 +686,6 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
   const [generationElapsed, setGenerationElapsed] = useState(0)
 
   const [highlightedSection, setHighlightedSection] = useState<string | null>(null)
-  const [chatPanelOpen, setChatPanelOpen] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
   // Helper function to safely parse JSON from localStorage
@@ -3818,78 +3816,6 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
     setSavingToLearning(false) // Reset learning state
   }
 
-  // Chat panel handlers
-  const handleChatSectionUpdate = useCallback(
-    (sectionId: string, content: string, action: "replace" | "append") => {
-      setSections((prev) =>
-        prev.map((s) => {
-          if (s.id !== sectionId) return s
-          return {
-            ...s,
-            content: action === "append" ? s.content + "\n\n" + content : content,
-            status: "complete" as const,
-            generated: true,
-          }
-        }),
-      )
-
-      // Persist to Supabase if we have an assessment ID (fire-and-forget)
-      const assessmentId = new URLSearchParams(window.location.search).get("id")
-      if (assessmentId) {
-        const supabase = createClient()
-        supabase
-          .from("assessments")
-          .select("data")
-          .eq("id", assessmentId)
-          .single()
-          .then(({ data: row }) => {
-            if (!row) return
-            const existing = (row.data as Record<string, unknown>) || {}
-            const reportSections = (existing.report_sections as Record<string, unknown>) || {}
-            const prev = (reportSections[sectionId] as Record<string, string>) || {}
-            reportSections[sectionId] = {
-              content: action === "append" ? ((prev.content || "") + "\n\n" + content) : content,
-              status: "complete",
-              updated_at: new Date().toISOString(),
-            }
-            return supabase
-              .from("assessments")
-              .update({
-                data: { ...existing, report_sections: reportSections },
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", assessmentId)
-          })
-          .then((result) => {
-            if (result && "error" in result && result.error) {
-              console.error("[aria] Failed to persist section update:", result.error)
-            }
-          })
-      }
-    },
-    [],
-  )
-
-  const handleHighlightSection = useCallback(
-    (sectionId: string) => {
-      setHighlightedSection(sectionId)
-      setExpandedSection(sectionId)
-
-      // Scroll to section
-      setTimeout(() => {
-        const el = document.getElementById(`section-${sectionId}`)
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" })
-        }
-      }, 100)
-
-      // Clear highlight after animation
-      setTimeout(() => {
-        setHighlightedSection(null)
-      }, 2000)
-    },
-    [],
-  )
 
   useImperativeHandle(
     ref,
@@ -4638,13 +4564,6 @@ IMPORTANT: Always refer to the client as "${firstName}" throughout this section.
         </div>
       )}
 
-      {/* Report Chat Panel */}
-      <ReportChatPanel
-        assessmentData={assessmentData}
-        sections={sections}
-        onSectionUpdate={handleChatSectionUpdate}
-        onHighlightSection={handleHighlightSection}
-      />
     </div>
   )
 })

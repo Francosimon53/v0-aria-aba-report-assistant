@@ -2,12 +2,11 @@ import { createClient } from "@/lib/supabase/server"
 import OpenAI from "openai"
 import type { NextRequest } from "next/server"
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 export async function POST(req: NextRequest) {
   try {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
     const { query, category, matchCount = 5, threshold = 0.7 } = await req.json()
 
     if (!query) {
