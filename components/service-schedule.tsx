@@ -125,7 +125,7 @@ export function ServiceSchedule() {
 
     try {
       // Get client info from localStorage if available
-      const clientData = localStorage.getItem("aria-client-form")
+      const clientData = localStorage.getItem("aria-client-info")
       const clientInfo = clientData ? JSON.parse(clientData) : {}
 
       const response = await fetch("/api/suggest-schedule", {

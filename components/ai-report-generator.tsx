@@ -194,6 +194,9 @@ interface AssessmentData {
   srs2?: unknown
   mas?: unknown
   // Additional section data
+  interventions?: unknown
+  teachingProtocols?: unknown
+  serviceSchedule?: unknown
   parentTrainingData?: unknown
   fadePlan?: unknown
   barriers?: unknown
@@ -758,6 +761,18 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
     const srs2 = safeParseAndExtract("aria-srs2")
     const mas = safeParseAndExtract("aria-mas")
 
+    // Load interventions, teaching protocols, and service schedule
+    const interventions =
+      safeParseAndExtract("aria-assessment-selected-interventions") ||
+      safeParseAndExtract("aria-selected-interventions") ||
+      safeParseAndExtract("aria-interventions")
+    const teachingProtocols =
+      safeParseAndExtract("aria-teaching-protocols") ||
+      safeParseAndExtract("aria-assessment-teaching-protocols")
+    const serviceSchedule =
+      safeParseAndExtract("aria-service-schedule") ||
+      safeParseAndExtract("aria-assessment-service-schedule")
+
     // Load additional section-specific data
     const parentTrainingData =
       safeParseAndExtract("aria-parent-training-data") ||
@@ -799,6 +814,9 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
       vineland_teacher: vinelandTeacher,
       srs2,
       mas,
+      interventions,
+      teaching_protocols: teachingProtocols,
+      service_schedule: serviceSchedule,
       parent_training_data: parentTrainingData,
       fade_plan: fadePlan,
       barriers,
@@ -875,7 +893,7 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
         behaviors: safeParseJSON("aria-behavior-library-data") || [],
         goals: loadedData?.goals || [],
         servicePlan: safeParseJSON("aria-service-plan") || {},
-        medicalNecessity: safeParseJSON("aria_medical_necessity") || {},
+        medicalNecessity: safeParseJSON("aria-medical-necessity") || {},
         riskAssessment: {
           extinctionBurst: loadedData?.risk_assessment?.extinctionBurst || "",
           safetyProtocols: loadedData?.risk_assessment?.safetyProtocols || "",
@@ -897,6 +915,9 @@ export const AIReportGenerator = forwardRef<AIReportGeneratorHandle, AIReportGen
         srs2: loadedData?.srs2 || null,
         mas: loadedData?.mas || null,
         // Additional section data
+        interventions: loadedData?.interventions || null,
+        teachingProtocols: loadedData?.teaching_protocols || null,
+        serviceSchedule: loadedData?.service_schedule || null,
         parentTrainingData: loadedData?.parent_training_data || null,
         fadePlan: loadedData?.fade_plan || null,
         barriers: loadedData?.barriers || null,
