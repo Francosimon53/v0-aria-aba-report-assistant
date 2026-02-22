@@ -1,13 +1,15 @@
 "use client"
 
-import { Dashboard } from "@/components/dashboard"
+import { ChatInterface } from "@/components/chat-interface"
 import { Navbar } from "@/components/navbar"
 
 export default function ChatPage() {
   return (
-    <>
+    <div className="flex flex-col h-screen">
       <Navbar />
-      <Dashboard />
-    </>
+      <div className="flex-1 overflow-hidden">
+        <ChatInterface />
+      </div>
+    </div>
   )
 }
