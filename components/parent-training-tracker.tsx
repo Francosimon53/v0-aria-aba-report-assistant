@@ -169,19 +169,31 @@ export function ParentTrainingTracker() {
   const { toast } = useToast()
 
   useEffect(() => {
-    try {
-      const savedData = localStorage.getItem("aria-parent-training-data")
-      if (savedData) {
-        const parsed = JSON.parse(savedData)
-        if (parsed.modules) setModules(parsed.modules)
-        if (parsed.moduleContent) setModuleContent(parsed.moduleContent)
-        if (parsed.newFidelityScores) setNewFidelityScores(parsed.newFidelityScores)
-        if (parsed.selectedModule) setSelectedModule(parsed.selectedModule)
-        console.log("[v0] Loaded parent training data from localStorage")
+    const loadFromStorage = () => {
+      try {
+        const savedData = localStorage.getItem("aria-parent-training-data")
+        if (savedData) {
+          const parsed = JSON.parse(savedData)
+          const unwrapped = parsed.data !== undefined ? parsed.data : parsed
+          if (unwrapped.modules) setModules(unwrapped.modules)
+          if (unwrapped.moduleContent) setModuleContent(unwrapped.moduleContent)
+          if (unwrapped.newFidelityScores) setNewFidelityScores(unwrapped.newFidelityScores)
+          if (unwrapped.selectedModule) setSelectedModule(unwrapped.selectedModule)
+          console.log("[v0] Loaded parent training data from localStorage")
+        }
+      } catch (e) {
+        console.error("[v0] Error loading parent training data:", e)
       }
-    } catch (e) {
-      console.error("[v0] Error loading parent training data:", e)
     }
+
+    loadFromStorage()
+
+    const handleDataLoaded = () => {
+      console.log("[v0] ParentTraining received aria-data-loaded event")
+      loadFromStorage()
+    }
+    window.addEventListener("aria-data-loaded", handleDataLoaded)
+    return () => window.removeEventListener("aria-data-loaded", handleDataLoaded)
   }, [])
 
   useEffect(() => {
